@@ -1,0 +1,15 @@
+# Spring Boot Actuator 配置
+# 用于支持配置动态刷新功能
+management:
+  endpoints:
+    web:
+      exposure:
+        # 暴露 refresh 端点，用于触发配置刷新
+        include: refresh,health,info
+  endpoint:
+    refresh:
+      enabled: true
+    health:
+      enabled: true
+      show-details: always
+

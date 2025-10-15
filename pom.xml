@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.superxiang</groupId>
+    <artifactId>npe_get_jobs</artifactId>
+    <version>v2.1.4</version>
+    <name>get_jobs</name>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.12</version>
+    </parent>
+
+    <properties>
+        <spring-ai.version>1.0.0-M6</spring-ai.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+    </properties>
+
+
+    <dependencies>
+        <!-- ========================= -->
+        <!-- Spring Boot 基础与 Web 层 -->
+        <!-- ========================= -->
+        <!-- Spring Boot 基础设施（日志、配置、校验等） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <!-- Web 支持（MVC、Jackson、Tomcat 等） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty-http</artifactId>
+        </dependency>
+
+        <!-- 嵌入式 Tomcat（通常已被 spring-boot-starter-web 间接引入，可视情况保留） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+        </dependency>
+        <!-- 数据访问：JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- ===================== -->
+        <!-- 数据库与内存数据库 -->
+        <!-- ===================== -->
+        <!-- SQLite 数据库支持 -->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.45.0.0</version>
+        </dependency>
+        <!-- SQLite Hibernate 方言支持 -->
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-community-dialects</artifactId>
+        </dependency>
+
+        <!-- ========================= -->
+        <!-- JSON/YAML 处理与序列化 -->
+        <!-- ========================= -->
+        <!-- Jackson 核心与绑定（对象与 JSON 互转） -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+        <!-- Jackson YAML 数据格式支持 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+        <!-- 读取 YAML 配置（底层解析器） -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+        </dependency>
+        <!-- 替代 org.json（Apache-2.0） -->
+        <dependency>
+            <groupId>com.github.openjson</groupId>
+            <artifactId>openjson</artifactId>
+            <version>1.0.12</version>
+        </dependency>
+
+        <!-- ================= -->
+        <!-- HTTP/网络客户端 -->
+        <!-- ================= -->
+        <!-- Apache HttpClient Fluent API（简化 HTTP 调用） -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5-fluent</artifactId>
+            <version>5.1</version>
+        </dependency>
+        <!-- OkHttp（高性能 HTTP 客户端） -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
+
+        <!-- ===================== -->
+        <!-- AI/大模型 接入能力 -->
+        <!-- ===================== -->
+        <!-- Spring AI OpenAI Starter（通过 Spring 方式接入 LLM 服务） -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
+        </dependency>
+
+        <!-- Spring Cloud Context（支持 @RefreshScope 动态刷新配置） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-context</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+        
+        <!-- Spring Boot Actuator（提供刷新端点） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- ============ -->
+        <!-- 工具与辅助 -->
+        <!-- ============ -->
+        <dependency>
+            <groupId>com.samskivert</groupId>
+            <artifactId>jmustache</artifactId>
+            <version>1.16</version>
+        </dependency>
+        <!-- 环境变量读取（支持 .env 文件） -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <!-- 注解处理：仅编译期生效，不参与打包 -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
+        </dependency>
+
+
+        <!-- ===================== -->
+        <!-- 自动化/浏览器驱动   -->
+        <!-- ===================== -->
+        <!-- Playwright（浏览器自动化/抓取/端到端测试） -->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>1.51.0</version>
+        </dependency>
+        <!--<dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webflux</artifactId>
+        </dependency>-->
+    </dependencies>
+
+    <distributionManagement>
+        <repository>
+            <id>get_jobs</id>
+            <name>get_jobs</name>
+            <url>https://maven.pkg.github.com/loks666/get_jobs</url>
+        </repository>
+    </distributionManagement>
+
+    <build>
+        <sourceDirectory>src/main/java</sourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                    <release>21</release>
+                </configuration>
+            </plugin>
+            <!-- Maven Exec Plugin -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <mainClass>getjobs.GetJobsApplication</mainClass>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.2.12</version>
+                <configuration>
+                    <mainClass>getjobs.GetJobsApplication</mainClass>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
