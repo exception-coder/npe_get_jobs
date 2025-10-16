@@ -5,27 +5,27 @@ class TaskExecutor {
 
     constructor(platform, apiPrefix, elementPrefix, configProvider, uiHelper) {
         console.log(`[${platform}] 创建 TaskExecutor 实例`);
-        
+
         this.platform = platform; // 'boss', 'job51', 'liepin', 'zhilian'
         this.apiPrefix = apiPrefix; // '/api/boss', '/api/job51', etc.
         this.elementPrefix = elementPrefix; // 'boss', 'job51', etc. 用于元素ID前缀
         this.configProvider = configProvider; // 提供getCurrentConfig()方法的对象
         this.uiHelper = uiHelper; // 提供showToast等UI方法的对象
-        
+
         this.taskStates = {
             loginTaskId: null,
             collectTaskId: null,
             filterTaskId: null,
             applyTaskId: null
         };
-        
+
         this.statusPollingInterval = null;
         this.latestTaskStatus = null;
-        
+
         // 注册实例到全局
         TaskExecutor.instances[platform] = this;
         console.log(`[${platform}] 实例已注册到全局`);
-        
+
         this.init();
     }
 
@@ -33,14 +33,14 @@ class TaskExecutor {
         console.log(`[${this.platform}] TaskExecutor 初始化开始`);
         console.log(`[${this.platform}] - apiPrefix: ${this.apiPrefix}`);
         console.log(`[${this.platform}] - elementPrefix: ${this.elementPrefix}`);
-        
+
         this.bindEvents();
-        
+
         // Boss和智联启动状态轮询，其他平台按需启动
         if (this.platform === 'boss' || this.platform === 'zhilian') {
             console.log(`[${this.platform}] 启动状态轮询`);
             this.startStatusPolling();
-            
+
             // 延迟检查登录状态并启用按钮
             setTimeout(() => {
                 console.log(`[${this.platform}] 检查初始登录状态`);
@@ -50,7 +50,7 @@ class TaskExecutor {
                 }
             }, 1000);
         }
-        
+
         console.log(`[${this.platform}] TaskExecutor 初始化完成`);
     }
 
@@ -108,13 +108,13 @@ class TaskExecutor {
 
     bindEvents() {
         console.log(`[${this.platform}] 开始绑定事件，元素前缀: ${this.elementPrefix}`);
-        
+
         // 登录按钮 - 仅用于显示登录检查结果，不绑定点击事件
         // const loginBtn = document.getElementById(this.getButtonId('login'));
         // if (loginBtn) {
         //     loginBtn.addEventListener('click', () => this.handleLogin());
         // }
-        
+
         // 采集按钮
         const collectBtnId = this.getButtonId('collect');
         const collectBtn = document.getElementById(collectBtnId);
@@ -126,7 +126,7 @@ class TaskExecutor {
             });
             console.log(`[${this.platform}] 采集按钮事件绑定成功`);
         }
-        
+
         // 过滤按钮
         const filterBtnId = this.getButtonId('filter');
         const filterBtn = document.getElementById(filterBtnId);
@@ -138,7 +138,7 @@ class TaskExecutor {
             });
             console.log(`[${this.platform}] 过滤按钮事件绑定成功`);
         }
-        
+
         // 投递按钮
         const applyBtnId = this.getButtonId('apply');
         const applyBtn = document.getElementById(applyBtnId);
@@ -150,7 +150,7 @@ class TaskExecutor {
             });
             console.log(`[${this.platform}] 投递按钮事件绑定成功`);
         }
-        
+
         console.log(`[${this.platform}] 事件绑定完成`);
     }
 
@@ -160,7 +160,7 @@ class TaskExecutor {
             this.uiHelper.showAlertModal('验证失败', '请先完善必填项');
             return;
         }
-        
+
         if ((this.platform === 'job51' || this.platform === 'zhilian') && !this.validateRequiredFields()) {
             this.uiHelper.showAlertModal('验证失败', '请先完善必填项');
             return;
@@ -168,7 +168,7 @@ class TaskExecutor {
 
         const buttonId = this.getButtonId('login');
         const statusId = this.getStatusId('login');
-        
+
         this.updateButtonState(buttonId, statusId, '执行中...', true, 'warning');
 
         try {
@@ -202,19 +202,19 @@ class TaskExecutor {
         // 所有平台都需要检查登录状态
         const loggedIn = this.isLoggedIn();
         console.log(`[${this.platform}] handleCollect 登录状态检查结果:`, loggedIn);
-        
+
         if (!loggedIn) {
             console.log(`[${this.platform}] handleCollect 登录检查失败，中止操作`);
             this.uiHelper.showAlertModal('操作提示', '请先完成登录步骤');
             return;
         }
-        
+
         console.log(`[${this.platform}] handleCollect 登录检查通过，继续执行`);
-    
+
 
         const buttonId = this.getButtonId('collect');
         const statusId = this.getStatusId('collect');
-        
+
         this.updateButtonState(buttonId, statusId, '采集中...', true, 'warning');
 
         try {
@@ -248,19 +248,19 @@ class TaskExecutor {
         // 所有平台都需要检查登录状态
         const loggedIn = this.isLoggedIn();
         console.log(`[${this.platform}] handleFilter 登录状态检查结果:`, loggedIn);
-        
+
         if (!loggedIn) {
             console.log(`[${this.platform}] handleFilter 登录检查失败，中止操作`);
             this.uiHelper.showAlertModal('操作提示', '请先完成登录步骤');
             return;
         }
-        
+
         console.log(`[${this.platform}] handleFilter 登录检查通过，继续执行`);
-    
+
 
         const buttonId = this.getButtonId('filter');
         const statusId = this.getStatusId('filter');
-        
+
         this.updateButtonState(buttonId, statusId, '过滤中...', true, 'warning');
 
         try {
@@ -297,17 +297,17 @@ class TaskExecutor {
     async handleApply() {
         console.log(`[${this.platform}] ==================== handleApply 被调用 ====================`);
         console.log(`[${this.platform}] handleApply 准备检查登录状态`);
-        
+
         // 所有平台都需要检查登录状态
         const loggedIn = this.isLoggedIn();
         console.log(`[${this.platform}] handleApply 登录状态检查结果:`, loggedIn);
-        
+
         if (!loggedIn) {
             console.error(`[${this.platform}] ✗✗✗ handleApply 登录检查失败，中止投递操作 ✗✗✗`);
             this.uiHelper.showAlertModal('操作提示', '请先完成登录步骤');
             return;
         }
-        
+
         console.log(`[${this.platform}] ✓✓✓ handleApply 登录检查通过，显示投递确认对话框 ✓✓✓`);
 
         this.uiHelper.showConfirmModal(
@@ -322,7 +322,7 @@ class TaskExecutor {
     async executeApply(enableActualDelivery) {
         const buttonId = this.getButtonId('apply');
         const statusId = this.getStatusId('apply');
-        
+
         this.updateButtonState(buttonId, statusId, '投递中...', true, 'warning');
 
         try {
@@ -363,12 +363,12 @@ class TaskExecutor {
         if (this.statusPollingInterval) {
             return; // 已经在轮询中
         }
-        
+
         console.log(`${this.getPlatformName()}: 启动任务状态轮询`);
         this.statusPollingInterval = setInterval(() => {
             this.fetchAllTaskStatus();
         }, 2000); // 每2秒轮询一次
-        
+
         // 立即执行一次
         this.fetchAllTaskStatus();
     }
@@ -387,10 +387,10 @@ class TaskExecutor {
         try {
             const response = await fetch('/api/tasks/status');
             if (!response.ok) return;
-            
+
             const result = await response.json();
             if (!result) return;
-            
+
             // 根据不同平台转换状态键名
             const platformKeyMap = {
                 'boss': {
@@ -418,28 +418,28 @@ class TaskExecutor {
                     deliver: 'LIEPIN_DELIVER'
                 }
             };
-            
+
             const keyMap = platformKeyMap[this.platform];
             if (!keyMap) return;
-            
+
             const platformStatus = {
                 login: result[keyMap.login],
                 collect: result[keyMap.collect],
                 filter: result[keyMap.filter],
                 deliver: result[keyMap.deliver]
             };
-            
+
             console.log(`${this.getPlatformName()}: 任务状态数据（转换后）:`, platformStatus);
-            
+
             // 缓存最新的任务状态
             console.log(`[${this.platform}] 准备更新 latestTaskStatus 缓存`);
             console.log(`[${this.platform}] 旧缓存:`, this.latestTaskStatus);
             this.latestTaskStatus = platformStatus;
             console.log(`[${this.platform}] 新缓存:`, this.latestTaskStatus);
             console.log(`[${this.platform}] 登录状态缓存:`, this.latestTaskStatus?.login);
-            
+
             this.updateTaskStatusUI(platformStatus);
-            
+
         } catch (error) {
             console.warn(`${this.getPlatformName()}: 查询任务状态失败:`, error);
         }
@@ -450,15 +450,15 @@ class TaskExecutor {
         if (statusData.login) {
             this.updateTaskUI('login', statusData.login);
         }
-        
+
         if (statusData.collect) {
             this.updateTaskUI('collect', statusData.collect);
         }
-        
+
         if (statusData.filter) {
             this.updateTaskUI('filter', statusData.filter);
         }
-        
+
         if (statusData.deliver) {
             this.updateTaskUI('deliver', statusData.deliver);
         }
@@ -473,22 +473,22 @@ class TaskExecutor {
             'filter': { btn: this.getButtonId('filter'), status: this.getStatusId('filter') },
             'deliver': { btn: this.getButtonId('apply'), status: this.getStatusId('apply') }
         };
-        
+
         const uiElements = buttonMap[taskType];
         if (!uiElements) return;
-        
+
         const state = taskStatus.status || taskStatus.state;
         const message = taskStatus.message || '';
-        
+
         console.log(`${this.getPlatformName()}: 更新${taskType}任务UI，状态=${state}，消息=${message}`);
-        
+
         // 同步更新 latestTaskStatus 缓存，确保 isLoggedIn() 能获取到最新状态
         if (!this.latestTaskStatus) {
             this.latestTaskStatus = {};
         }
         this.latestTaskStatus[taskType] = taskStatus;
         console.log(`${this.getPlatformName()}: 已更新 latestTaskStatus.${taskType}:`, taskStatus);
-        
+
         switch (state) {
             case 'STARTED':
             case 'RUNNING':
@@ -556,7 +556,7 @@ class TaskExecutor {
         if (button) {
             // 登录按钮始终保持禁用状态，仅用于显示登录检查结果
             const isLoginButton = buttonId === this.getButtonId('login');
-            
+
             if (isLoginButton) {
                 button.disabled = true; // 登录按钮始终禁用
             } else {
@@ -585,7 +585,7 @@ class TaskExecutor {
 
         console.log(`[${this.platform}] 按钮元素:`, button, '当前disabled状态:', button?.disabled);
         console.log(`[${this.platform}] 状态元素:`, status, '当前文本:', status?.textContent);
-        
+
         if (button) {
             // 检查按钮当前是否处于禁用状态
             // 如果按钮当前是启用状态（disabled=false），说明可能正在执行任务或已经是可用状态
@@ -594,7 +594,7 @@ class TaskExecutor {
                 console.log(`[${this.platform}] 按钮 ${buttonId} 当前已启用，跳过状态修改`);
                 return;
             }
-            
+
             button.disabled = false;
             console.log(`[${this.platform}] 按钮 ${buttonId} 已启用，新disabled状态:`, button.disabled);
         } else {
@@ -617,10 +617,12 @@ class TaskExecutor {
 
     // 检查是否已登录（基于最新的任务状态）
     isLoggedIn() {
+        console.log('当前登录状态条目:', window.loginStatusEntries);
         const loginStatus = this.latestTaskStatus?.login;
-        const state = loginStatus?.status || loginStatus?.state;
+        const currentLoginStatus = window.loginStatusEntries.find(x => x.platform === loginStatus.platform);
+        const state = currentLoginStatus?.status || currentLoginStatus?.state;
         const isSuccess = state === 'SUCCESS';
-        
+
         console.log(`[${this.platform}] isLoggedIn 检查: state=${state}, 结果=${isSuccess}`);
         return isSuccess;
     }
@@ -664,9 +666,9 @@ class TaskExecutor {
         const collectBtnId = this.getButtonId('collect');
         const filterBtnId = this.getButtonId('filter');
         const applyBtnId = this.getButtonId('apply');
-        
+
         console.log(`[${this.platform}] 将启用按钮:`, [collectBtnId, filterBtnId, applyBtnId]);
-        
+
         this.enableNextStep(collectBtnId, this.getStatusId('collect'), '可开始采集');
         this.enableNextStep(filterBtnId, this.getStatusId('filter'), '可开始过滤');
         this.enableNextStep(applyBtnId, this.getStatusId('apply'), '可开始投递');
@@ -761,7 +763,7 @@ class TaskExecutor {
 
         const platformKey = platformMap[platformEnum];
         console.log('[TaskExecutor] 平台映射结果:', { platformEnum, platformKey });
-        
+
         if (!platformKey) {
             console.warn('[TaskExecutor] 未找到平台映射:', platformEnum);
             return;
@@ -769,7 +771,7 @@ class TaskExecutor {
 
         const instance = TaskExecutor.instances[platformKey];
         console.log('[TaskExecutor] 获取实例:', { platformKey, instance, allInstances: TaskExecutor.instances });
-        
+
         if (instance) {
             console.log('[TaskExecutor] 调用实例的 enableAllNextSteps');
             instance.enableAllNextSteps();
@@ -848,11 +850,11 @@ class TaskStatusUpdater {
             };
             return bossMapping[stageId];
         }
-        
+
         // 其他平台的映射关系
         const platformPrefix = this.platforms[platform];
         if (!platformPrefix) return null;
-        
+
         const prefix = platformPrefix.toLowerCase();
         const stageMappings = {
             [`${prefix}LoginStatus`]: `${prefix}LoginBtn`,
@@ -860,11 +862,12 @@ class TaskStatusUpdater {
             [`${prefix}FilterStatus`]: `${prefix}FilterBtn`,
             [`${prefix}ApplyStatus`]: `${prefix}ApplyBtn`
         };
-        
+
         return stageMappings[stageId];
     }
 
     updateUI(statuses) {
+        window.loginStatusEntries = []; // 重置全局登录状态条目数组
         for (const key in statuses) {
             const statusInfo = statuses[key];
             const { platform, stage, status, message, count } = statusInfo;
@@ -872,6 +875,12 @@ class TaskStatusUpdater {
             const platformPrefix = this.platforms[platform];
             if (!platformPrefix) continue;
 
+            // 新增：将所有 stage === 'LOGIN' 的条目保存到全局数组，方便全局访问
+            if (stage === 'LOGIN') {
+                window.loginStatusEntries = window.loginStatusEntries || [];
+                // 保存原始数据
+                window.loginStatusEntries.push(statusInfo);
+            }
             let stageId;
             if (platform === 'BOSS_ZHIPIN') {
                 // Boss platform has a simpler ID structure
@@ -887,18 +896,18 @@ class TaskStatusUpdater {
                 if (count > 0) {
                     statusText += ` (${count})`;
                 }
-                
+
                 // 记录更新前的状态
                 console.log(`[TaskStatusUpdater] 更新前 - 元素ID: ${stageId}, 当前文本: "${statusElement.textContent}", 新文本: "${statusText}"`);
-                
+
                 // 确定新的样式类
                 let newBgClass = 'bg-light';
                 let newTextClass = 'text-dark';
-                
+
                 // 获取对应的按钮ID
                 const buttonId = this.getButtonIdForStatus(stageId, platform);
                 const buttonElement = buttonId ? document.getElementById(buttonId) : null;
-                
+
                 switch (status) {
                     case 'STARTED':
                         newBgClass = 'bg-primary';
@@ -965,12 +974,12 @@ class TaskStatusUpdater {
                         }
                         break;
                 }
-                
+
                 // 检查当前状态是否与新状态一致，避免不必要的DOM更新导致闪烁
                 const currentText = statusElement.textContent;
                 const hasCorrectBgClass = statusElement.classList.contains(newBgClass);
                 const hasCorrectTextClass = statusElement.classList.contains(newTextClass);
-                
+
                 // 如果文本和样式都已经是目标状态，直接跳过DOM更新
                 if (currentText === statusText && hasCorrectBgClass && hasCorrectTextClass) {
                     console.log(`[TaskStatusUpdater] 跳过DOM更新 - 元素ID: ${stageId}, 状态已一致: ${status}`);
@@ -982,7 +991,7 @@ class TaskStatusUpdater {
                         statusElement.classList.remove('bg-primary', 'bg-info', 'bg-success', 'bg-danger', 'bg-light', 'text-white', 'text-dark');
                         statusElement.classList.add(newBgClass, newTextClass);
                         statusElement.textContent = statusText;
-                        
+
                         console.log(`[TaskStatusUpdater] 更新后 - 元素ID: ${stageId}, 状态: ${status}, 样式: ${newBgClass} ${newTextClass}`);
                     });
                 }
@@ -991,7 +1000,7 @@ class TaskStatusUpdater {
             // 如果是LOGIN阶段，根据状态处理后续步骤的启用/禁用
             if (stage === 'LOGIN') {
                 console.log('[TaskStatusUpdater] 检测到LOGIN阶段:', { platform, stage, status });
-                
+
                 // 根据登录状态更新后续步骤按钮
                 if (window.TaskExecutor) {
                     console.log('[TaskStatusUpdater] window.TaskExecutor 存在');
