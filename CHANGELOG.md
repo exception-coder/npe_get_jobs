@@ -10,7 +10,6 @@
   - 新增详细的日志记录，输出前端缓存判定值与后端接口返回值，便于调试观察差异
   - 当检测到前后端状态不一致时，自动更新前端缓存并发出警告日志
   - 确保所有依赖登录状态的操作（采集、过滤、投递）都使用最新的登录状态
-  - 
 #### 修复 Playwright 分页点击资源异常问题
   - 修复在执行分页点击操作时出现的 `PlaywrightException: Cannot find parent object request@... to create response@...` 异常
   - 在所有 ElementLocators 的 `clickPageNumber()` 方法中新增智能重试机制
