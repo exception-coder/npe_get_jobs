@@ -283,75 +283,125 @@ public class Job51ElementLocators {
      * @return true表示点击成功，false表示未找到对应页码或点击失败
      */
     public static boolean clickPageNumber(Page page, int pageNumber) {
-        try {
-            // 首先等待分页元素出现
+        // 添加重试机制，最多重试2次
+        int maxRetries = 2;
+        Exception lastException = null;
+        
+        for (int retry = 0; retry <= maxRetries; retry++) {
             try {
-                page.waitForSelector("ul.el-pager", new Page.WaitForSelectorOptions().setTimeout(8000));
-            } catch (Exception e) {
-                log.error("等待分页元素出现超时: {}", e.getMessage());
-                return false;
-            }
-            
-            // 查找class="el-pager"的ul元素
-            var pagerElement = page.locator("ul.el-pager");
-            
-            if (pagerElement.count() == 0) {
-                log.error("未找到分页元素 ul.el-pager");
-                return false;
-            }
-
-            // 查找包含指定页码文本的li元素
-//            var pageElement = pagerElement.locator("li.number").filter(
-//                new Locator.FilterOptions().setHasText(String.valueOf(pageNumber))
-//            );
-            /**
-             * Error {
-             *   message='Error: strict mode violation: locator("ul.el-pager").locator("li.number").filter(new Locator.FilterOptions().setHasText("2")) resolved to 2 elements:
-             *     1) <li class="number">2</li> aka getByText("2", new Page.GetByTextOptions().setExact(true))
-             *     2) <li class="number">25</li> aka getByText("25", new Page.GetByTextOptions().setExact(true))
-             */
-            var pageElement = pagerElement.locator("li.number").
-                    getByText(String.valueOf(pageNumber), new Locator.GetByTextOptions().setExact(true));
-
-
-
-            if (pageElement.count() == 0) {
-                log.info("未找到页码为 {} 的分页元素，可能已到达最后一页", pageNumber);
-                return false;
-            }
-
-            // 检查元素是否已经是当前激活状态
-            var activePageElement = pagerElement.locator("li.number.active");
-            if (activePageElement.count() > 0) {
-                String activePageText = activePageElement.textContent().trim();
-                if (String.valueOf(pageNumber).equals(activePageText)) {
-                    log.info("页码 {} 已经是当前激活状态，无需点击", pageNumber);
-                    return true;
+                if (retry > 0) {
+                    log.info("重试点击页码 {} (第 {}/{} 次)", pageNumber, retry, maxRetries);
+                    // 重试前等待一下，让页面状态稳定
+                    page.waitForTimeout(2000);
                 }
-            }
+                
+                // 检查 Page 对象是否已关闭
+                if (page.isClosed()) {
+                    log.error("Page 对象已关闭，无法点击页码 {}", pageNumber);
+                    return false;
+                }
+                
+                // 首先等待分页元素出现
+                try {
+                    page.waitForSelector("ul.el-pager", new Page.WaitForSelectorOptions().setTimeout(8000));
+                } catch (Exception e) {
+                    log.error("等待分页元素出现超时: {}", e.getMessage());
+                    // 如果是超时，不进行重试
+                    return false;
+                }
+            
+                // 查找class="el-pager"的ul元素
+                var pagerElement = page.locator("ul.el-pager");
+                
+                if (pagerElement.count() == 0) {
+                    log.error("未找到分页元素 ul.el-pager");
+                    return false;
+                }
 
-            // 确保元素可见且可点击
-            pageElement.scrollIntoViewIfNeeded();
-            
-            // 点击页码元素
-            pageElement.click();
-            
-            // 等待页面状态变化，确保点击生效
-            try {
-                // 等待当前页码变为激活状态
-                page.waitForSelector("ul.el-pager li.number.active:has-text('" + pageNumber + "')", 
-                    new Page.WaitForSelectorOptions().setTimeout(5000));
-                log.info("成功点击页码: {}，页面已切换", pageNumber);
+                // 查找包含指定页码文本的li元素
+    //            var pageElement = pagerElement.locator("li.number").filter(
+    //                new Locator.FilterOptions().setHasText(String.valueOf(pageNumber))
+    //            );
+                /**
+                 * Error {
+                 *   message='Error: strict mode violation: locator("ul.el-pager").locator("li.number").filter(new Locator.FilterOptions().setHasText("2")) resolved to 2 elements:
+                 *     1) <li class="number">2</li> aka getByText("2", new Page.GetByTextOptions().setExact(true))
+                 *     2) <li class="number">25</li> aka getByText("25", new Page.GetByTextOptions().setExact(true))
+                 */
+                var pageElement = pagerElement.locator("li.number").
+                        getByText(String.valueOf(pageNumber), new Locator.GetByTextOptions().setExact(true));
+
+
+
+                if (pageElement.count() == 0) {
+                    log.info("未找到页码为 {} 的分页元素，可能已到达最后一页", pageNumber);
+                    return false;
+                }
+
+                // 检查元素是否已经是当前激活状态
+                var activePageElement = pagerElement.locator("li.number.active");
+                if (activePageElement.count() > 0) {
+                    String activePageText = activePageElement.textContent().trim();
+                    if (String.valueOf(pageNumber).equals(activePageText)) {
+                        log.info("页码 {} 已经是当前激活状态，无需点击", pageNumber);
+                        return true;
+                    }
+                }
+
+                // 确保元素可见且可点击
+                pageElement.scrollIntoViewIfNeeded();
+                
+                // 再次检查 Page 对象是否仍然有效
+                if (page.isClosed()) {
+                    log.error("Page 对象在操作期间被关闭，无法点击页码 {}", pageNumber);
+                    return false;
+                }
+                
+                // 点击页码元素
+                pageElement.click();
+                
+                // 等待页面状态变化，确保点击生效
+                try {
+                    // 等待当前页码变为激活状态
+                    page.waitForSelector("ul.el-pager li.number.active:has-text('" + pageNumber + "')", 
+                        new Page.WaitForSelectorOptions().setTimeout(5000));
+                    log.info("成功点击页码: {}，页面已切换", pageNumber);
+                } catch (Exception e) {
+                    log.warn("等待页码 {} 激活状态超时，但点击操作已执行: {}", pageNumber, e.getMessage());
+                }
+                
+                return true;
+
+            } catch (com.microsoft.playwright.PlaywrightException e) {
+                lastException = e;
+                String errorMsg = e.getMessage();
+                
+                // 检查是否是资源清理相关的异常
+                if (errorMsg != null && (errorMsg.contains("Cannot find parent object") || 
+                                        errorMsg.contains("Object doesn't exist"))) {
+                    log.warn("检测到 Playwright 资源异常 (尝试 {}/{}): {}", retry + 1, maxRetries + 1, errorMsg);
+                    
+                    // 如果还有重试机会，继续重试
+                    if (retry < maxRetries) {
+                        log.info("页面状态可能不稳定，等待后重试...");
+                        continue;
+                    }
+                }
+                
+                // 其他异常直接抛出
+                log.error("点击页码 {} 时发生 Playwright 异常: {}", pageNumber, errorMsg);
+                return false;
+                
             } catch (Exception e) {
-                log.warn("等待页码 {} 激活状态超时，但点击操作已执行: {}", pageNumber, e.getMessage());
+                log.error("点击页码 {} 时发生未预期的错误: {}", pageNumber, e.getMessage(), e);
+                return false;
             }
-            
-            return true;
-
-        } catch (Exception e) {
-            log.error("点击页码 {} 时发生错误: {}", pageNumber, e.getMessage());
-            return false;
         }
+        
+        // 所有重试都失败了
+        log.error("点击页码 {} 失败，已重试 {} 次。最后异常: {}", 
+                 pageNumber, maxRetries, lastException != null ? lastException.getMessage() : "未知");
+        return false;
     }
 
     /**

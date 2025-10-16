@@ -311,79 +311,129 @@ public class LiepinElementLocators {
      * @return true表示点击成功，false表示未找到对应页码或点击失败
      */
     public static boolean clickPageNumber(Page page, int pageNumber) {
-        try {
-            // 首先等待分页元素出现
+        // 添加重试机制，最多重试2次
+        int maxRetries = 2;
+        Exception lastException = null;
+        
+        for (int retry = 0; retry <= maxRetries; retry++) {
             try {
-                page.waitForSelector("div.list-pagination-box", new Page.WaitForSelectorOptions().setTimeout(8000));
-            } catch (Exception e) {
-                log.error("等待分页元素出现超时: {}", e.getMessage());
-                return false;
-            }
+                if (retry > 0) {
+                    log.info("重试点击页码 {} (第 {}/{} 次)", pageNumber, retry, maxRetries);
+                    // 重试前等待一下，让页面状态稳定
+                    page.waitForTimeout(2000);
+                }
+                
+                // 检查 Page 对象是否已关闭
+                if (page.isClosed()) {
+                    log.error("Page 对象已关闭，无法点击页码 {}", pageNumber);
+                    return false;
+                }
+                
+                // 首先等待分页元素出现
+                try {
+                    page.waitForSelector("div.list-pagination-box", new Page.WaitForSelectorOptions().setTimeout(8000));
+                } catch (Exception e) {
+                    log.error("等待分页元素出现超时: {}", e.getMessage());
+                    // 如果是超时，不进行重试
+                    return false;
+                }
             
-            // 查找class="list-pagination-box"的div元素
-            Locator pagerBox = page.locator("div.list-pagination-box");
-            
-            if (pagerBox.count() == 0) {
-                log.error("未找到分页元素 div.list-pagination-box");
-                return false;
-            }
+                // 查找class="list-pagination-box"的div元素
+                Locator pagerBox = page.locator("div.list-pagination-box");
+                
+                if (pagerBox.count() == 0) {
+                    log.error("未找到分页元素 div.list-pagination-box");
+                    return false;
+                }
 
-            // 查找ant-pagination容器
-            Locator paginationElement = pagerBox.locator("ul.ant-pagination");
-            
-            if (paginationElement.count() == 0) {
-                log.error("未找到分页容器 ul.ant-pagination");
-                return false;
-            }
+                // 查找ant-pagination容器
+                Locator paginationElement = pagerBox.locator("ul.ant-pagination");
+                
+                if (paginationElement.count() == 0) {
+                    log.error("未找到分页容器 ul.ant-pagination");
+                    return false;
+                }
 
-            // 查找指定页码的元素
-            String pageItemSelector = "li.ant-pagination-item-" + pageNumber;
-            Locator pageElement = paginationElement.locator(pageItemSelector);
+                // 查找指定页码的元素
+                String pageItemSelector = "li.ant-pagination-item-" + pageNumber;
+                Locator pageElement = paginationElement.locator(pageItemSelector);
 
-            if (pageElement.count() == 0) {
-                log.info("未找到页码为 {} 的分页元素，可能已到达最后一页", pageNumber);
-                return false;
-            }
+                if (pageElement.count() == 0) {
+                    log.info("未找到页码为 {} 的分页元素，可能已到达最后一页", pageNumber);
+                    return false;
+                }
 
-            // 检查元素是否已经是当前激活状态
-            if (pageElement.getAttribute("class").contains("ant-pagination-item-active")) {
-                log.info("页码 {} 已经是当前激活状态，无需点击", pageNumber);
+                // 检查元素是否已经是当前激活状态
+                if (pageElement.getAttribute("class").contains("ant-pagination-item-active")) {
+                    log.info("页码 {} 已经是当前激活状态，无需点击", pageNumber);
+                    return true;
+                }
+
+                // 确保元素可见且可点击
+                pageElement.scrollIntoViewIfNeeded();
+                
+                // 在点击之前添加随机延迟3-5秒，模拟真实用户行为
+                Random random = new Random();
+                int delay = 3000 + random.nextInt(2001); // 3000-5000毫秒之间的随机延迟
+                log.info("准备点击页码 {}，随机延迟 {} 毫秒", pageNumber, delay);
+                page.waitForTimeout(delay);
+                
+                // 再次检查 Page 对象是否仍然有效
+                if (page.isClosed()) {
+                    log.error("Page 对象在延迟等待期间被关闭，无法点击页码 {}", pageNumber);
+                    return false;
+                }
+                
+                // 点击页码元素
+                pageElement.click();
+                
+                // 等待页面状态变化，确保点击生效
+                try {
+                    // 等待当前页码变为激活状态
+                    String activePageSelector = "li.ant-pagination-item-" + pageNumber + ".ant-pagination-item-active";
+                    page.waitForSelector("div.list-pagination-box " + activePageSelector, 
+                        new Page.WaitForSelectorOptions().setTimeout(10000));
+                    log.info("成功点击页码: {}，页面已切换", pageNumber);
+                } catch (Exception e) {
+                    log.warn("等待页码 {} 激活状态超时，但点击操作已执行: {}", pageNumber, e.getMessage());
+                }
+                
+                // 等待页面内容加载
+                page.waitForLoadState();
+                page.waitForTimeout(2000);
+                
                 return true;
-            }
 
-            // 确保元素可见且可点击
-            pageElement.scrollIntoViewIfNeeded();
-            
-            // 在点击之前添加随机延迟3-5秒，模拟真实用户行为
-            Random random = new Random();
-            int delay = 3000 + random.nextInt(2001); // 3000-5000毫秒之间的随机延迟
-            log.info("准备点击页码 {}，随机延迟 {} 毫秒", pageNumber, delay);
-            page.waitForTimeout(delay);
-            
-            // 点击页码元素
-            pageElement.click();
-            
-            // 等待页面状态变化，确保点击生效
-            try {
-                // 等待当前页码变为激活状态
-                String activePageSelector = "li.ant-pagination-item-" + pageNumber + ".ant-pagination-item-active";
-                page.waitForSelector("div.list-pagination-box " + activePageSelector, 
-                    new Page.WaitForSelectorOptions().setTimeout(10000));
-                log.info("成功点击页码: {}，页面已切换", pageNumber);
+            } catch (com.microsoft.playwright.PlaywrightException e) {
+                lastException = e;
+                String errorMsg = e.getMessage();
+                
+                // 检查是否是资源清理相关的异常
+                if (errorMsg != null && (errorMsg.contains("Cannot find parent object") || 
+                                        errorMsg.contains("Object doesn't exist"))) {
+                    log.warn("检测到 Playwright 资源异常 (尝试 {}/{}): {}", retry + 1, maxRetries + 1, errorMsg);
+                    
+                    // 如果还有重试机会，继续重试
+                    if (retry < maxRetries) {
+                        log.info("页面状态可能不稳定，等待后重试...");
+                        continue;
+                    }
+                }
+                
+                // 其他异常直接抛出
+                log.error("点击页码 {} 时发生 Playwright 异常: {}", pageNumber, errorMsg);
+                return false;
+                
             } catch (Exception e) {
-                log.warn("等待页码 {} 激活状态超时，但点击操作已执行: {}", pageNumber, e.getMessage());
+                log.error("点击页码 {} 时发生未预期的错误: {}", pageNumber, e.getMessage(), e);
+                return false;
             }
-            
-            // 等待页面内容加载
-            page.waitForLoadState();
-            page.waitForTimeout(2000);
-            
-            return true;
-
-        } catch (Exception e) {
-            log.error("点击页码 {} 时发生错误: {}", pageNumber, e.getMessage());
-            return false;
         }
+        
+        // 所有重试都失败了
+        log.error("点击页码 {} 失败，已重试 {} 次。最后异常: {}", 
+                 pageNumber, maxRetries, lastException != null ? lastException.getMessage() : "未知");
+        return false;
     }
 
     /**

@@ -1,6 +1,30 @@
 # Changelog
 所有重大变更都将记录在此文件中。
 
+## [2.1.8] - 2025-10-16
+
+### Fixed
+- 修复 Playwright 分页点击资源异常问题
+  - 修复在执行分页点击操作时出现的 `PlaywrightException: Cannot find parent object request@... to create response@...` 异常
+  - 在所有 ElementLocators 的 `clickPageNumber()` 方法中新增智能重试机制
+  - **核心改进**：检测到 Playwright 资源清理异常时自动重试，而不是直接跳过页面
+  - 在方法开始时使用 `page.isClosed()` 检查 Page 对象是否已关闭
+  - 在延迟等待后、执行点击操作前再次检查 Page 对象状态，确保资源未被释放
+  - 针对 `Cannot find parent object` 和 `Object doesn't exist` 异常实现最多2次自动重试
+  - 重试前等待2秒让页面状态稳定，确保浏览器页签仍然可用时不会错过数据采集
+  - 影响模块：LiepinElementLocators、ZhiLianElementLocators、Job51ElementLocators
+  - 增强系统健壮性，避免因 Playwright 内部资源临时清理导致的任务中断
+
+## [2.1.7] - 2025-10-16
+
+### Fixed
+- 修复登录状态检查bug
+  - 修复 `isLoggedIn()` 方法在前端缓存未正确更新时，导致登录按钮状态与实际登录状态不一致的问题
+  - 新增后端接口 `/api/tasks/status` 调用兜底机制，确保登录状态判定以后端接口返回为准
+  - 新增详细的日志记录，输出前端缓存判定值与后端接口返回值，便于调试观察差异
+  - 当检测到前后端状态不一致时，自动更新前端缓存并发出警告日志
+  - 确保所有依赖登录状态的操作（采集、过滤、投递）都使用最新的登录状态
+
 ## [2.1.6] - 2025-10-15
 
 ### Added
