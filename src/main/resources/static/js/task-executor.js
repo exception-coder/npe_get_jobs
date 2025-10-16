@@ -42,9 +42,9 @@ class TaskExecutor {
             this.startStatusPolling();
             
             // 延迟检查登录状态并启用按钮
-            setTimeout(() => {
+            setTimeout(async () => {
                 console.log(`[${this.platform}] 检查初始登录状态`);
-                if (this.isLoggedIn()) {
+                if (await this.isLoggedIn()) {
                     console.log(`[${this.platform}] 已登录，启用后续步骤按钮`);
                     this.enableAllNextSteps();
                 }
@@ -200,7 +200,7 @@ class TaskExecutor {
     async handleCollect() {
         console.log(`[${this.platform}] handleCollect 被调用，准备检查登录状态`);
         // 所有平台都需要检查登录状态
-        const loggedIn = this.isLoggedIn();
+        const loggedIn = await this.isLoggedIn();
         console.log(`[${this.platform}] handleCollect 登录状态检查结果:`, loggedIn);
         
         if (!loggedIn) {
@@ -246,7 +246,7 @@ class TaskExecutor {
     async handleFilter() {
         console.log(`[${this.platform}] handleFilter 被调用，准备检查登录状态`);
         // 所有平台都需要检查登录状态
-        const loggedIn = this.isLoggedIn();
+        const loggedIn = await this.isLoggedIn();
         console.log(`[${this.platform}] handleFilter 登录状态检查结果:`, loggedIn);
         
         if (!loggedIn) {
@@ -299,7 +299,7 @@ class TaskExecutor {
         console.log(`[${this.platform}] handleApply 准备检查登录状态`);
         
         // 所有平台都需要检查登录状态
-        const loggedIn = this.isLoggedIn();
+        const loggedIn = await this.isLoggedIn();
         console.log(`[${this.platform}] handleApply 登录状态检查结果:`, loggedIn);
         
         if (!loggedIn) {
@@ -512,14 +512,15 @@ class TaskExecutor {
                     // 采集、过滤、投递任务完成后，只要已登录就重新启用按钮
                     this.updateButtonState(uiElements.btn, uiElements.status, message || '完成', false, 'success');
                     // 重新启用所有后续步骤按钮
-                    const loggedIn = this.isLoggedIn();
-                    console.log(`[${this.platform}] ${taskType} 完成后检查登录状态:`, loggedIn);
-                    if (loggedIn) {
-                        console.log(`[${this.platform}] 已登录，重新启用所有后续步骤`);
-                        this.enableAllNextSteps();
-                    } else {
-                        console.log(`[${this.platform}] 未登录，不启用后续步骤`);
-                    }
+                    this.isLoggedIn().then(loggedIn => {
+                        console.log(`[${this.platform}] ${taskType} 完成后检查登录状态:`, loggedIn);
+                        if (loggedIn) {
+                            console.log(`[${this.platform}] 已登录，重新启用所有后续步骤`);
+                            this.enableAllNextSteps();
+                        } else {
+                            console.log(`[${this.platform}] 未登录，不启用后续步骤`);
+                        }
+                    });
                 }
                 // 如果投递任务完成，停止轮询
                 if (taskType === 'deliver') {
@@ -536,9 +537,11 @@ class TaskExecutor {
                 } else {
                     this.updateButtonState(uiElements.btn, uiElements.status, message || '失败', false, 'danger');
                     // 重新启用所有后续步骤按钮（只要已登录）
-                    if (this.isLoggedIn()) {
-                        this.enableAllNextSteps();
-                    }
+                    this.isLoggedIn().then(loggedIn => {
+                        if (loggedIn) {
+                            this.enableAllNextSteps();
+                        }
+                    });
                 }
                 this.stopStatusPolling();
                 break;
@@ -615,14 +618,68 @@ class TaskExecutor {
         }
     }
 
-    // 检查是否已登录（基于最新的任务状态）
-    isLoggedIn() {
+    // 检查是否已登录（基于最新的任务状态，同时调用后端接口兜底）
+    async isLoggedIn() {
+        // 1. 首先从前端缓存获取登录状态
         const loginStatus = this.latestTaskStatus?.login;
         const state = loginStatus?.status || loginStatus?.state;
-        const isSuccess = state === 'SUCCESS';
+        const frontendResult = state === 'SUCCESS';
         
-        console.log(`[${this.platform}] isLoggedIn 检查: state=${state}, 结果=${isSuccess}`);
-        return isSuccess;
+        console.log(`[${this.platform}] isLoggedIn 前端缓存检查: state=${state}, 结果=${frontendResult}`);
+        console.log(`[${this.platform}] isLoggedIn 前端缓存详情:`, JSON.stringify(this.latestTaskStatus));
+        
+        // 2. 调用后端接口进行兜底验证
+        let backendResult = frontendResult; // 默认使用前端结果
+        try {
+            console.log(`[${this.platform}] isLoggedIn 开始调用后端接口 /api/tasks/status 进行兜底验证`);
+            const response = await fetch('/api/tasks/status');
+            if (response.ok) {
+                const result = await response.json();
+                
+                // 根据平台获取对应的登录状态键名
+                const platformKeyMap = {
+                    'boss': 'BOSS_ZHIPIN_LOGIN',
+                    'zhilian': 'ZHILIAN_ZHAOPIN_LOGIN',
+                    'job51': 'JOB_51_LOGIN',
+                    'liepin': 'LIEPIN_LOGIN'
+                };
+                
+                const loginKey = platformKeyMap[this.platform];
+                if (loginKey && result[loginKey]) {
+                    const backendLoginStatus = result[loginKey];
+                    const backendState = backendLoginStatus.status || backendLoginStatus.state;
+                    backendResult = backendState === 'SUCCESS';
+                    
+                    console.log(`[${this.platform}] isLoggedIn 后端接口返回: state=${backendState}, 结果=${backendResult}`);
+                    console.log(`[${this.platform}] isLoggedIn 后端状态详情:`, JSON.stringify(backendLoginStatus));
+                    
+                    // 3. 比对前后端结果差异
+                    if (frontendResult !== backendResult) {
+                        console.warn(`[${this.platform}] ⚠️ 登录状态不一致！前端=${frontendResult}, 后端=${backendResult}, 以后端为准`);
+                        console.warn(`[${this.platform}] ⚠️ 前端state=${state}, 后端state=${backendState}`);
+                        
+                        // 更新前端缓存以保持一致性
+                        if (!this.latestTaskStatus) {
+                            this.latestTaskStatus = {};
+                        }
+                        this.latestTaskStatus.login = backendLoginStatus;
+                        console.log(`[${this.platform}] 已更新前端缓存为后端返回值`);
+                    } else {
+                        console.log(`[${this.platform}] ✓ 登录状态一致：前端=${frontendResult}, 后端=${backendResult}`);
+                    }
+                } else {
+                    console.warn(`[${this.platform}] 后端接口未返回该平台的登录状态，loginKey=${loginKey}`);
+                }
+            } else {
+                console.error(`[${this.platform}] 后端接口调用失败: HTTP ${response.status}`);
+            }
+        } catch (error) {
+            console.error(`[${this.platform}] isLoggedIn 调用后端接口异常:`, error);
+            console.log(`[${this.platform}] 兜底使用前端缓存结果: ${frontendResult}`);
+        }
+        
+        console.log(`[${this.platform}] isLoggedIn 最终判定结果: ${backendResult}`);
+        return backendResult;
     }
 
     // 验证必填字段（委托给configProvider）
