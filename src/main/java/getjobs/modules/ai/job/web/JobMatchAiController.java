@@ -19,6 +19,6 @@ public class JobMatchAiController {
 
     @PostMapping("/match")
     public boolean isMatch(@RequestBody JobMatchRequest request) {
-        return jobMatchAiService.isMatch(request.getMyJd(), request.getJobDescription(), request.getPlatform());
+        return jobMatchAiService.isMatch(request.getMyJd(), request.getJobDescription());
     }
 }

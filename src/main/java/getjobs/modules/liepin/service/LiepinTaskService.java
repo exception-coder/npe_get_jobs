@@ -1,17 +1,16 @@
 package getjobs.modules.liepin.service;
 
 import getjobs.common.dto.ConfigDTO;
+import getjobs.common.enums.JobStatusEnum;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.modules.boss.dto.JobDTO;
-import getjobs.common.enums.JobStatusEnum;
-import getjobs.repository.entity.JobEntity;
-import getjobs.repository.JobRepository;
-import getjobs.service.JobService;
-import getjobs.service.PlaywrightManager;
 import getjobs.modules.task.dto.TaskUpdatePayload;
 import getjobs.modules.task.enums.TaskStage;
 import getjobs.modules.task.enums.TaskStatus;
 import getjobs.modules.task.event.TaskUpdateEvent;
+import getjobs.repository.JobRepository;
+import getjobs.repository.entity.JobEntity;
+import getjobs.service.JobService;
 import getjobs.service.RecruitmentService;
 import getjobs.service.RecruitmentServiceFactory;
 import jakarta.annotation.PostConstruct;
@@ -21,8 +20,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**

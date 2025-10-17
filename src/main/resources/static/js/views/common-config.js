@@ -157,10 +157,6 @@
             years: parseInt(document.getElementById('profileYears')?.value) || 0,
             domains: parseStringToList(document.getElementById('profileDomains')?.value),
             coreStack: parseStringToList(document.getElementById('profileCoreStack')?.value),
-            scale: {
-                qps_peak: document.getElementById('profileQpsPeak')?.value?.trim() || '',
-                sla: document.getElementById('profileSla')?.value?.trim() || ''
-            },
             achievements: parseStringToList(document.getElementById('profileAchievements')?.value, ';'),
             strengths: parseStringToList(document.getElementById('profileStrengths')?.value),
             improvements: parseStringToList(document.getElementById('profileImprovements')?.value),
@@ -236,7 +232,6 @@
                 years: profileData.years,
                 domains: profileData.domains,
                 coreStack: profileData.coreStack,
-                scale: profileData.scale,
                 achievements: profileData.achievements,
                 strengths: profileData.strengths,
                 improvements: profileData.improvements,
@@ -303,8 +298,8 @@
             // 重置候选人信息表单
             const profileFields = [
                 'profileRole', 'profileYears', 'profileDomains', 'profileCoreStack',
-                'profileQpsPeak', 'profileSla', 'profileAchievements', 'profileStrengths',
-                'profileImprovements', 'profileAvailability', 'profileGithub', 'profilePortfolio'
+                'profileAchievements', 'profileStrengths', 'profileImprovements', 
+                'profileAvailability', 'profileGithub', 'profilePortfolio'
             ];
             
             profileFields.forEach(fieldId => {
@@ -369,12 +364,6 @@
         setFieldValue('profileStrengths', profileData.strengths?.join(', '));
         setFieldValue('profileImprovements', profileData.improvements?.join(', '));
         setFieldValue('profileAvailability', profileData.availability);
-        
-        // 项目规模
-        if (profileData.scale) {
-            setFieldValue('profileQpsPeak', profileData.scale.qps_peak);
-            setFieldValue('profileSla', profileData.scale.sla);
-        }
         
         // 个人链接
         if (profileData.links) {

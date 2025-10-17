@@ -1,7 +1,7 @@
 package getjobs.service;
 
 import getjobs.common.dto.ConfigDTO;
-import getjobs.modules.ai.common.enums.AiPlatform;
+import getjobs.modules.ai.job.dto.JobMatchResult;
 import getjobs.modules.ai.job.service.JobMatchAiService;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.repository.UserProfileRepository;
@@ -46,19 +46,6 @@ public class JobFilterService {
         log.info("Boss直聘岗位过滤完成，过滤后岗位数量: {}", filteredJobDTOS.size());
         return filteredJobDTOS;
     }
-
-
-    /**
-     * 获取职位过滤原因
-     *
-     * @param job    职位信息
-     * @param config 配置信息
-     * @return 过滤原因，null表示通过过滤
-     */
-    private String getFilterReason(JobDTO job, ConfigDTO config) {
-        return getFilterReason(job, config, true);
-    }
-
 
     /**
      * 获取职位过滤原因
@@ -106,22 +93,22 @@ public class JobFilterService {
                     .orElse(null);
             String jobDescription = job.getJobDescription();
             if (ObjectUtils.isEmpty(jobDescription)) {
-//                return "AI岗位匹配失败，职位要求为空";
+                // return "AI岗位匹配失败，职位要求为空";
                 return null;
             }
             if (ObjectUtils.isNotEmpty(myJd)) {
-                if (!jobMatchAiService.isMatch(myJd, job.getJobDescription(), AiPlatform.DEEPSEEK)) {
-                    return "AI岗位匹配度低于阈值";
+                JobMatchResult matchResult = jobMatchAiService.matchWithReason(myJd, job.getJobDescription());
+                if (!matchResult.isMatched()) {
+                    return "AI岗位匹配度低于阈值: " + matchResult.getReason();
                 }
             } else {
-//                return "AI岗位匹配失败，请补充用户职位角色信息";
+                // return "AI岗位匹配失败，请补充用户职位角色信息";
                 return null;
             }
         }
 
         return null; // 通过所有过滤条件
     }
-
 
     /**
      * 检查岗位是否在黑名单中

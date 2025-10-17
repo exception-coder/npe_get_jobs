@@ -1268,3 +1268,102 @@ body {
         padding: 6px 4px;
     }
 }
+
+/* Sidebar Layout */
+.main-wrapper {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 240px;
+    background: #1a202c; /* Dark background for sidebar */
+    color: #e2e8f0;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    transition: width 0.3s ease;
+}
+
+.sidebar-header {
+    padding: 0 20px 20px 20px;
+    text-align: center;
+    border-bottom: 1px solid #2d3748;
+}
+
+.sidebar-header h1 {
+    font-size: 1.2rem;
+    color: #ffffff;
+    margin-bottom: 5px;
+}
+
+.sidebar-header p {
+    font-size: 0.8rem;
+    color: #a0aec0;
+    margin-bottom: 0;
+}
+
+.sidebar .nav-pills {
+    flex-direction: column;
+    padding: 20px;
+    gap: 8px;
+}
+
+.sidebar .nav-pills .nav-link {
+    color: #a0aec0;
+    text-align: left;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.sidebar .nav-pills .nav-link:hover {
+    background-color: #2d3748;
+    color: #ffffff;
+}
+
+.sidebar .nav-pills .nav-link.active {
+    background: var(--primary-gradient);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+
+.sidebar .nav-pills .nav-link i {
+    font-size: 1.1rem;
+}
+
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    background-color: #f7fafc;
+}
+
+/* Hide old header */
+.header-gradient {
+    display: none;
+}
+
+/* Adjust main content container */
+.container-fluid.py-2 {
+    padding: 0 !important;
+}
+
+/* Adjust card height calculation for new layout */
+.row.g-3, .row.g-2 {
+    height: auto !important;
+}
+.card.h-100 {
+    height: auto !important;
+}
+.card-body[style*="overflow-y: auto"] {
+    overflow-y: visible;
+    max-height: none;
+}

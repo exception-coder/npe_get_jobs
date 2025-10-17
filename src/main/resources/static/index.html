@@ -24,58 +24,50 @@
     <script src="js/components/tags-input.js"></script>
 </head>
 <body>
-<!-- Header -->
-<header class="header-gradient">
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12 text-center py-4">
-                <h1 class="text-white mb-2 fs-5">
-                    <i class="bi bi-briefcase-fill me-2"></i>智能求职助手
-                </h1>
-                <p class="text-white-50 mb-0">支持 Boss直聘 / 51job / 智联招聘 / 猎聘 / 神仙外企 / 拉钩</p>
-            </div>
+<div class="main-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1><i class="bi bi-briefcase-fill me-2"></i>智能求职助手</h1>
+            <p>自动投递，快人一步</p>
         </div>
-        <div class="row">
-            <div class="col-12">
-                <ul class="nav nav-tabs nav-fill mt-3" id="platformTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="common-config-tab" data-bs-toggle="tab" data-bs-target="#common-config-pane"
-                                type="button" role="tab" aria-controls="common-config-pane" aria-selected="false">
-                            <i class="bi bi-sliders me-1"></i>公共配置
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="boss-tab" data-bs-toggle="tab" data-bs-target="#boss-pane"
-                                type="button" role="tab" aria-controls="boss-pane" aria-selected="true">
-                            <i class="bi bi-person-workspace me-1"></i>Boss直聘
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="zhilian-tab" data-bs-toggle="tab" data-bs-target="#zhilian-pane"
-                                type="button" role="tab" aria-controls="zhilian-pane" aria-selected="false">
-                            <i class="bi bi-building-gear me-1"></i>智联招聘
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="job51-tab" data-bs-toggle="tab" data-bs-target="#job51-pane"
-                                type="button" role="tab" aria-controls="job51-pane" aria-selected="false">
-                            <i class="bi bi-clipboard2-data me-1"></i>51job
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="liepin-tab" data-bs-toggle="tab" data-bs-target="#liepin-pane"
-                                type="button" role="tab" aria-controls="liepin-pane" aria-selected="false">
-                            <i class="bi bi-award-fill me-1"></i>猎聘
-                        </button>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</header>
+        <ul class="nav nav-pills" id="platformTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="common-config-tab" data-bs-toggle="tab" data-bs-target="#common-config-pane"
+                        type="button" role="tab" aria-controls="common-config-pane" aria-selected="false">
+                    <i class="bi bi-sliders"></i>公共配置
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="boss-tab" data-bs-toggle="tab" data-bs-target="#boss-pane"
+                        type="button" role="tab" aria-controls="boss-pane" aria-selected="true">
+                    <i class="bi bi-person-workspace"></i>Boss直聘
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="zhilian-tab" data-bs-toggle="tab" data-bs-target="#zhilian-pane"
+                        type="button" role="tab" aria-controls="zhilian-pane" aria-selected="false">
+                    <i class="bi bi-building-gear"></i>智联招聘
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="job51-tab" data-bs-toggle="tab" data-bs-target="#job51-pane"
+                        type="button" role="tab" aria-controls="job51-pane" aria-selected="false">
+                    <i class="bi bi-clipboard2-data"></i>51job
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="liepin-tab" data-bs-toggle="tab" data-bs-target="#liepin-pane"
+                        type="button" role="tab" aria-controls="liepin-pane" aria-selected="false">
+                    <i class="bi bi-award-fill"></i>猎聘
+                </button>
+            </li>
+        </ul>
+    </aside>
 
-<!-- Main Content -->
-<div class="container-fluid py-2">
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container-fluid">
     <div class="tab-content" id="platformTabsContent">
         <!-- 公共配置 -->
         <div class="tab-pane fade" id="common-config-pane" role="tabpanel" aria-labelledby="common-config-tab">
@@ -207,61 +199,44 @@
                                        placeholder="例如: 8" min="0" max="50">
                             </div>
                             
-                            <!-- 从事领域 -->
+                            <!-- 从事行业/领域 -->
                             <div class="mb-3">
                                 <label for="profileDomains" class="form-label fw-semibold">
-                                    从事领域
+                                    从事行业/领域
                                 </label>
                                 <input type="text" class="form-control" id="profileDomains" 
-                                       placeholder="例如: 电商,支付,金融 (用逗号分隔)">
-                                <small class="form-text text-muted">多个领域请用英文逗号分隔</small>
+                                       placeholder="例如: 电商,金融,教育,医疗,制造业等 (用逗号分隔)">
+                                <small class="form-text text-muted">多个行业/领域请用英文逗号分隔</small>
                             </div>
                             
-                            <!-- 核心技术栈 -->
+                            <!-- 核心技能/专长 -->
                             <div class="mb-3">
                                 <label for="profileCoreStack" class="form-label fw-semibold">
-                                    核心技术栈
+                                    核心技能/专长
                                 </label>
                                 <textarea class="form-control" id="profileCoreStack" rows="3" 
-                                          placeholder="例如: Spring Boot,Spring Cloud Gateway,Redis,MySQL,MQ(Artemis/Kafka),Docker"></textarea>
-                                <small class="form-text text-muted">多个技术请用英文逗号分隔</small>
+                                          placeholder="例如: 项目管理,数据分析,市场营销,客户关系管理,团队协作等"></textarea>
+                                <small class="form-text text-muted">多个技能请用英文逗号分隔</small>
                             </div>
                             
-                            <!-- 项目规模 -->
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">项目规模</label>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <label for="profileQpsPeak" class="form-label small">峰值QPS</label>
-                                        <input type="text" class="form-control" id="profileQpsPeak" 
-                                               placeholder="例如: 3k+">
-                                    </div>
-                                    <div class="col-6">
-                                        <label for="profileSla" class="form-label small">SLA</label>
-                                        <input type="text" class="form-control" id="profileSla" 
-                                               placeholder="例如: 99.99%">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- 主要成就 -->
+                            <!-- 主要成就/业绩亮点 -->
                             <div class="mb-3">
                                 <label for="profileAchievements" class="form-label fw-semibold">
-                                    主要成就
+                                    主要成就/业绩亮点
                                 </label>
                                 <textarea class="form-control" id="profileAchievements" rows="3" 
-                                          placeholder="例如: 订单超时处理从5分钟降至30秒，稳定性至99.99%; 重构网关限流与灰度发布，峰值3k QPS 稳定"></textarea>
+                                          placeholder="例如: 带领团队完成年度销售目标120%; 优化业务流程，效率提升40%; 成功交付XXX项目，获得客户好评"></textarea>
                                 <small class="form-text text-muted">多个成就请用分号分隔</small>
                             </div>
                             
-                            <!-- 个人强项 -->
+                            <!-- 个人优势 -->
                             <div class="mb-3">
                                 <label for="profileStrengths" class="form-label fw-semibold">
-                                    个人强项/优势
+                                    个人优势
                                 </label>
                                 <input type="text" class="form-control" id="profileStrengths" 
-                                       placeholder="例如: 性能调优,微服务治理,疑难排障">
-                                <small class="form-text text-muted">多个强项请用英文逗号分隔</small>
+                                       placeholder="例如: 沟通能力强,学习能力强,抗压能力强,执行力强">
+                                <small class="form-text text-muted">多个优势请用英文逗号分隔</small>
                             </div>
                             
                             <!-- 待提升方面 -->
@@ -274,28 +249,28 @@
                                 <small class="form-text text-muted">多个方面请用英文逗号分隔</small>
                             </div>
                             
-                            <!-- 到岗时间及地点期望 -->
+                            <!-- 到岗时间及期望地点 -->
                             <div class="mb-3">
                                 <label for="profileAvailability" class="form-label fw-semibold">
-                                    到岗时间及地点期望
+                                    到岗时间及期望地点
                                 </label>
                                 <input type="text" class="form-control" id="profileAvailability" 
-                                       placeholder="例如: 两周到岗，广州/可远程">
+                                       placeholder="例如: 两周内到岗，期望在北京/上海/深圳/可远程">
                             </div>
                             
-                            <!-- 个人链接 -->
+                            <!-- 个人链接/作品展示 -->
                             <div class="mb-3">
-                                <label class="form-label fw-semibold">个人链接</label>
+                                <label class="form-label fw-semibold">个人链接/作品展示</label>
                                 <div class="row g-2">
                                     <div class="col-6">
-                                        <label for="profileGithub" class="form-label small">GitHub</label>
+                                        <label for="profileGithub" class="form-label small">个人主页/社交媒体</label>
                                         <input type="url" class="form-control" id="profileGithub" 
-                                               placeholder="https://github.com/username">
+                                               placeholder="LinkedIn/个人网站/公众号等">
                                     </div>
                                     <div class="col-6">
-                                        <label for="profilePortfolio" class="form-label small">作品集</label>
+                                        <label for="profilePortfolio" class="form-label small">作品集/案例</label>
                                         <input type="url" class="form-control" id="profilePortfolio" 
-                                               placeholder="https://portfolio.com">
+                                               placeholder="作品集/项目案例链接">
                                     </div>
                                 </div>
                             </div>
@@ -544,18 +519,6 @@
                                                         <option value="ipo">已上市</option>
                                                     </select>
                                                 </div>
-                                            </div>
-
-                                            <!-- Expected Position -->
-                                            <div class="mt-2">
-                                                <label for="expectedPositionField" class="form-label fw-semibold small">
-                                                    期望职位
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="输入您期望的职位名称，如：Java开发工程师、产品经理等"></i>
-                                                </label>
-                                                <input type="text" class="form-control form-control-sm" id="expectedPositionField"
-                                                       placeholder="如：Java开发工程师、产品经理等">
                                             </div>
 
                                             <!-- Expected Salary -->
@@ -3053,7 +3016,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <!-- Bootstrap JS -->

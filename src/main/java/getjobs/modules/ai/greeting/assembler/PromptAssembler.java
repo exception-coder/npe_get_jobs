@@ -1,13 +1,12 @@
 package getjobs.modules.ai.greeting.assembler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import getjobs.modules.ai.greeting.assembler.PromptVariables;
 import getjobs.modules.ai.greeting.dto.GreetingRequest;
-import getjobs.modules.ai.greeting.extract.KeywordExtractor;
-import getjobs.modules.ai.greeting.llm.LlmMessage;
-import getjobs.modules.ai.greeting.template.PromptRenderer;
-import getjobs.modules.ai.greeting.template.PromptTemplate;
-import getjobs.modules.ai.greeting.template.TemplateRepository;
+import getjobs.modules.ai.infrastructure.extract.KeywordExtractor;
+import getjobs.modules.ai.infrastructure.llm.LlmMessage;
+import getjobs.modules.ai.infrastructure.template.PromptRenderer;
+import getjobs.modules.ai.infrastructure.template.PromptTemplate;
+import getjobs.modules.ai.infrastructure.template.TemplateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -59,7 +58,10 @@ public class PromptAssembler {
     }
 
     private String toJson(Object o) {
-        try { return new ObjectMapper().writeValueAsString(o); }
-        catch (Exception e) { return "{}"; }
+        try {
+            return new ObjectMapper().writeValueAsString(o);
+        } catch (Exception e) {
+            return "{}";
+        }
     }
 }

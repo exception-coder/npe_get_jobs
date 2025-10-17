@@ -4,10 +4,10 @@ import getjobs.modules.ai.greeting.ab.ExperimentService;
 import getjobs.modules.ai.greeting.assembler.PromptAssembler;
 import getjobs.modules.ai.greeting.dto.GreetingRequest;
 import getjobs.modules.ai.greeting.dto.GreetingResponse;
-import getjobs.modules.ai.greeting.extract.KeywordExtractor;
-import getjobs.modules.ai.greeting.llm.LlmClient;
-import getjobs.modules.ai.greeting.validate.KeywordCoverageValidator;
-import getjobs.modules.ai.greeting.validate.LengthValidator;
+import getjobs.modules.ai.infrastructure.extract.KeywordExtractor;
+import getjobs.modules.ai.infrastructure.llm.LlmClient;
+import getjobs.modules.ai.infrastructure.validate.KeywordCoverageValidator;
+import getjobs.modules.ai.infrastructure.validate.LengthValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
