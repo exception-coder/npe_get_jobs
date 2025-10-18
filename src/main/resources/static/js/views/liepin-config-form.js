@@ -39,7 +39,6 @@ class LiepinConfigForm {
 
     bindEvents() {
         document.getElementById('liepinSaveConfigBtn')?.addEventListener('click', () => this.handleSaveConfig());
-        document.getElementById('liepinBackupDataBtn')?.addEventListener('click', () => this.handleBackupData());
     }
 
     saveConfig() {
@@ -588,26 +587,6 @@ class LiepinConfigForm {
     handleSaveConfig() {
         this.saveConfig();
         this.showToast('猎聘配置已保存');
-    }
-
-    handleBackupData() {
-        const backupBtn = document.getElementById('liepinBackupDataBtn');
-        if (backupBtn) {
-            backupBtn.disabled = true;
-            backupBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>备份中...';
-        }
-        fetch('/api/backup/export', { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                this.showToast(data.success ? '数据库备份成功' : '数据库备份失败: ' + data.message, data.success ? 'success' : 'danger');
-            })
-            .catch(error => this.showToast('数据库备份失败: ' + error.message, 'danger'))
-            .finally(() => {
-                if (backupBtn) {
-                    backupBtn.disabled = false;
-                    backupBtn.innerHTML = '<i class="bi bi-database me-2"></i>数据库备份';
-                }
-            });
     }
 
     getCurrentConfig() {

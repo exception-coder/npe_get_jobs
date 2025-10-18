@@ -38,7 +38,6 @@ class ZhilianConfigForm {
 
     bindEvents() {
         document.getElementById('zhilianSaveConfigBtn')?.addEventListener('click', () => this.handleSaveConfig());
-        document.getElementById('zhilianBackupDataBtn')?.addEventListener('click', () => this.handleBackupData());
 
         this.bindFormValidation();
     }
@@ -700,16 +699,6 @@ class ZhilianConfigForm {
     handleSaveConfig() {
         this.saveConfig();
         this.showToast('智联配置已保存');
-    }
-
-    handleBackupData() {
-        const btn = document.getElementById('zhilianBackupDataBtn');
-        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>备份中...'; }
-        fetch('/api/backup/export', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-            .then(r => r.json())
-            .then(d => { if (d.success) this.showToast('数据库备份成功', 'success'); else this.showToast('数据库备份失败: ' + d.message, 'danger'); })
-            .catch(e => { this.showToast('数据库备份失败: ' + e.message, 'danger'); })
-            .finally(() => { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-database me-2"></i>数据库备份'; } });
     }
 
     validateRequiredFields() {

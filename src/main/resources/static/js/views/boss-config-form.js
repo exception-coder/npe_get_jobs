@@ -65,17 +65,6 @@
             document.getElementById('saveConfigBtn')?.addEventListener('click', () => {
                 this.handleSaveOnly();
             });
-            document.getElementById('backupDataBtn')?.addEventListener('click', () => {
-                this.handleBackupData();
-            });
-
-            document.getElementById('sendImgResumeCheckBox')?.addEventListener('change', (event) => {
-                const resumeField = document.getElementById('resumeImagePathField');
-                if (resumeField && !event.target.checked) {
-                    // If unchecked, remove validation state
-                    resumeField.classList.remove('is-invalid', 'is-valid');
-                }
-            });
 
             this.bindFormValidation();
             this.bindAdvancedConfig();
@@ -84,8 +73,7 @@
         bindFormValidation() {
             const requiredFields = [
                 'keywordsField',
-                'cityCodeField',
-                'sayHiTextArea'
+                'cityCodeField'
             ];
             requiredFields.forEach(fieldId => {
                 const field = document.getElementById(fieldId);
@@ -189,8 +177,6 @@
                 stage: document.getElementById('stageComboBox').value,
                 minSalary: document.getElementById('minSalaryField').value,
                 maxSalary: document.getElementById('maxSalaryField').value,
-                resumeImagePath: document.getElementById('resumeImagePathField').value,
-                sayHi: document.getElementById('sayHiTextArea').value,
                 filterDeadHR: document.getElementById('filterDeadHRCheckBox').checked,
                 sendImgResume: document.getElementById('sendImgResumeCheckBox').checked,
                 recommendJobs: document.getElementById('recommendJobsCheckBox').checked,
@@ -715,8 +701,6 @@
                 stage: 'stageComboBox',
                 minSalary: 'minSalaryField',
                 maxSalary: 'maxSalaryField',
-                resumeImagePath: 'resumeImagePathField',
-                sayHi: 'sayHiTextArea',
                 filterDeadHR: 'filterDeadHRCheckBox',
                 sendImgResume: 'sendImgResumeCheckBox',
                 recommendJobs: 'recommendJobsCheckBox',
@@ -741,40 +725,6 @@
             } catch (_) {}
         }
 
-        handleBackupData() {
-            const backupBtn = document.getElementById('backupDataBtn');
-            if (backupBtn) {
-                backupBtn.disabled = true;
-                backupBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>备份中...';
-            }
-
-            fetch('/api/backup/export', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    this.showToast('数据库备份成功', 'success');
-                    console.log('备份路径:', data.backupPath);
-                } else {
-                    this.showToast('数据库备份失败: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('备份请求失败:', error);
-                this.showToast('数据库备份失败: ' + error.message, 'error');
-            })
-            .finally(() => {
-                if (backupBtn) {
-                    backupBtn.disabled = false;
-                    backupBtn.innerHTML = '<i class="bi bi-database me-2"></i>数据库备份';
-                }
-            });
-        }
-
         showToast(message, type = 'success') {
             try {
                 const toastEl = document.getElementById('globalToast');
@@ -793,8 +743,7 @@
         validateRequiredFields() {
             const requiredFields = [
                 'keywordsField',
-                'cityCodeField',
-                'sayHiTextArea'
+                'cityCodeField'
             ];
             let isValid = true;
             requiredFields.forEach(fieldId => {
@@ -803,20 +752,6 @@
                     isValid = false;
                 }
             });
-
-            // Conditionally validate resumeImagePathField
-            const sendImgResume = document.getElementById('sendImgResumeCheckBox').checked;
-            const resumeField = document.getElementById('resumeImagePathField');
-            if (sendImgResume) {
-                if (resumeField && !this.validateField(resumeField)) {
-                    isValid = false;
-                }
-            } else {
-                // If not sending image resume, ensure the field is not marked as invalid
-                if (resumeField) {
-                    resumeField.classList.remove('is-invalid');
-                }
-            }
 
             return isValid && this.validateSalaryRange();
         }
@@ -843,8 +778,6 @@
                     document.getElementById('minSalaryField')?.value || '0',
                     document.getElementById('maxSalaryField')?.value || '0'
                 ],
-                resumeImagePath: document.getElementById('resumeImagePathField')?.value || '',
-                sayHi: document.getElementById('sayHiTextArea')?.value || '',
                 filterDeadHR: document.getElementById('filterDeadHRCheckBox')?.checked || false,
                 sendImgResume: document.getElementById('sendImgResumeCheckBox')?.checked || false,
                 recommendJobs: document.getElementById('recommendJobsCheckBox')?.checked || false,

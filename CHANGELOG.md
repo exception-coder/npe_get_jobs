@@ -1,25 +1,106 @@
 # Changelog 💖
 Hello 小可爱们！这里是我们的成长日记，所有酷炫的更新和优化都会在这里记录哦！
 
-## [2.1.10] - 2025-10-18 🌈
+## [2.1.12] - 2025-10-18 🎯
 
-### Changed
-- **候选人信息表单优化！✨ 让所有岗位都能用！**
-  - **更通用的字段设计 🎯**：重构了候选人信息表单，不再只针对开发者岗位，现在适配产品、运营、销售、设计等所有岗位类型～
-  - **删除开发者特定字段 ✂️**：移除了"项目规模"（峰值QPS、SLA）等技术岗位特有的字段，让表单更简洁通用！
-  - **字段名称优化 📝**：
-    - "从事领域" → "从事行业/领域"（示例：电商、金融、教育、医疗、制造业等）
-    - "核心技术栈" → "核心技能/专长"（示例：项目管理、数据分析、市场营销、客户关系管理、团队协作等）
-    - "主要成就" → "主要成就/业绩亮点"（示例：带领团队完成年度销售目标120%、优化业务流程，效率提升40%等）
-    - "个人强项/优势" → "个人优势"（示例：沟通能力强、学习能力强、抗压能力强、执行力强）
-    - "个人链接" → "个人链接/作品展示"（支持LinkedIn、个人网站、公众号、作品集等）
-  - **同步更新JS逻辑 🔧**：`common-config.js` 中相关的数据收集、保存、重置和加载逻辑已全部同步调整，确保前后端一致！
-  - **提示文本全面升级 💡**：所有placeholder都更新为更通用的示例，让任何岗位的候选人都能轻松理解如何填写～
+### Removed
+- **数据库备份按钮移除！🗑️ 自动化配置备份，告别多余点击**
+  - **简化用户操作 ✨**：移除了所有平台的手动数据库备份按钮，配置自动保存到本地缓存，无需用户手动触发备份
+  - **界面更简洁 ✂️**：
+    - 移除Boss直聘、智联招聘、前程无忧、猎聘四个平台的数据库备份按钮
+    - 保存配置按钮由原来的 col-6 调整为 col-12，占据整行宽度，视觉更舒适
+  - **代码全面清理 🧹**：
+    - 从 `app.js` 移除：`handleBackupData()` 方法和备份按钮事件绑定
+    - 从 `boss-config-form.js` 移除：`handleBackupData()` 方法和备份按钮事件绑定
+    - 从 `zhilian-config-form.js` 移除：`handleBackupData()` 方法和备份按钮事件绑定
+    - 从 `job51-config-form.js` 移除：`handleBackupData()` 方法和备份按钮事件绑定
+    - 从 `liepin-config-form.js` 移除：`handleBackupData()` 方法和备份按钮事件绑定
+    - 从 `index.html` 移除：所有4个平台的备份按钮HTML代码
+  - **用户体验提升 🚀**：
+    - 配置数据自动保存到 localStorage 本地缓存
+    - 同步保存到后端接口，双重保障数据安全
+    - 减少不必要的用户交互，让流程更顺畅
 
 ### Technical Details
-- 修改文件：`index.html`、`common-config.js`
-- 移除字段：`profileQpsPeak`、`profileSla`、`scale` 对象
-- 优化字段：`profileDomains`、`profileCoreStack`、`profileAchievements`、`profileStrengths`、`profileGithub`、`profilePortfolio`
+- **移除文件**：无（仅移除代码片段）
+- **修改文件**：
+  - `index.html`：移除4个备份按钮，调整布局从 col-6 到 col-12
+  - `app.js`：移除 `handleBackupData()` 方法和事件绑定（约35行）
+  - `boss-config-form.js`：移除 `handleBackupData()` 方法和事件绑定（约30行）
+  - `zhilian-config-form.js`：移除 `handleBackupData()` 方法和事件绑定（约10行）
+  - `job51-config-form.js`：移除 `handleBackupData()` 方法和事件绑定（约30行）
+  - `liepin-config-form.js`：移除 `handleBackupData()` 方法和事件绑定（约15行）
+- **影响接口**：无（移除了对 `/api/backup/export` 的前端调用，但接口仍保留供后端使用）
+
+## [2.1.11] - 2025-10-18 📦
+
+### Changed
+- **配置统一优化！✨ 简历配置移至公共配置**
+  - **告别重复配置 🎯**：将Boss直聘、猎聘等各平台的简历配置（简历图片路径、打招呼内容）统一移至公共配置中心
+  - **一处配置，全局生效 🌍**：在公共配置中设置一次，自动应用到所有招聘平台，省心省力！
+  - **界面更简洁 ✂️**：
+    - 移除Boss直聘配置页面的简历配置卡片
+    - 移除猎聘配置页面的简历配置卡片
+    - 公共配置新增"简历配置"区域，包含简历图片路径和打招呼内容
+  - **代码全面重构 🔧**：
+    - 更新 `common-config.js`：添加简历配置的收集、保存、加载逻辑
+    - 更新 `boss-config-form.js`：移除简历配置相关的验证和表单处理代码
+    - 清理HTML：删除各平台重复的简历配置表单项
+  - **用户体验提升 🚀**：配置管理更集中，避免在多个平台重复配置相同内容
+
+### Technical Details
+- **修改文件**：
+  - `index.html`：公共配置新增简历配置区域，删除Boss直聘、猎聘的简历配置卡片
+  - `common-config.js`：在 `collectProfileData()`、`saveCommonConfig()`、`populateProfileForm()` 中添加简历配置处理
+  - `boss-config-form.js`：从 `saveConfig()`、`getCurrentConfig()`、`getFieldId()`、`validateRequiredFields()`、`bindFormValidation()`、`bindEvents()` 中移除简历配置相关代码
+- **新增字段**（公共配置）：
+  - `commonResumeImagePath` - 简历图片路径（应用于所有平台）
+  - `commonSayHiContent` - 打招呼内容（应用于所有平台）
+- **移除字段**（各平台配置）：
+  - Boss直聘：`resumeImagePath`、`sayHi`
+  - 猎聘：`liepinResumeImagePath`、`liepinSayHiTextArea`
+
+## [2.1.10] - 2025-10-18 🚀
+
+### Changed
+- **UI优化！🎨 移除冗余的只读求职配置查看板块**
+  - **精简界面 ✂️**：移除了独立的"求职配置"只读查看标签页，配置信息已在填写表单中实时回显，无需额外查看页面
+  - **代码清理 🧹**：
+    - 删除 `boss-config-readonly.js` 文件及其在 `index.html` 中的引用
+    - 移除 `app.js` 中的 `bindBossConfigViewEvents()` 方法和相关Vue应用初始化代码
+    - 删除 `index.html` 中的"求职配置"标签页HTML结构（约170行）
+  - **用户体验提升 🚀**：界面更简洁，配置管理更直观，减少了重复展示
+- **候选人信息重构！✨ 更简洁、更聚焦、更智能！**
+  - **精简核心字段 🎯**：从原来10+个冗长字段精简到11个核心要素，删繁就简，填表更快捷～
+  - **新增必填字段验证 ✅**：
+    - `jobTitle` - 职位名称（必填）
+    - `skills` - 核心技能（必填，标签形式，至少1项）
+    - `yearsOfExperience` - 工作年限（必填，下拉选择，支持如"3-5年"、"高级"等）
+    - `careerIntent` - 职业意向（必填，10-40字软校验）
+  - **智能配置字段 🤖**：
+    - `tone` - 沟通语气（可选：礼貌亲切、专业克制、自然轻松、简洁商务）
+    - `language` - 语言（可选：中文简体、英文，默认中文）
+    - `maxChars` - 最大字符数（可选，范围80-180，默认120）
+    - `dedupeKeywords` - 去重关键词（可选，标签形式）
+  - **增强的个性化字段 💡**：
+    - `domainExperience` - 领域经验（可选下拉：跨境电商、金融科技、SaaS等10+领域）
+    - `location` - 期望地点（可选）
+    - `highlights` - 个人亮点（可选标签，最多5项）
+  - **标签输入体验升级 🏷️**：`skills`、`highlights`、`dedupeKeywords` 使用 TagsInput 组件，支持动态添加/删除，更直观更便捷！
+  - **完整的前后端重构 🔧**：
+    - 全面重写 `collectProfileData()`、`validateProfileData()`、`populateProfileForm()` 函数
+    - 新增三个标签输入组件：`skillsTagsInput`、`highlightsTagsInput`、`dedupeKeywordsTagsInput`
+    - 智能验证：职位名称、技能、工作年限必填；职业意向10-40字；个人亮点最多5项；字符数80-180范围
+  - **告别历史包袱 👋**：移除了过时字段（role、years、domains、coreStack、achievements、strengths、improvements、availability、links等）
+
+### Technical Details
+- **修改文件**：`index.html`、`common-config.js`
+- **新增字段**（11个核心字段）：
+  - 必填：`jobTitle`, `skills`, `yearsOfExperience`, `careerIntent`
+  - 可选：`domainExperience`, `location`, `tone`, `language`, `highlights`, `maxChars`, `dedupeKeywords`
+- **移除字段**：`role`, `years`, `domains`, `coreStack`, `achievements`, `strengths`, `improvements`, `availability`, `links` (github, portfolio)
+- **新增组件**：3个 TagsInput 标签输入组件
+- **重构函数**：数据收集、验证、保存、重置、加载全流程重构
 
 ## [2.1.9] - 2025-10-17 🏗️
 

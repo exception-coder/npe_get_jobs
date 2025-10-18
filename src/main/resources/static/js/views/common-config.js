@@ -21,6 +21,11 @@
     let saveBtn;
     let resetBtn;
     
+    // 候选人信息标签输入组件
+    let skillsTagsInput;
+    let highlightsTagsInput;
+    let dedupeKeywordsTagsInput;
+    
     // AI平台配置缓存（存储所有平台的配置）
     let aiPlatformConfigsCache = {};
 
@@ -42,6 +47,25 @@
         }
         if (companyBlacklistInput && companyTagsWrapper) {
             companyTagsInput = new window.TagsInput(companyBlacklistInput, companyTagsWrapper);
+        }
+        
+        // 初始化候选人信息标签输入组件
+        const skillsInput = document.getElementById('profileSkills');
+        const skillsTagsWrapper = document.getElementById('profileSkillsTags');
+        if (skillsInput && skillsTagsWrapper) {
+            skillsTagsInput = new window.TagsInput(skillsInput, skillsTagsWrapper);
+        }
+        
+        const highlightsInput = document.getElementById('profileHighlights');
+        const highlightsTagsWrapper = document.getElementById('profileHighlightsTags');
+        if (highlightsInput && highlightsTagsWrapper) {
+            highlightsTagsInput = new window.TagsInput(highlightsInput, highlightsTagsWrapper);
+        }
+        
+        const dedupeKeywordsInput = document.getElementById('profileDedupeKeywords');
+        const dedupeKeywordsTagsWrapper = document.getElementById('profileDedupeKeywordsTags');
+        if (dedupeKeywordsInput && dedupeKeywordsTagsWrapper) {
+            dedupeKeywordsTagsInput = new window.TagsInput(dedupeKeywordsInput, dedupeKeywordsTagsWrapper);
         }
 
         // 绑定事件
@@ -84,13 +108,16 @@
                 return;
             }
             
-            // 填充表单
+            // 填充黑名单表单
             if (config.jobBlacklistKeywords && jobTagsInput) {
                 jobTagsInput.setTags(config.jobBlacklistKeywords);
             }
             if (config.companyBlacklistKeywords && companyTagsInput) {
                 companyTagsInput.setTags(config.companyBlacklistKeywords);
             }
+            
+            // 填充候选人信息
+            populateProfileForm(config);
             
             // 填充AI配置（从JSON键值对中提取）
             if (config.aiPlatformConfigs && Object.keys(config.aiPlatformConfigs).length > 0) {
@@ -111,9 +138,6 @@
                     aiPlatformKeyInput.value = firstKey;
                 }
             }
-            
-            // 填充候选人信息
-            populateProfileForm(config);
 
             console.log('公共配置加载成功', config);
         } catch (error) {
@@ -153,18 +177,20 @@
         };
 
         return {
-            role: document.getElementById('profileRole')?.value?.trim() || '',
-            years: parseInt(document.getElementById('profileYears')?.value) || 0,
-            domains: parseStringToList(document.getElementById('profileDomains')?.value),
-            coreStack: parseStringToList(document.getElementById('profileCoreStack')?.value),
-            achievements: parseStringToList(document.getElementById('profileAchievements')?.value, ';'),
-            strengths: parseStringToList(document.getElementById('profileStrengths')?.value),
-            improvements: parseStringToList(document.getElementById('profileImprovements')?.value),
-            availability: document.getElementById('profileAvailability')?.value?.trim() || '',
-            links: {
-                github: document.getElementById('profileGithub')?.value?.trim() || '',
-                portfolio: document.getElementById('profilePortfolio')?.value?.trim() || ''
-            }
+            jobTitle: document.getElementById('profileJobTitle')?.value?.trim() || '',
+            skills: skillsTagsInput ? parseStringToList(skillsTagsInput.getValue()) : [],
+            yearsOfExperience: document.getElementById('profileYearsOfExperience')?.value?.trim() || '',
+            careerIntent: document.getElementById('profileCareerIntent')?.value?.trim() || '',
+            domainExperience: document.getElementById('profileDomainExperience')?.value?.trim() || '',
+            location: document.getElementById('profileLocation')?.value?.trim() || '',
+            tone: document.getElementById('profileTone')?.value?.trim() || '',
+            language: document.getElementById('profileLanguage')?.value?.trim() || 'zh_CN',
+            highlights: highlightsTagsInput ? parseStringToList(highlightsTagsInput.getValue()) : [],
+            maxChars: parseInt(document.getElementById('profileMaxChars')?.value) || 120,
+            dedupeKeywords: dedupeKeywordsTagsInput ? parseStringToList(dedupeKeywordsTagsInput.getValue()) : [],
+            // 简历配置
+            resumeImagePath: document.getElementById('commonResumeImagePath')?.value?.trim() || '',
+            sayHiContent: document.getElementById('commonSayHiContent')?.value?.trim() || ''
         };
     }
 
@@ -174,12 +200,30 @@
     function validateProfileData(profileData) {
         const errors = [];
         
-        if (!profileData.role) {
-            errors.push('角色/职位不能为空');
+        if (!profileData.jobTitle) {
+            errors.push('职位名称不能为空');
         }
         
-        if (profileData.years <= 0) {
-            errors.push('工作年限必须大于0');
+        if (!profileData.skills || profileData.skills.length === 0) {
+            errors.push('核心技能至少需要添加 1 项');
+        }
+        
+        if (!profileData.yearsOfExperience) {
+            errors.push('工作年限不能为空');
+        }
+        
+        if (!profileData.careerIntent) {
+            errors.push('职业意向不能为空');
+        } else if (profileData.careerIntent.length < 10 || profileData.careerIntent.length > 40) {
+            errors.push('职业意向建议在 10-40 字之间');
+        }
+        
+        if (profileData.highlights && profileData.highlights.length > 5) {
+            errors.push('个人亮点最多添加 5 项');
+        }
+        
+        if (profileData.maxChars < 80 || profileData.maxChars > 180) {
+            errors.push('最大字符数必须在 80-180 之间');
         }
         
         return errors;
@@ -223,20 +267,25 @@
                 delete aiPlatformConfigsCache[aiPlatform];
             }
 
-            // 构建完整配置对象（包括黑名单、候选人信息和AI配置）
+            // 构建完整配置对象（包括黑名单、候选人信息、简历配置和AI配置）
             const config = {
                 jobBlacklistKeywords: jobKeywords,
                 companyBlacklistKeywords: companyKeywords,
                 // 候选人信息
-                role: profileData.role,
-                years: profileData.years,
-                domains: profileData.domains,
-                coreStack: profileData.coreStack,
-                achievements: profileData.achievements,
-                strengths: profileData.strengths,
-                improvements: profileData.improvements,
-                availability: profileData.availability,
-                links: profileData.links,
+                jobTitle: profileData.jobTitle,
+                skills: profileData.skills,
+                yearsOfExperience: profileData.yearsOfExperience,
+                careerIntent: profileData.careerIntent,
+                domainExperience: profileData.domainExperience,
+                location: profileData.location,
+                tone: profileData.tone,
+                language: profileData.language,
+                highlights: profileData.highlights,
+                maxChars: profileData.maxChars,
+                dedupeKeywords: profileData.dedupeKeywords,
+                // 简历配置
+                resumeImagePath: profileData.resumeImagePath,
+                sayHiContent: profileData.sayHiContent,
                 // AI配置（JSON键值对）
                 aiPlatformConfigs: aiPlatformConfigs
             };
@@ -297,18 +346,34 @@
             
             // 重置候选人信息表单
             const profileFields = [
-                'profileRole', 'profileYears', 'profileDomains', 'profileCoreStack',
-                'profileAchievements', 'profileStrengths', 'profileImprovements', 
-                'profileAvailability', 'profileGithub', 'profilePortfolio'
+                'profileJobTitle', 'profileYearsOfExperience', 'profileCareerIntent',
+                'profileDomainExperience', 'profileLocation', 'profileTone', 'profileLanguage'
             ];
             
             profileFields.forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) {
-                    field.value = '';
+                    if (fieldId === 'profileLanguage') {
+                        field.value = 'zh_CN'; // 恢复默认语言
+                    } else if (fieldId === 'profileMaxChars') {
+                        field.value = '120'; // 恢复默认字符数
+                    } else {
+                        field.value = '';
+                    }
                     field.classList.remove('is-valid', 'is-invalid');
                 }
             });
+            
+            // 重置最大字符数
+            const maxCharsField = document.getElementById('profileMaxChars');
+            if (maxCharsField) {
+                maxCharsField.value = '120';
+            }
+            
+            // 重置标签输入
+            if (skillsTagsInput) skillsTagsInput.clear();
+            if (highlightsTagsInput) highlightsTagsInput.clear();
+            if (dedupeKeywordsTagsInput) dedupeKeywordsTagsInput.clear();
             
             // 重置AI配置
             const aiPlatformSelect = document.getElementById('aiPlatform');
@@ -350,26 +415,35 @@
         
         const setFieldValue = (fieldId, value) => {
             const field = document.getElementById(fieldId);
-            if (field && value !== undefined && value !== null) {
+            if (field && value !== undefined && value !== null && value !== '') {
                 field.value = value;
             }
         };
         
         // 基本字段
-        setFieldValue('profileRole', profileData.role);
-        setFieldValue('profileYears', profileData.years);
-        setFieldValue('profileDomains', profileData.domains?.join(', '));
-        setFieldValue('profileCoreStack', profileData.coreStack?.join(', '));
-        setFieldValue('profileAchievements', profileData.achievements?.join('; '));
-        setFieldValue('profileStrengths', profileData.strengths?.join(', '));
-        setFieldValue('profileImprovements', profileData.improvements?.join(', '));
-        setFieldValue('profileAvailability', profileData.availability);
+        setFieldValue('profileJobTitle', profileData.jobTitle);
+        setFieldValue('profileYearsOfExperience', profileData.yearsOfExperience);
+        setFieldValue('profileCareerIntent', profileData.careerIntent);
+        setFieldValue('profileDomainExperience', profileData.domainExperience);
+        setFieldValue('profileLocation', profileData.location);
+        setFieldValue('profileTone', profileData.tone);
+        setFieldValue('profileLanguage', profileData.language || 'zh_CN');
+        setFieldValue('profileMaxChars', profileData.maxChars || 120);
         
-        // 个人链接
-        if (profileData.links) {
-            setFieldValue('profileGithub', profileData.links.github);
-            setFieldValue('profilePortfolio', profileData.links.portfolio);
+        // 标签字段
+        if (profileData.skills && skillsTagsInput) {
+            skillsTagsInput.setTags(Array.isArray(profileData.skills) ? profileData.skills : []);
         }
+        if (profileData.highlights && highlightsTagsInput) {
+            highlightsTagsInput.setTags(Array.isArray(profileData.highlights) ? profileData.highlights : []);
+        }
+        if (profileData.dedupeKeywords && dedupeKeywordsTagsInput) {
+            dedupeKeywordsTagsInput.setTags(Array.isArray(profileData.dedupeKeywords) ? profileData.dedupeKeywords : []);
+        }
+        
+        // 简历配置字段
+        setFieldValue('commonResumeImagePath', profileData.resumeImagePath);
+        setFieldValue('commonSayHiContent', profileData.sayHiContent);
     }
 
     /**

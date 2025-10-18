@@ -182,97 +182,174 @@
                             <small class="text-muted">用于 AI 生成个性化沟通内容</small>
                         </div>
                         <div class="card-body p-4" style="overflow-y: auto;">
-                            <!-- 基本信息 -->
+                            <!-- 职位名称 -->
                             <div class="mb-3">
-                                <label for="profileRole" class="form-label fw-semibold">
-                                    角色/职位 <span class="text-danger">*</span>
+                                <label for="profileJobTitle" class="form-label fw-semibold">
+                                    职位名称 <span class="text-danger">*</span>
                                 </label>
-                                <input type="text" class="form-control" id="profileRole" 
-                                       placeholder="例如: Java 后端开发/高级">
+                                <input type="text" class="form-control" id="profileJobTitle" required
+                                       placeholder="如：Java开发工程师">
                             </div>
                             
+                            <!-- 核心技能 -->
                             <div class="mb-3">
-                                <label for="profileYears" class="form-label fw-semibold">
+                                <label for="profileSkills" class="form-label fw-semibold">
+                                    核心技能 <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="profileSkills" required
+                                       placeholder="输入技能后按回车添加">
+                                <div id="profileSkillsTags" class="tags-wrapper mt-2"></div>
+                                <small class="form-text text-muted">至少添加 1 项技能</small>
+                            </div>
+                            
+                            <!-- 工作年限 -->
+                            <div class="mb-3">
+                                <label for="profileYearsOfExperience" class="form-label fw-semibold">
                                     工作年限 <span class="text-danger">*</span>
                                 </label>
-                                <input type="number" class="form-control" id="profileYears" 
-                                       placeholder="例如: 8" min="0" max="50">
+                                <select class="form-select" id="profileYearsOfExperience" required>
+                                    <option value="">请选择</option>
+                                    <option value="1年以下">1年以下</option>
+                                    <option value="1-3年">1-3年</option>
+                                    <option value="3-5年">3-5年</option>
+                                    <option value="5-8年">5-8年</option>
+                                    <option value="8年以上">8年以上</option>
+                                    <option value="初级">初级</option>
+                                    <option value="中级">中级</option>
+                                    <option value="高级">高级</option>
+                                </select>
                             </div>
                             
-                            <!-- 从事行业/领域 -->
+                            <!-- 职业意向 -->
                             <div class="mb-3">
-                                <label for="profileDomains" class="form-label fw-semibold">
-                                    从事行业/领域
+                                <label for="profileCareerIntent" class="form-label fw-semibold">
+                                    职业意向 <span class="text-danger">*</span>
                                 </label>
-                                <input type="text" class="form-control" id="profileDomains" 
-                                       placeholder="例如: 电商,金融,教育,医疗,制造业等 (用逗号分隔)">
-                                <small class="form-text text-muted">多个行业/领域请用英文逗号分隔</small>
+                                <textarea class="form-control" id="profileCareerIntent" rows="3" required
+                                          placeholder="简要描述你的职业规划和求职目标（建议 10-40 字）"></textarea>
+                                <small class="form-text text-muted">建议 10-40 字</small>
                             </div>
                             
-                            <!-- 核心技能/专长 -->
+                            <!-- 领域经验 -->
                             <div class="mb-3">
-                                <label for="profileCoreStack" class="form-label fw-semibold">
-                                    核心技能/专长
+                                <label for="profileDomainExperience" class="form-label fw-semibold">
+                                    领域经验
                                 </label>
-                                <textarea class="form-control" id="profileCoreStack" rows="3" 
-                                          placeholder="例如: 项目管理,数据分析,市场营销,客户关系管理,团队协作等"></textarea>
-                                <small class="form-text text-muted">多个技能请用英文逗号分隔</small>
+                                <select class="form-select" id="profileDomainExperience">
+                                    <option value="">请选择（可选）</option>
+                                    <option value="跨境电商">跨境电商</option>
+                                    <option value="金融科技">金融科技</option>
+                                    <option value="SaaS">SaaS</option>
+                                    <option value="物流">物流</option>
+                                    <option value="制造">制造</option>
+                                    <option value="教育">教育</option>
+                                    <option value="医疗健康">医疗健康</option>
+                                    <option value="游戏">游戏</option>
+                                    <option value="社交媒体">社交媒体</option>
+                                    <option value="企业服务">企业服务</option>
+                                </select>
                             </div>
                             
-                            <!-- 主要成就/业绩亮点 -->
+                            <!-- 期望地点 -->
                             <div class="mb-3">
-                                <label for="profileAchievements" class="form-label fw-semibold">
-                                    主要成就/业绩亮点
+                                <label for="profileLocation" class="form-label fw-semibold">
+                                    期望地点
                                 </label>
-                                <textarea class="form-control" id="profileAchievements" rows="3" 
-                                          placeholder="例如: 带领团队完成年度销售目标120%; 优化业务流程，效率提升40%; 成功交付XXX项目，获得客户好评"></textarea>
-                                <small class="form-text text-muted">多个成就请用分号分隔</small>
+                                <input type="text" class="form-control" id="profileLocation" 
+                                       placeholder="如：北京、上海、深圳、可远程">
                             </div>
                             
-                            <!-- 个人优势 -->
+                            <!-- 个人亮点 -->
                             <div class="mb-3">
-                                <label for="profileStrengths" class="form-label fw-semibold">
-                                    个人优势
+                                <label for="profileHighlights" class="form-label fw-semibold">
+                                    个人亮点
                                 </label>
-                                <input type="text" class="form-control" id="profileStrengths" 
-                                       placeholder="例如: 沟通能力强,学习能力强,抗压能力强,执行力强">
-                                <small class="form-text text-muted">多个优势请用英文逗号分隔</small>
+                                <input type="text" class="form-control" id="profileHighlights"
+                                       placeholder="输入亮点后按回车添加">
+                                <div id="profileHighlightsTags" class="tags-wrapper mt-2"></div>
+                                <small class="form-text text-muted">最多添加 5 项亮点</small>
                             </div>
                             
-                            <!-- 待提升方面 -->
+                            <!-- 沟通语气 -->
                             <div class="mb-3">
-                                <label for="profileImprovements" class="form-label fw-semibold">
-                                    待提升方面
+                                <label for="profileTone" class="form-label fw-semibold">
+                                    沟通语气
                                 </label>
-                                <input type="text" class="form-control" id="profileImprovements" 
-                                       placeholder="例如: 前端薄弱，已在补 Vue3">
-                                <small class="form-text text-muted">多个方面请用英文逗号分隔</small>
+                                <select class="form-select" id="profileTone">
+                                    <option value="">请选择（可选）</option>
+                                    <option value="礼貌亲切">礼貌亲切</option>
+                                    <option value="专业克制">专业克制</option>
+                                    <option value="自然轻松">自然轻松</option>
+                                    <option value="简洁商务">简洁商务</option>
+                                </select>
+                                <small class="form-text text-muted">AI 生成招呼语时使用的语气风格</small>
                             </div>
                             
-                            <!-- 到岗时间及期望地点 -->
+                            <!-- 语言 -->
                             <div class="mb-3">
-                                <label for="profileAvailability" class="form-label fw-semibold">
-                                    到岗时间及期望地点
+                                <label for="profileLanguage" class="form-label fw-semibold">
+                                    语言
                                 </label>
-                                <input type="text" class="form-control" id="profileAvailability" 
-                                       placeholder="例如: 两周内到岗，期望在北京/上海/深圳/可远程">
+                                <select class="form-select" id="profileLanguage">
+                                    <option value="">请选择（可选）</option>
+                                    <option value="zh_CN" selected>中文（简体）</option>
+                                    <option value="en_US">English (US)</option>
+                                </select>
                             </div>
                             
-                            <!-- 个人链接/作品展示 -->
+                            <!-- 最大字符数 -->
                             <div class="mb-3">
-                                <label class="form-label fw-semibold">个人链接/作品展示</label>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <label for="profileGithub" class="form-label small">个人主页/社交媒体</label>
-                                        <input type="url" class="form-control" id="profileGithub" 
-                                               placeholder="LinkedIn/个人网站/公众号等">
-                                    </div>
-                                    <div class="col-6">
-                                        <label for="profilePortfolio" class="form-label small">作品集/案例</label>
-                                        <input type="url" class="form-control" id="profilePortfolio" 
-                                               placeholder="作品集/项目案例链接">
-                                    </div>
-                                </div>
+                                <label for="profileMaxChars" class="form-label fw-semibold">
+                                    最大字符数
+                                </label>
+                                <input type="number" class="form-control" id="profileMaxChars" 
+                                       min="80" max="180" value="120"
+                                       placeholder="范围：80-180，默认 120">
+                                <small class="form-text text-muted">AI 生成招呼语的最大字符数（80-180）</small>
+                            </div>
+                            
+                            <!-- 去重关键词 -->
+                            <div class="mb-3">
+                                <label for="profileDedupeKeywords" class="form-label fw-semibold">
+                                    去重关键词
+                                </label>
+                                <input type="text" class="form-control" id="profileDedupeKeywords"
+                                       placeholder="输入关键词后按回车添加">
+                                <div id="profileDedupeKeywordsTags" class="tags-wrapper mt-2"></div>
+                                <small class="form-text text-muted">用于过滤不感兴趣的内容</small>
+                            </div>
+                            
+                            <hr class="my-4">
+                            
+                            <!-- 简历配置 -->
+                            <h6 class="text-primary mb-3">
+                                <i class="bi bi-file-earmark-text me-2"></i>简历配置
+                            </h6>
+                            
+                            <!-- 简历图片路径 -->
+                            <div class="mb-3">
+                                <label for="commonResumeImagePath" class="form-label fw-semibold">
+                                    简历图片路径 <span class="text-muted">(可选)</span>
+                                </label>
+                                <input type="text" class="form-control" id="commonResumeImagePath" 
+                                       placeholder="如：/Users/zhang/my_resume.jpg">
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    设置简历图片的完整文件路径，支持常见图片格式（jpg、png、gif等），应用于所有平台
+                                </small>
+                            </div>
+                            
+                            <!-- 打招呼内容 -->
+                            <div class="mb-3">
+                                <label for="commonSayHiContent" class="form-label fw-semibold">
+                                    打招呼内容 <span class="text-muted">(可选)</span>
+                                </label>
+                                <textarea class="form-control" id="commonSayHiContent" rows="3" 
+                                          placeholder="您好，我对贵公司的职位很感兴趣..."></textarea>
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    设置与HR打招呼时的自动发送内容，应用于所有平台，建议个性化定制以增加回复率
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -313,12 +390,6 @@
                     <button class="nav-link" id="boss-records-tab" data-bs-toggle="tab"
                             data-bs-target="#boss-records-pane" type="button" role="tab"
                             aria-controls="boss-records-pane" aria-selected="false">岗位明细
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="boss-current-tab" data-bs-toggle="tab"
-                            data-bs-target="#boss-current-pane" type="button" role="tab"
-                            aria-controls="boss-current-pane" aria-selected="false">求职配置
                     </button>
                 </li>
             </ul>
@@ -545,49 +616,6 @@
                                             </div>
                                         </div>
 
-                                        <!-- Resume Configuration Card -->
-                                        <div class="config-card mb-2">
-                                            <h6 class="card-title text-primary mb-2">
-                                                <i class="bi bi-file-earmark-text me-2"></i>简历配置
-                                            </h6>
-
-                                            <!-- Resume Image Path -->
-                                            <div class="mb-2">
-                                                <label for="resumeImagePathField" class="form-label fw-semibold small">
-                                                    简历图片路径 <span class="text-muted">(可选)</span>
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="设置简历图片的完整文件路径，支持常见图片格式（jpg、png、gif等）"></i>
-                                                </label>
-                                                <input type="text" class="form-control form-control-sm" id="resumeImagePathField"
-                                                       placeholder="/Users/zhang/my_resume.jpg">
-                                            </div>
-
-                                            <!-- Resume Content -->
-                                            <!-- <div class="mb-2">
-                                                <label for="resumeContentTextArea" class="form-label fw-semibold small">
-                                                    简历内容摘要 <span class="text-muted">(可选)</span>
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="设置详细的简历内容，包括个人信息、技能、工作经历、项目经验等（非必填项）"></i>
-                                                </label>
-                                                <textarea class="form-control form-control-sm" id="resumeContentTextArea" rows="3"
-                                                          placeholder="在此输入详细的简历内容...（可选）"></textarea>
-                                            </div> -->
-
-                                            <!-- Greeting Content -->
-                                            <div class="mb-2">
-                                                <label for="sayHiTextArea" class="form-label fw-semibold small">
-                                                    打招呼内容
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="设置与HR打招呼时的自动发送内容，建议个性化定制，增加回复率"></i>
-                                                </label>
-                                                <textarea class="form-control form-control-sm" id="sayHiTextArea" rows="2"
-                                                          placeholder="您好，我对贵公司的职位很感兴趣..."></textarea>
-                                            </div>
-                                        </div>
-
                                     </div>
                                 </div>
 
@@ -743,16 +771,10 @@
                                         <!-- Action Buttons -->
                                         <div class="d-grid gap-2 mt-auto">
                                             <div class="row g-2">
-                                                <div class="col-6">
+                                                <div class="col-12">
                                                     <button type="button" class="btn btn-outline-primary btn-sm w-100 py-2"
                                                             id="saveConfigBtn">
                                                         <i class="bi bi-save me-2"></i>保存配置
-                                                    </button>
-                                                </div>
-                                                <div class="col-6">
-                                                    <button type="button" class="btn btn-outline-success btn-sm w-100 py-2"
-                                                            id="backupDataBtn">
-                                                        <i class="bi bi-database me-2"></i>数据库备份
                                                     </button>
                                                 </div>
                                             </div>
@@ -795,177 +817,6 @@
                                     </div>
                                 </div>
 
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Boss 求职配置 -->
-                <div class="tab-pane fade" id="boss-current-pane" role="tabpanel"
-                     aria-labelledby="boss-current-tab">
-                    <div class="card shadow-lg">
-                        <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">
-                            <h5 class="mb-0 text-dark"><i class="bi bi-gear me-2 text-primary"></i>求职配置查看</h5>
-                        </div>
-                        <div class="card-body">
-                            <!-- Vue应用挂载点 -->
-                            <div id="bossConfigApp">
-                                <div v-if="loading" class="text-center text-muted">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">加载中...</span>
-                                    </div>
-                                    <p class="mt-2">加载中...</p>
-                                </div>
-                                <div v-else-if="error" class="alert alert-danger" role="alert">
-                                    <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
-                                </div>
-                                <div v-else-if="!hasData" class="text-center text-muted">
-                                    <i class="bi bi-info-circle me-2"></i>暂无配置数据，请先在"配置"页签中保存配置。
-                                </div>
-                                <div v-else>
-                                    <table class="table table-striped align-middle">
-                                        <thead>
-                                            <tr>
-                                                <th style="width:200px;">配置项</th>
-                                                <th>值</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-if="config.id">
-                                                <td class="text-muted">配置ID</td>
-                                                <td>{{ config.id }}</td>
-                                            </tr>
-                                            <tr v-if="config.createdAt">
-                                                <td class="text-muted">创建时间</td>
-                                                <td>{{ formatDateTime(config.createdAt) }}</td>
-                                            </tr>
-                                            <tr v-if="config.updatedAt">
-                                                <td class="text-muted">更新时间</td>
-                                                <td>{{ formatDateTime(config.updatedAt) }}</td>
-                                            </tr>
-                                            <tr v-if="config.keywords">
-                                                <td class="text-muted">搜索关键词</td>
-                                                <td>{{ safe(config.keywords) }}</td>
-                                            </tr>
-                                            <tr v-if="config.industry">
-                                                <td class="text-muted">目标行业</td>
-                                                <td>{{ safe(config.industry) }}</td>
-                                            </tr>
-                                            <tr v-if="config.cityCode">
-                                                <td class="text-muted">工作城市</td>
-                                                <td>{{ mapCityCodesToNames(config.cityCode) || '-' }}</td>
-                                            </tr>
-                                            <tr v-if="config.experience">
-                                                <td class="text-muted">工作经验</td>
-                                                <td>{{ safe(config.experience) }}</td>
-                                            </tr>
-                                            <tr v-if="config.jobType">
-                                                <td class="text-muted">求职类型</td>
-                                                <td>{{ config.jobType }}</td>
-                                            </tr>
-                                            <tr v-if="config.salary">
-                                                <td class="text-muted">薪资档位</td>
-                                                <td>{{ config.salary }}</td>
-                                            </tr>
-                                            <tr v-if="config.degree">
-                                                <td class="text-muted">学历要求</td>
-                                                <td>{{ safe(config.degree) }}</td>
-                                            </tr>
-                                            <tr v-if="config.scale">
-                                                <td class="text-muted">公司规模</td>
-                                                <td>{{ safe(config.scale) }}</td>
-                                            </tr>
-                                            <tr v-if="config.stage">
-                                                <td class="text-muted">融资阶段</td>
-                                                <td>{{ safe(config.stage) }}</td>
-                                            </tr>
-                                            <tr v-if="config.expectedSalary">
-                                                <td class="text-muted">期望薪资</td>
-                                                <td>{{ Array.isArray(config.expectedSalary) ? config.expectedSalary.join(' ~ ') : config.expectedSalary }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td class="text-muted">过滤不活跃HR</td>
-                                                <td>
-                                                    <span v-if="config.filterDeadHR" class="badge bg-success">开启</span>
-                                                    <span v-else class="badge bg-secondary">关闭</span>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="text-muted">发送图片简历</td>
-                                                <td>
-                                                    <span v-if="config.sendImgResume" class="badge bg-success">开启</span>
-                                                    <span v-else class="badge bg-secondary">关闭</span>
-                                                </td>
-                                            </tr>
-                                            
-                                            <tr>
-                                                <td class="text-muted">过滤黑名单岗位</td>
-                                                <td>
-                                                    <span v-if="config.enableBlacklistFilter" class="badge bg-success">开启</span>
-                                                    <span v-else class="badge bg-secondary">关闭</span>
-                                                </td>
-                                            </tr>
-                                            <tr v-if="config.blacklistKeywords">
-                                                <td class="text-muted">黑名单关键词</td>
-                                                <td>{{ safe(config.blacklistKeywords) }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td class="text-muted">接收推荐岗位</td>
-                                                <td>
-                                                    <span v-if="config.recommendJobDTOS" class="badge bg-success">开启</span>
-                                                    <span v-else class="badge bg-secondary">关闭</span>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="text-muted">AI岗位匹配检测</td>
-                                                <td>
-                                                    <span v-if="config.enableAIJobMatchDetection" class="badge bg-success">开启</span>
-                                                    <span v-else class="badge bg-secondary">关闭</span>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="text-muted">AI智能打招呼</td>
-                                                <td>
-                                                    <span v-if="config.enableAIGreeting" class="badge bg-success">开启</span>
-                                                    <span v-else class="badge bg-secondary">关闭</span>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="text-muted">国企识别检查</td>
-                                                <td>
-                                                    <span v-if="config.checkStateOwned" class="badge bg-success">开启</span>
-                                                    <span v-else class="badge bg-secondary">关闭</span>
-                                                </td>
-                                            </tr>
-                                            <tr v-if="config.deadStatus">
-                                                <td class="text-muted">HR状态过滤列表</td>
-                                                <td>{{ safe(config.deadStatus) }}</td>
-                                            </tr>
-                                            <tr v-if="config.customCityCode">
-                                                <td class="text-muted">补充城市代码</td>
-                                                <td v-html="formatKVList(config.customCityCode) || '-'"></td>
-                                            </tr>
-                                            <tr v-if="config.resumeImagePath">
-                                                <td class="text-muted">简历图片路径</td>
-                                                <td>{{ config.resumeImagePath }}</td>
-                                            </tr>
-                                            <tr v-if="config.sayHi">
-                                                <td class="text-muted">打招呼内容</td>
-                                                <td>{{ config.sayHi }}</td>
-                                            </tr>
-                                            <tr v-if="config.remark">
-                                                <td class="text-muted">备注</td>
-                                                <td>{{ config.remark }}</td>
-                                            </tr>
-                                            <tr v-if="config.resumeContent">
-                                                <td class="text-muted">简历内容</td>
-                                                <td>
-                                                    <pre class="mb-0" style="white-space: pre-wrap;">{{ config.resumeContent }}</pre>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -1507,16 +1358,10 @@
                                         <!-- Action Buttons -->
                                         <div class="d-grid gap-2 mt-auto">
                                             <div class="row g-2">
-                                                <div class="col-6">
+                                                <div class="col-12">
                                                     <button type="button" class="btn btn-outline-primary btn-sm w-100 py-2"
                                                             id="zhilianSaveConfigBtn">
                                                         <i class="bi bi-save me-2"></i>保存配置
-                                                    </button>
-                                                </div>
-                                                <div class="col-6">
-                                                    <button type="button" class="btn btn-outline-success btn-sm w-100 py-2"
-                                                            id="zhilianBackupDataBtn">
-                                                        <i class="bi bi-database me-2"></i>数据库备份
                                                     </button>
                                                 </div>
                                             </div>
@@ -2084,16 +1929,10 @@
                                         <!-- Action Buttons -->
                                         <div class="d-grid gap-2 mt-auto">
                                             <div class="row g-2">
-                                                <div class="col-6">
+                                                <div class="col-12">
                                                     <button type="button" class="btn btn-outline-primary btn-sm w-100 py-2"
                                                             id="job51SaveConfigBtn">
                                                         <i class="bi bi-save me-2"></i>保存配置
-                                                    </button>
-                                                </div>
-                                                <div class="col-6">
-                                                    <button type="button" class="btn btn-outline-success btn-sm w-100 py-2"
-                                                            id="job51BackupDataBtn">
-                                                        <i class="bi bi-database me-2"></i>数据库备份
                                                     </button>
                                                 </div>
                                             </div>
@@ -2612,37 +2451,6 @@
                                                 </div>
                                             </div>
                                         </div>
-
-                                        <!-- Resume Configuration Card -->
-                                        <div class="config-card mb-2">
-                                            <h6 class="card-title text-primary mb-2">
-                                                <i class="bi bi-file-earmark-text me-2"></i>简历配置
-                                            </h6>
-
-                                            <!-- Resume Image Path -->
-                                            <div class="mb-2">
-                                                <label for="liepinResumeImagePathField" class="form-label fw-semibold small">
-                                                    简历图片路径 <span class="text-muted">(可选)</span>
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="设置简历图片的完整文件路径，支持常见图片格式（jpg、png、gif等）"></i>
-                                                </label>
-                                                <input type="text" class="form-control form-control-sm" id="liepinResumeImagePathField"
-                                                       placeholder="/Users/zhang/my_resume.jpg">
-                                            </div>
-
-                                            <!-- Greeting Content -->
-                                            <div class="mb-2">
-                                                <label for="liepinSayHiTextArea" class="form-label fw-semibold small">
-                                                    打招呼内容
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="设置与HR打招呼时的自动发送内容，建议个性化定制，增加回复率"></i>
-                                                </label>
-                                                <textarea class="form-control form-control-sm" id="liepinSayHiTextArea" rows="2"
-                                                          placeholder="您好，我对贵公司的职位很感兴趣..."></textarea>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2695,16 +2503,10 @@
                                         <!-- Action Buttons -->
                                         <div class="d-grid gap-2 mt-auto">
                                             <div class="row g-2">
-                                                <div class="col-6">
+                                                <div class="col-12">
                                                     <button type="button" class="btn btn-outline-primary btn-sm w-100 py-2"
                                                             id="liepinSaveConfigBtn">
                                                         <i class="bi bi-save me-2"></i>保存配置
-                                                    </button>
-                                                </div>
-                                                <div class="col-6">
-                                                    <button type="button" class="btn btn-outline-success btn-sm w-100 py-2"
-                                                            id="liepinBackupDataBtn">
-                                                        <i class="bi bi-database me-2"></i>数据库备份
                                                     </button>
                                                 </div>
                                             </div>
@@ -3031,7 +2833,6 @@
 <!-- 视图模块 -->
 <script src="js/views/common-config.js"></script>
 <script src="js/views/boss-config-form.js"></script>
-<script src="js/views/boss-config-readonly.js"></script>
 <script src="js/views/boss-records-vue.js"></script>
 <script src="js/views/job-records.js"></script>
 <script src="js/views/zhilian-config-form.js"></script>

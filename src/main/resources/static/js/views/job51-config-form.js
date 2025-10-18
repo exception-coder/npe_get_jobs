@@ -49,14 +49,6 @@ class Job51ConfigForm {
             });
         }
 
-        // 数据库备份按钮
-        const backupDataBtn = document.getElementById('job51BackupDataBtn');
-        if (backupDataBtn) {
-            backupDataBtn.addEventListener('click', () => {
-                this.handleBackupData();
-            });
-        }
-
         // 表单验证
         this.bindFormValidation();
     }
@@ -828,42 +820,6 @@ class Job51ConfigForm {
         this.saveConfig();
         this.showToast('51job配置已保存');
     }
-
-    // 处理数据库备份
-    handleBackupData() {
-        const backupBtn = document.getElementById('job51BackupDataBtn');
-        if (backupBtn) {
-            backupBtn.disabled = true;
-            backupBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>备份中...';
-        }
-
-        fetch('/api/backup/export', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                this.showToast('数据库备份成功', 'success');
-                console.log('备份路径:', data.backupPath);
-            } else {
-                this.showToast('数据库备份失败: ' + data.message, 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('备份请求失败:', error);
-            this.showToast('数据库备份失败: ' + error.message, 'danger');
-        })
-        .finally(() => {
-            if (backupBtn) {
-                backupBtn.disabled = false;
-                backupBtn.innerHTML = '<i class="bi bi-database me-2"></i>数据库备份';
-            }
-        });
-    }
-
 
     // 获取当前配置
     getCurrentConfig() {
