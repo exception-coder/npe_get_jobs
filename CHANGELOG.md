@@ -1,6 +1,119 @@
 # Changelog 💖
 Hello 小可爱们！这里是我们的成长日记，所有酷炫的更新和优化都会在这里记录哦！
 
+## [2.1.16] - 2025-10-19 🔄
+
+### Changed
+- **ConfigDTO配置转换逻辑优化！✨ 统一数据源架构**
+  - **问题背景 🤔**：`ConfigDTO.convertFromEntity()` 方法仍然从 `ConfigEntity` 获取已迁移到 `UserProfile` 的字段，导致数据源不一致
+  - **架构统一 🎯**：
+    - 参考 `AbstractRecruitmentService.convertConfigEntityToDTO()` 的设计，重构 `ConfigDTO` 的转换逻辑
+    - 从 `UserProfile` 获取用户个性化配置：`sayHi`、`enableAIJobMatchDetection`、`enableAIGreeting`、`sendImgResume`、`resumeImagePath`、`recommendJobs`
+    - 从 `ConfigEntity` 获取平台相关配置：`filterDeadHR`、`keyFilter`、`checkStateOwned`、`resumeContent`、`waitTime`、`platformType`
+  - **非Spring环境支持 🔧**：
+    - 使用 `SpringContextUtil.getBean()` 获取 `UserProfileRepository`，支持在非Spring管理的Bean中调用
+    - 保持单例模式的设计，确保配置全局一致性
+  - **容错设计 🛡️**：
+    - 获取 `UserProfile` 失败时自动降级使用默认值，不影响应用运行
+    - 添加详细的日志记录，方便问题排查
+    - 异常情况下优雅降级，确保系统稳定性
+  - **代码质量提升 📊**：
+    - 添加详细的方法注释，说明设计思路和使用场景
+    - 统一了 `ConfigDTO` 和 `AbstractRecruitmentService` 的配置转换逻辑
+    - 消除了数据源不一致的潜在问题
+
+### Technical Details
+- **修改文件**：
+  - `ConfigDTO.java`：
+    - 新增 `UserProfile` 和 `UserProfileRepository` 导入
+    - 添加 `@Slf4j` 注解支持日志记录
+    - 重构 `convertFromEntity()` 方法：
+      - 通过 `SpringContextUtil` 获取 `UserProfileRepository`
+      - 从 `UserProfile` 加载用户配置字段（6个字段）
+      - 从 `ConfigEntity` 加载平台配置字段
+      - 添加异常处理和日志记录
+    - 更新方法注释，说明支持非Spring管理的Bean调用
+- **设计原则**：
+  - **单一数据源**：用户配置统一从 UserProfile 获取，平台配置从 ConfigEntity 获取
+  - **职责分离**：UserProfile 存储"我是谁"，ConfigEntity 存储"我要找什么"
+  - **统一架构**：ConfigDTO、AbstractRecruitmentService 使用相同的配置转换逻辑
+  - **容错降级**：异常情况下使用默认值，保证系统可用性
+- **收益**：
+  - 消除配置数据源不一致的问题 ✅
+  - 统一配置转换逻辑，降低维护成本 📉
+  - 提高代码可读性和可维护性 📚
+  - 支持非Spring环境调用，灵活性更强 🚀
+
+## [2.1.15] - 2025-10-19 🍪
+
+### Added
+- **Cookie自动持久化！🔐 登录状态永久保存，告别重复登录**
+  - **智能Cookie保存 💾**：平台登录成功后，自动将Cookie保存到对应平台的配置实体（ConfigEntity.cookieData）
+    - 猎聘登录成功 → 自动保存Cookie到数据库
+    - 51Job登录成功 → 自动保存Cookie到数据库
+    - 智联招聘登录成功 → 自动保存Cookie到数据库
+    - Boss直聘登录成功 → 自动保存Cookie到数据库
+  - **启动自动恢复登录 🚀**：应用重启时，自动从配置加载Cookie到对应平台页面
+    - PlaywrightService初始化时，为每个平台Page加载已保存的Cookie
+    - 无需重新登录，直接恢复登录状态，省时省心！
+  - **Cookie序列化方案 📦**：
+    - 使用JSON格式存储Cookie（name、value、domain、path、expires、secure、httpOnly）
+    - 兼容Playwright的Cookie对象结构，序列化/反序列化流程清晰
+    - 支持过期时间、安全标志等完整Cookie属性
+  - **容错设计 🛡️**：
+    - Cookie加载失败不影响应用启动，自动降级为无Cookie状态
+    - 详细的日志记录，方便排查Cookie相关问题
+    - 对于没有Cookie配置的平台，优雅跳过加载流程
+
+### Changed
+- **LoginStatusCheckScheduler 增强 ⚡**：
+  - 新增 `savePlatformCookieToConfig()` 方法：保存平台Cookie到配置实体
+  - 新增 `getCookiesAsJson()` 方法：将Playwright Cookie对象序列化为JSON字符串
+  - 四个平台检查方法（猎聘、51Job、智联、Boss）登录成功后自动保存Cookie
+  - 注入 `ConfigService` 依赖，支持Cookie的数据库持久化
+- **PlaywrightService 增强 🔧**：
+  - 新增 `loadPlatformCookies()` 方法：从配置实体加载平台Cookie
+  - 新增 `loadCookiesFromJson()` 方法：将JSON字符串反序列化为Playwright Cookie对象
+  - 在 `init()` 初始化流程中，为每个平台Page预加载Cookie（在navigate之前）
+  - 注入 `ConfigService` 依赖，支持从数据库读取Cookie
+- **ConfigEntity 字段利用 📊**：
+  - 充分利用现有的 `cookieData` 字段（TEXT类型），存储各平台Cookie的JSON数据
+  - 按平台类型（platformType）隔离存储，每个平台独立管理自己的Cookie
+
+### Technical Details
+- **修改文件**：
+  - `LoginStatusCheckScheduler.java`：
+    - 添加 `ConfigService` 依赖注入
+    - 新增 `savePlatformCookieToConfig()` 和 `getCookiesAsJson()` 方法
+    - 在 `checkLiepinLoginStatus()`、`checkJob51LoginStatus()`、`checkZhilianLoginStatus()`、`checkBossLoginStatus()` 中添加Cookie保存逻辑
+    - 导入 `com.github.openjson.JSONArray` 和 `com.github.openjson.JSONObject`
+  - `PlaywrightService.java`：
+    - 添加 `ConfigService` 依赖注入和构造函数
+    - 新增 `loadPlatformCookies()` 和 `loadCookiesFromJson()` 方法
+    - 在 `init()` 方法中为每个平台Page预加载Cookie
+    - 导入 `com.github.openjson.JSONArray` 和 `com.github.openjson.JSONObject`
+- **Cookie数据结构**（JSON格式）：
+  ```json
+  [
+    {
+      "name": "cookie_name",
+      "value": "cookie_value",
+      "domain": ".example.com",
+      "path": "/",
+      "expires": 1234567890.123,
+      "secure": true,
+      "httpOnly": true
+    }
+  ]
+  ```
+- **执行流程**：
+  1. **登录成功时**：Page Cookie → JSON字符串 → ConfigEntity.cookieData → 数据库
+  2. **应用启动时**：数据库 → ConfigEntity.cookieData → JSON字符串 → Page Cookie
+- **收益**：
+  - 告别频繁扫码登录，提升用户体验 ✨
+  - 登录状态持久化，应用重启不丢失 💪
+  - 自动化程度更高，运维更省心 🎯
+
 ## [2.1.14] - 2025-10-19 🎯
 
 ### Changed

@@ -1,16 +1,20 @@
 package getjobs.common.dto;
 
 import getjobs.repository.entity.ConfigEntity;
+import getjobs.repository.entity.UserProfile;
 import getjobs.repository.ConfigRepository;
+import getjobs.repository.UserProfileRepository;
 import getjobs.utils.SpringContextUtil;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import lombok.Data;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Data
+@Slf4j
 public class ConfigDTO {
 
     // 文本与布尔
@@ -29,7 +33,7 @@ public class ConfigDTO {
     private String degree;
     private String scale;
     private String stage;
-    private String companyType;  // 新增：公司类型字段，用于51job的companyType参数
+    private String companyType; // 新增：公司类型字段，用于51job的companyType参数
     private String expectedPosition;
 
     // 可选：自定义城市编码映射
@@ -60,7 +64,7 @@ public class ConfigDTO {
 
     // 其他列表型配置
     private List<String> deadStatus;
-    
+
     // HR状态过滤关键词（逗号分隔字符串，从前端表单接收）
     private String bossHrStatusKeywords;
 
@@ -102,21 +106,39 @@ public class ConfigDTO {
     }
 
     /**
-     * 将ConfigEntity转换为BossConfigDTO
+     * 将ConfigEntity转换为ConfigDTO
+     * 参考AbstractRecruitmentService的实现，从UserProfile获取已迁移的用户配置字段
+     * 支持非Spring管理的Bean调用（通过SpringContextUtil获取Repository）
      */
     private static ConfigDTO convertFromEntity(ConfigEntity entity) {
         ConfigDTO dto = new ConfigDTO();
 
-        // 基础字段映射
-        dto.setSayHi(entity.getSayHi());
-        dto.setEnableAIJobMatchDetection(entity.getEnableAIJobMatchDetection());
-        dto.setEnableAIGreeting(entity.getEnableAIGreeting());
+        try {
+            // 从 UserProfile 获取已迁移的用户配置字段
+            UserProfileRepository userProfileRepository = SpringContextUtil.getBean(UserProfileRepository.class);
+            UserProfile userProfile = userProfileRepository.findAll().stream()
+                    .findFirst()
+                    .orElse(null);
+
+            if (userProfile != null) {
+                // 已迁移到 UserProfile 的字段
+                dto.setSayHi(userProfile.getSayHi());
+                dto.setEnableAIJobMatchDetection(userProfile.getEnableAIJobMatchDetection());
+                dto.setEnableAIGreeting(userProfile.getEnableAIGreeting());
+                dto.setSendImgResume(userProfile.getSendImgResume());
+                dto.setResumeImagePath(userProfile.getResumeImagePath());
+                dto.setRecommendJobs(userProfile.getRecommendJobs());
+            } else {
+                log.warn("UserProfile不存在，使用默认值");
+            }
+        } catch (Exception e) {
+            log.error("从UserProfile获取用户配置失败，使用默认值", e);
+        }
+
+        // 基础字段映射（从 ConfigEntity 获取平台相关配置）
         dto.setFilterDeadHR(entity.getFilterDeadHR());
-        dto.setSendImgResume(entity.getSendImgResume());
         dto.setKeyFilter(entity.getKeyFilter());
-        dto.setRecommendJobs(entity.getRecommendJobs());
         dto.setCheckStateOwned(entity.getCheckStateOwned());
-        dto.setResumeImagePath(entity.getResumeImagePath());
         dto.setResumeContent(entity.getResumeContent());
         dto.setWaitTime(entity.getWaitTime());
         dto.setPlatformType(entity.getPlatformType());
@@ -146,7 +168,7 @@ public class ConfigDTO {
         dto.setPublishTime(entity.getPublishTime());
         // 注意：需要在ConfigEntity中添加companyType字段
         // if (entity.getCompanyType() != null) {
-        //     dto.setCompanyType(String.join(",", entity.getCompanyType()));
+        // dto.setCompanyType(String.join(",", entity.getCompanyType()));
         // }
         if (entity.getDeadStatus() != null) {
             dto.setDeadStatus(entity.getDeadStatus());
@@ -197,7 +219,6 @@ public class ConfigDTO {
         return mapToCodes(splitToList(experience), v -> v);
     }
 
-
     public List<String> getDegreeCodes() {
         return mapToCodes(splitToList(degree), v -> degree);
     }
@@ -225,6 +246,7 @@ public class ConfigDTO {
 
     /**
      * 获取平台类型对应的枚举
+     * 
      * @return 招聘平台枚举，如果platformType为空或无效则返回null
      */
     public RecruitmentPlatformEnum getPlatformTypeEnum() {

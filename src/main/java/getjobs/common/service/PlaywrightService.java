@@ -3,7 +3,11 @@ package getjobs.common.service;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Cookie;
 import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.repository.entity.ConfigEntity;
+import getjobs.service.ConfigService;
 import lombok.extern.slf4j.Slf4j;
+import com.github.openjson.JSONArray;
+import com.github.openjson.JSONObject;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -19,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class PlaywrightService {
 
+    private final ConfigService configService;
+
     private Playwright playwright;
     private Browser browser;
 
@@ -26,6 +32,10 @@ public class PlaywrightService {
     private final Map<RecruitmentPlatformEnum, Page> pageMap = new ConcurrentHashMap<>();
 
     private static final int DEFAULT_TIMEOUT = 30000;
+
+    public PlaywrightService(ConfigService configService) {
+        this.configService = configService;
+    }
 
     private static final String[] USER_AGENTS = {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
@@ -56,15 +66,19 @@ public class PlaywrightService {
                             "--disable-background-timer-throttling",
                             "--disable-renderer-backgrounding",
                             "--disable-backgrounding-occluded-windows",
-                            "--disable-ipc-flooding-protection"
-                    )));
+                            "--disable-ipc-flooding-protection")));
 
             context = createNewContext();
             for (RecruitmentPlatformEnum platform : RecruitmentPlatformEnum.values()) {
                 Page page = createNewPage(context);
+
+                // 先加载Cookie，再导航到页面
+                loadPlatformCookies(platform, page);
+
                 page.navigate(platform.getHomeUrl());
                 pageMap.put(platform, page);
-                log.info("Initialized page for platform: {}, url: {}", platform.getPlatformName(), platform.getHomeUrl());
+                log.info("Initialized page for platform: {}, url: {}", platform.getPlatformName(),
+                        platform.getHomeUrl());
             }
 
             log.info("Playwright service initialized successfully.");
@@ -137,5 +151,75 @@ public class PlaywrightService {
     private String getRandomUserAgent() {
         Random random = new Random();
         return USER_AGENTS[random.nextInt(USER_AGENTS.length)];
+    }
+
+    /**
+     * 从配置实体加载平台Cookie到页面
+     * 
+     * @param platform 平台枚举
+     * @param page     页面对象
+     */
+    private void loadPlatformCookies(RecruitmentPlatformEnum platform, Page page) {
+        try {
+            ConfigEntity config = configService.loadByPlatformType(platform.getPlatformCode());
+            if (config == null || config.getCookieData() == null || config.getCookieData().trim().isEmpty()) {
+                log.info("平台 {} 暂无Cookie配置，跳过加载", platform.getPlatformName());
+                return;
+            }
+
+            String cookieData = config.getCookieData();
+            loadCookiesFromJson(cookieData, page);
+            log.info("已为平台 {} 加载Cookie", platform.getPlatformName());
+        } catch (Exception e) {
+            log.error("加载平台 {} 的Cookie失败，将使用无Cookie状态启动", platform.getPlatformName(), e);
+        }
+    }
+
+    /**
+     * 从JSON字符串加载Cookie到页面
+     * 
+     * @param cookieData Cookie的JSON字符串
+     * @param page       页面对象
+     */
+    private void loadCookiesFromJson(String cookieData, Page page) {
+        try {
+            JSONArray jsonArray = new JSONArray(cookieData);
+            List<Cookie> cookies = new ArrayList<>();
+
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+
+                Cookie cookie = new Cookie(
+                        jsonObject.getString("name"),
+                        jsonObject.getString("value"));
+
+                if (!jsonObject.isNull("domain")) {
+                    cookie.domain = jsonObject.getString("domain");
+                }
+
+                if (!jsonObject.isNull("path")) {
+                    cookie.path = jsonObject.getString("path");
+                }
+
+                if (!jsonObject.isNull("expires")) {
+                    cookie.expires = jsonObject.getDouble("expires");
+                }
+
+                if (!jsonObject.isNull("secure")) {
+                    cookie.secure = jsonObject.getBoolean("secure");
+                }
+
+                if (!jsonObject.isNull("httpOnly")) {
+                    cookie.httpOnly = jsonObject.getBoolean("httpOnly");
+                }
+
+                cookies.add(cookie);
+            }
+
+            page.context().addCookies(cookies);
+            log.debug("成功加载 {} 个Cookie", cookies.size());
+        } catch (Exception e) {
+            log.error("从JSON加载Cookie失败", e);
+        }
     }
 }
