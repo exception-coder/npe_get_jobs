@@ -8,10 +8,10 @@ import getjobs.modules.boss.dto.JobDTO;
 import getjobs.service.JobFilterService;
 import getjobs.modules.liepin.service.LiepinElementLocators;
 import getjobs.modules.liepin.service.playwright.LiePinApiMonitorService;
+import getjobs.repository.UserProfileRepository;
 import getjobs.repository.entity.ConfigEntity;
+import getjobs.service.AbstractRecruitmentService;
 import getjobs.service.ConfigService;
-import getjobs.service.RecruitmentService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -25,15 +25,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class LiepinRecruitmentServiceImpl implements RecruitmentService {
+public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
 
     private final LiePinApiMonitorService liePinApiMonitorService;
     private final PlaywrightService playwrightService;
-    private final ConfigService configService;
     private final JobFilterService jobFilterService;
 
     private Page page;
+
+    public LiepinRecruitmentServiceImpl(ConfigService configService,
+            UserProfileRepository userProfileRepository,
+            LiePinApiMonitorService liePinApiMonitorService,
+            PlaywrightService playwrightService,
+            JobFilterService jobFilterService) {
+        super(configService, userProfileRepository);
+        this.liePinApiMonitorService = liePinApiMonitorService;
+        this.playwrightService = playwrightService;
+        this.jobFilterService = jobFilterService;
+    }
 
     private static final String HOME_URL = RecruitmentPlatformEnum.LIEPIN.getHomeUrl();
     private static final String SEARCH_JOB_URL = "https://www.liepin.com/zhaopin/?";
@@ -104,7 +113,7 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
         // 将ConfigEntity转换为ConfigDTO
         ConfigDTO dbConfig = convertConfigEntityToDTO(configEntity);
 
-        return jobFilterService.filterJobs(jobDTOS, dbConfig,false);
+        return jobFilterService.filterJobs(jobDTOS, dbConfig, false);
     }
 
     @Override
@@ -117,27 +126,27 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
                     log.info("正在投递岗位: {}", jobDTO.getJobName());
                     jobPage.navigate(jobDTO.getHref());
                     jobPage.waitForLoadState();
-                    
+
                     // 等待页面加载完成
                     jobPage.waitForTimeout(2000);
-                    
+
                     // 1. 点击"聊一聊"按钮
                     if (LiepinElementLocators.clickChatWithRecruiter(jobPage)) {
                         // 等待聊天窗口打开
                         jobPage.waitForTimeout(2000);
-                        
+
                         // 获取打招呼内容
                         String greetingMessage = config.getSayHi();
                         if (greetingMessage == null || greetingMessage.trim().isEmpty()) {
                             greetingMessage = "您好，我对这个职位很感兴趣，期待与您进一步沟通！";
                             log.warn("未配置打招呼内容，使用默认消息");
                         }
-                        
+
                         // 2. 输入打招呼内容
                         if (LiepinElementLocators.inputChatMessage(jobPage, greetingMessage)) {
                             // 等待输入完成
                             jobPage.waitForTimeout(1000);
-                            
+
                             // 3. 点击发送按钮
                             if (LiepinElementLocators.clickSendButton(jobPage)) {
                                 log.info("岗位投递成功: {}", jobDTO.getJobName());
@@ -151,7 +160,7 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
                     } else {
                         log.warn("点击聊一聊按钮失败或HR不可聊天: {}", jobDTO.getJobName());
                     }
-                    
+
                     // 随机等待 3-5 秒
                     try {
                         Thread.sleep((3 + new Random().nextInt(3)) * 1000L);
@@ -180,88 +189,25 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
     }
 
     /**
-     * 将ConfigEntity转换为ConfigDTO
-     * 使用反射创建ConfigDTO实例，因为构造函数是私有的
+     * 重写父类方法，添加猎聘平台特定的字段
      */
-    private ConfigDTO convertConfigEntityToDTO(ConfigEntity entity) {
-        try {
-            // 通过反射创建ConfigDTO实例
-            java.lang.reflect.Constructor<ConfigDTO> constructor = ConfigDTO.class.getDeclaredConstructor();
-            constructor.setAccessible(true);
-            ConfigDTO dto = constructor.newInstance();
-
-            // 基础字段映射
-            dto.setSayHi(entity.getSayHi());
-            dto.setEnableAIJobMatchDetection(entity.getEnableAIJobMatchDetection());
-            dto.setEnableAIGreeting(entity.getEnableAIGreeting());
-            dto.setFilterDeadHR(entity.getFilterDeadHR());
-            dto.setSendImgResume(entity.getSendImgResume());
-            dto.setKeyFilter(entity.getKeyFilter());
-            dto.setRecommendJobs(entity.getRecommendJobs());
-            dto.setCheckStateOwned(entity.getCheckStateOwned());
-            dto.setResumeImagePath(entity.getResumeImagePath());
-            dto.setResumeContent(entity.getResumeContent());
-            dto.setWaitTime(entity.getWaitTime());
-            dto.setPlatformType(entity.getPlatformType());
-
-            // 列表字段转换为逗号分隔的字符串
-            if (entity.getKeywords() != null) {
-                dto.setKeywords(String.join(",", entity.getKeywords()));
-            }
-            if (entity.getCityCode() != null) {
-                dto.setCityCode(String.join(",", entity.getCityCode()));
-            }
-            if (entity.getIndustry() != null) {
-                dto.setIndustry(String.join(",", entity.getIndustry()));
-            }
-            if (entity.getExperience() != null) {
-                dto.setExperience(String.join(",", entity.getExperience()));
-            }
-            if (entity.getDegree() != null) {
-                dto.setDegree(String.join(",", entity.getDegree()));
-            }
-            if (entity.getScale() != null) {
-                dto.setScale(String.join(",", entity.getScale()));
-            }
-            if (entity.getStage() != null) {
-                dto.setStage(String.join(",", entity.getStage()));
-            }
-            if (entity.getDeadStatus() != null) {
-                dto.setDeadStatus(entity.getDeadStatus());
-            }
-
-            // 期望薪资处理
-            if (entity.getExpectedSalary() != null && entity.getExpectedSalary().size() >= 2) {
-                dto.setMinSalary(entity.getExpectedSalary().get(0));
-                dto.setMaxSalary(entity.getExpectedSalary().get(1));
-            }
-
-            // 其他字段
-            dto.setCustomCityCode(entity.getCustomCityCode());
-            dto.setJobType(entity.getJobType());
-            dto.setSalary(entity.getSalary());
-            dto.setExpectedPosition(entity.getExpectedPosition());
-            dto.setPublishTime(entity.getPublishTime());
-
-            return dto;
-        } catch (Exception e) {
-            log.error("ConfigEntity转换为ConfigDTO失败", e);
-            // 如果转换失败，返回ConfigDTO的单例实例作为备用
-            return ConfigDTO.getInstance();
-        }
+    @Override
+    protected void populatePlatformSpecificFields(ConfigDTO dto, ConfigEntity entity) {
+        // 猎聘特有的发布时间字段
+        dto.setPublishTime(entity.getPublishTime());
     }
 
     private List<JobDTO> collectJobsByCity(String cityCode, String keyword, ConfigDTO config) {
         String searchUrl = buildSearchUrl(cityCode, keyword, config);
         log.info("开始采集，城市: {}，关键词: {}，URL: {}", cityCode, keyword, searchUrl);
-        
+
         List<JobDTO> jobDTOS = new ArrayList<>();
-        
+
         // 重试机制：最多重试3次
         int maxRetries = 3;
         int retryCount = 0;
         boolean success = false;
-        
+
         while (retryCount < maxRetries && !success) {
             try {
                 // 检查Page是否可用
@@ -269,22 +215,22 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
                     log.error("Page对象已关闭，无法继续采集");
                     break;
                 }
-                
+
                 // 导航到搜索页面，增加超时设置
                 log.info("正在导航到搜索页面 (尝试 {}/{})", retryCount + 1, maxRetries);
                 page.navigate(searchUrl, new Page.NavigateOptions().setTimeout(60000));
-                
+
                 // 等待页面加载完成
                 page.waitForLoadState();
-                
+
                 // 额外等待，确保页面完全加载
                 page.waitForTimeout(2000);
-                
+
                 // 从第1页开始循环点击分页，浏览所有岗位
                 int pageNumber = 1;
                 while (LiepinElementLocators.clickPageNumber(page, pageNumber)) {
                     log.info("正在采集第 {} 页的职位", pageNumber);
-                    
+
                     // 等待5-10秒，确保API响应被拦截并完成数据入库
                     try {
                         int waitSeconds = 5 + new Random().nextInt(6); // 5-10秒
@@ -298,10 +244,10 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
 
                     pageNumber++;
                 }
-                
+
                 log.info("所有分页已遍历完成，共 {} 页", pageNumber - 1);
                 success = true;
-                
+
             } catch (com.microsoft.playwright.PlaywrightException e) {
                 retryCount++;
                 if (e.getMessage() != null && e.getMessage().contains("Cannot find parent object")) {
@@ -315,20 +261,20 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
                 } else {
                     log.error("采集城市: {}, 关键词: {} 的职位失败 (尝试 {}/{})", cityCode, keyword, retryCount, maxRetries, e);
                 }
-                
+
                 if (retryCount >= maxRetries) {
                     log.error("达到最大重试次数，采集失败");
                 }
             } catch (Exception e) {
                 retryCount++;
                 log.error("采集城市: {}, 关键词: {} 的职位失败 (尝试 {}/{})", cityCode, keyword, retryCount, maxRetries, e);
-                
+
                 if (retryCount >= maxRetries) {
                     log.error("达到最大重试次数，采集失败");
                 }
             }
         }
-        
+
         log.info("城市: {}, 关键词: {} 的职位采集完成，共{}个职位", cityCode, keyword, jobDTOS.size());
         return jobDTOS;
     }
@@ -385,10 +331,10 @@ public class LiepinRecruitmentServiceImpl implements RecruitmentService {
             page.navigate(HOME_URL);
 
             log.info("等待用户手动登录...");
-//             登录逻辑需要根据猎聘的页面元素进行调整
-             while (!LiepinElementLocators.isUserLoggedIn(page)) {
-                 Thread.sleep((3 + new Random().nextInt(3)) * 1000L);
-             }
+            // 登录逻辑需要根据猎聘的页面元素进行调整
+            while (!LiepinElementLocators.isUserLoggedIn(page)) {
+                Thread.sleep((3 + new Random().nextInt(3)) * 1000L);
+            }
             log.info("登录成功");
             return true;
         } catch (Exception e) {

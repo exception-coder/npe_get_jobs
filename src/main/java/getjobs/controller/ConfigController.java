@@ -108,7 +108,8 @@ public class ConfigController {
 
     private ConfigEntity toEntity(ConfigDTO dto) {
         ConfigEntity e = new ConfigEntity();
-        e.setSayHi(dto.getSayHi());
+        // 注意：sayHi、resumeImagePath、sendImgResume、enableAIGreeting、enableAIJobMatchDetection、recommendJobs
+        // 已迁移到 UserProfile
         e.setKeywords(split(dto.getKeywords()));
         e.setCityCode(split(dto.getCityCode()));
         e.setIndustry(split(dto.getIndustry()));
@@ -119,11 +120,7 @@ public class ConfigController {
         e.setDegree(wrap(dto.getDegree()));
         e.setScale(wrap(dto.getScale()));
         e.setStage(wrap(dto.getStage()));
-        e.setEnableAIJobMatchDetection(Boolean.TRUE.equals(dto.getEnableAIJobMatchDetection()));
-        e.setEnableAIGreeting(Boolean.TRUE.equals(dto.getEnableAIGreeting()));
         e.setFilterDeadHR(Boolean.TRUE.equals(dto.getFilterDeadHR()));
-        e.setSendImgResume(Boolean.TRUE.equals(dto.getSendImgResume()));
-        e.setResumeImagePath(dto.getResumeImagePath());
         e.setResumeContent(dto.getResumeContent());
         if (dto.getMinSalary() != null && dto.getMaxSalary() != null && dto.getMinSalary() > 0
                 && dto.getMaxSalary() >= dto.getMinSalary()) {
@@ -131,17 +128,16 @@ public class ConfigController {
         }
         e.setWaitTime(dto.getWaitTime());
         e.setKeyFilter(Boolean.TRUE.equals(dto.getKeyFilter()));
-        e.setRecommendJobs(Boolean.TRUE.equals(dto.getRecommendJobs()));
         e.setCheckStateOwned(Boolean.TRUE.equals(dto.getCheckStateOwned()));
         e.setCustomCityCode(dto.getCustomCityCode());
-        
+
         // 优先使用前端传来的bossHrStatusKeywords字段，兼容旧的deadStatus字段
         if (dto.getBossHrStatusKeywords() != null && !dto.getBossHrStatusKeywords().trim().isEmpty()) {
             e.setDeadStatus(split(dto.getBossHrStatusKeywords()));
         } else if (dto.getDeadStatus() != null) {
             e.setDeadStatus(dto.getDeadStatus());
         }
-        
+
         return e;
     }
 

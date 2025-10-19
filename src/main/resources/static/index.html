@@ -154,6 +154,38 @@
                                         密钥将加密存储，仅用于调用AI接口
                                     </div>
                                 </div>
+                                
+                                <!-- AI智能功能开关 -->
+                                <div class="mt-4">
+                                    <h6 class="text-success mb-3">
+                                        <i class="bi bi-robot me-2"></i>AI智能功能
+                                    </h6>
+                                    
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="commonEnableAIJobMatch">
+                                        <label class="form-check-label fw-semibold small" for="commonEnableAIJobMatch">
+                                            AI职位匹配检测
+                                            <i class="bi bi-question-circle text-muted ms-1"
+                                               data-bs-toggle="tooltip"
+                                               title="开启后将使用AI智能分析职位描述，检测岗位与期望的匹配度，应用于所有招聘平台"></i>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="commonEnableAIGreeting">
+                                        <label class="form-check-label fw-semibold small" for="commonEnableAIGreeting">
+                                            AI智能打招呼
+                                            <i class="bi bi-question-circle text-muted ms-1"
+                                               data-bs-toggle="tooltip"
+                                               title="开启后将使用AI根据候选人信息和职位描述生成个性化的打招呼内容，应用于所有招聘平台"></i>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="alert alert-info small mt-3 mb-0" role="alert">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        AI功能需要配置AI平台和API密钥后才能使用，配置后将应用于所有招聘平台
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- 示例说明 -->
@@ -720,49 +752,6 @@
                                                     <i class="bi bi-question-circle text-muted ms-1"
                                                        data-bs-toggle="tooltip"
                                                        title="开启后将根据公共配置中的黑名单关键词过滤不想要的岗位（职位/公司/描述命中即过滤）"></i>
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        <!-- AI Configuration Card -->
-                                        <div class="config-card mb-2">
-                                            <h6 class="card-title text-success mb-2">
-                                                <i class="bi bi-robot me-2"></i>AI智能配置
-                                            </h6>
-
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox"
-                                                       id="enableAIJobMatchDetectionCheckBox">
-                                                <label class="form-check-label fw-semibold small"
-                                                       for="enableAIJobMatchDetectionCheckBox">
-                                                    AI岗位匹配检测
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="开启后将使用AI智能分析职位描述，检测岗位与期望的匹配度"></i>
-                                                </label>
-                                            </div>
-
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox"
-                                                       id="enableAIGreetingCheckBox">
-                                                <label class="form-check-label fw-semibold small text-muted"
-                                                       for="enableAIGreetingCheckBox">
-                                                    AI智能打招呼 <span class="badge bg-secondary">开发者测试版</span>
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="功能暂时禁用"></i>
-                                                </label>
-                                            </div>
-
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox"
-                                                       id="checkStateOwnedCheckBox" disabled>
-                                                <label class="form-check-label fw-semibold small text-muted"
-                                                       for="checkStateOwnedCheckBox">
-                                                    国企识别检查 <span class="badge bg-secondary">暂时禁用</span>
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="功能暂时禁用"></i>
                                                 </label>
                                             </div>
                                         </div>
@@ -1337,24 +1326,6 @@
                                             </div>
                                         </div>
 
-                                        <!-- AI Configuration Card -->
-                                        <div class="config-card mb-2">
-                                            <h6 class="card-title text-success mb-2">
-                                                <i class="bi bi-robot me-2"></i>AI智能配置
-                                            </h6>
-
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="zhilianEnableAIJobMatchCheckBox" disabled>
-                                                <label class="form-check-label fw-semibold small text-muted" for="zhilianEnableAIJobMatchCheckBox">
-                                                    AI职位匹配检测 <span class="badge bg-secondary">暂时禁用</span>
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="功能暂时禁用"></i>
-                                                </label>
-                                            </div>
-
-                                        </div>
-
                                         <!-- Action Buttons -->
                                         <div class="d-grid gap-2 mt-auto">
                                             <div class="row g-2">
@@ -1906,24 +1877,6 @@
                                                        title="开启后将根据公共配置中的黑名单关键词过滤不想要的职位"></i>
                                                 </label>
                                             </div>
-                                        </div>
-
-                                        <!-- AI Configuration Card -->
-                                        <div class="config-card mb-2">
-                                            <h6 class="card-title text-success mb-2">
-                                                <i class="bi bi-robot me-2"></i>AI智能配置
-                                            </h6>
-
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="job51EnableAIJobMatchCheckBox" disabled>
-                                                <label class="form-check-label fw-semibold small text-muted" for="job51EnableAIJobMatchCheckBox">
-                                                    AI职位匹配检测 <span class="badge bg-secondary">暂时禁用</span>
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="功能暂时禁用"></i>
-                                                </label>
-                                            </div>
-
                                         </div>
 
                                         <!-- Action Buttons -->
@@ -2483,23 +2436,6 @@
                                             </div>
                                         </div>
 
-                                        <!-- AI Configuration Card -->
-                                        <div class="config-card mb-2">
-                                            <h6 class="card-title text-success mb-2">
-                                                <i class="bi bi-robot me-2"></i>AI智能配置
-                                            </h6>
-
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="liepinEnableAIJobMatchCheckBox" disabled>
-                                                <label class="form-check-label fw-semibold small text-muted" for="liepinEnableAIJobMatchCheckBox">
-                                                    AI职位匹配检测 <span class="badge bg-secondary">暂时禁用</span>
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="功能暂时禁用"></i>
-                                                </label>
-                                            </div>
-
-                                        </div>
                                         <!-- Action Buttons -->
                                         <div class="d-grid gap-2 mt-auto">
                                             <div class="row g-2">

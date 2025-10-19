@@ -31,6 +31,7 @@ public class CommonConfigController {
 
     /**
      * 新增或更新公共配置
+     * 
      * @param configData 配置数据（键值对形式）
      * @return 保存结果
      */
@@ -38,7 +39,7 @@ public class CommonConfigController {
     @Transactional
     public ResponseEntity<Map<String, Object>> saveCommonConfig(@RequestBody Map<String, Object> configData) {
         Map<String, Object> response = new HashMap<>();
-        
+
         try {
             // 验证配置数据
             if (configData == null || configData.isEmpty()) {
@@ -53,7 +54,7 @@ public class CommonConfigController {
                     .orElse(new UserProfile());
 
             // 从 configData 中提取并更新字段
-            
+
             // 黑名单配置
             if (configData.containsKey("jobBlacklistKeywords")) {
                 userProfile.setPositionBlacklist(convertToList(configData.get("jobBlacklistKeywords")));
@@ -61,7 +62,7 @@ public class CommonConfigController {
             if (configData.containsKey("companyBlacklistKeywords")) {
                 userProfile.setCompanyBlacklist(convertToList(configData.get("companyBlacklistKeywords")));
             }
-            
+
             // 候选人基本信息
             if (configData.containsKey("role")) {
                 userProfile.setRole(String.valueOf(configData.get("role")));
@@ -96,7 +97,7 @@ public class CommonConfigController {
             if (configData.containsKey("availability")) {
                 userProfile.setAvailability(String.valueOf(configData.get("availability")));
             }
-            
+
             // 复杂对象（Map 类型）
             if (configData.containsKey("scale")) {
                 userProfile.setScale(convertToMap(configData.get("scale")));
@@ -104,22 +105,48 @@ public class CommonConfigController {
             if (configData.containsKey("links")) {
                 userProfile.setLinks(convertToMap(configData.get("links")));
             }
-            
+
             // AI平台配置（JSON格式）
             if (configData.containsKey("aiPlatformConfigs")) {
                 userProfile.setAiPlatformConfigs(convertToMap(configData.get("aiPlatformConfigs")));
             }
 
+            // 简历和打招呼配置
+            if (configData.containsKey("sayHi")) {
+                userProfile.setSayHi(String.valueOf(configData.get("sayHi")));
+            }
+            if (configData.containsKey("resumeImagePath")) {
+                userProfile.setResumeImagePath(String.valueOf(configData.get("resumeImagePath")));
+            }
+            if (configData.containsKey("sendImgResume")) {
+                Object sendImgResumeValue = configData.get("sendImgResume");
+                userProfile.setSendImgResume(convertToBoolean(sendImgResumeValue));
+            }
+
+            // AI智能功能配置
+            if (configData.containsKey("enableAIGreeting")) {
+                Object enableAIGreetingValue = configData.get("enableAIGreeting");
+                userProfile.setEnableAIGreeting(convertToBoolean(enableAIGreetingValue));
+            }
+            if (configData.containsKey("enableAIJobMatchDetection")) {
+                Object enableAIJobMatchDetectionValue = configData.get("enableAIJobMatchDetection");
+                userProfile.setEnableAIJobMatchDetection(convertToBoolean(enableAIJobMatchDetectionValue));
+            }
+            if (configData.containsKey("recommendJobs")) {
+                Object recommendJobsValue = configData.get("recommendJobs");
+                userProfile.setRecommendJobs(convertToBoolean(recommendJobsValue));
+            }
+
             // 保存到数据库
             UserProfile saved = userProfileRepository.save(userProfile);
-            
+
             response.put("success", true);
             response.put("message", "公共配置保存成功");
             response.put("timestamp", LocalDateTime.now());
             response.put("profileId", saved.getId());
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "保存配置失败: " + e.getMessage());
@@ -129,35 +156,36 @@ public class CommonConfigController {
 
     /**
      * 获取公共配置
+     * 
      * @return 配置数据 DTO
      */
     @GetMapping("/get")
     public ResponseEntity<Map<String, Object>> getCommonConfig() {
         Map<String, Object> response = new HashMap<>();
-        
+
         try {
             // 获取 UserProfile（假设系统中只有一个配置记录）
             UserProfile userProfile = userProfileRepository.findAll().stream()
                     .findFirst()
                     .orElse(null);
-            
+
             if (userProfile == null) {
                 response.put("success", true);
                 response.put("message", "暂无配置数据");
                 response.put("data", null);
                 return ResponseEntity.ok(response);
             }
-            
+
             // 转换为 DTO
             UserProfileDTO dto = convertToDTO(userProfile);
-            
+
             response.put("success", true);
             response.put("message", "获取配置成功");
             response.put("data", dto);
             response.put("timestamp", LocalDateTime.now());
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "获取配置失败: " + e.getMessage());
@@ -167,12 +195,13 @@ public class CommonConfigController {
 
     /**
      * 获取支持的AI平台列表
+     * 
      * @return AI平台枚举列表
      */
     @GetMapping("/ai-platforms")
     public ResponseEntity<Map<String, Object>> getAiPlatforms() {
         Map<String, Object> response = new HashMap<>();
-        
+
         try {
             // 从 AiPlatform 枚举获取所有平台
             List<Map<String, String>> platforms = Arrays.stream(AiPlatform.values())
@@ -183,14 +212,14 @@ public class CommonConfigController {
                         return platformInfo;
                     })
                     .collect(Collectors.toList());
-            
+
             response.put("success", true);
             response.put("message", "获取AI平台列表成功");
             response.put("data", platforms);
             response.put("timestamp", LocalDateTime.now());
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "获取AI平台列表失败: " + e.getMessage());
@@ -200,6 +229,7 @@ public class CommonConfigController {
 
     /**
      * 获取AI平台的显示标签
+     * 
      * @param platform AI平台枚举
      * @return 显示标签
      */
@@ -223,13 +253,14 @@ public class CommonConfigController {
      */
     @SuppressWarnings("unchecked")
     private List<String> convertToList(Object value) {
-        if (value == null) return null;
-        
+        if (value == null)
+            return null;
+
         // 如果已经是 List，直接返回
         if (value instanceof List) {
             return (List<String>) value;
         }
-        
+
         // 如果是字符串，按逗号分隔
         if (value instanceof String) {
             String strValue = (String) value;
@@ -241,7 +272,7 @@ public class CommonConfigController {
                     .filter(s -> !s.isEmpty())
                     .collect(Collectors.toList());
         }
-        
+
         // 其他类型尝试用 ObjectMapper 转换
         return objectMapper.convertValue(value, List.class);
     }
@@ -254,19 +285,21 @@ public class CommonConfigController {
      */
     @SuppressWarnings("unchecked")
     private Map<String, String> convertToMap(Object value) {
-        if (value == null) return null;
-        
+        if (value == null)
+            return null;
+
         // 如果已经是 Map，直接返回
         if (value instanceof Map) {
             return (Map<String, String>) value;
         }
-        
+
         // 其他类型尝试用 ObjectMapper 转换
         return objectMapper.convertValue(value, Map.class);
     }
 
     /**
      * 将 UserProfile 实体转换为 DTO
+     * 
      * @param userProfile 用户求职信息实体
      * @return UserProfileDTO
      */
@@ -286,7 +319,47 @@ public class CommonConfigController {
         dto.setJobBlacklistKeywords(userProfile.getPositionBlacklist());
         dto.setCompanyBlacklistKeywords(userProfile.getCompanyBlacklist());
         dto.setAiPlatformConfigs(userProfile.getAiPlatformConfigs());
+
+        // 简历和打招呼配置
+        dto.setSayHi(userProfile.getSayHi());
+        dto.setResumeImagePath(userProfile.getResumeImagePath());
+        dto.setSendImgResume(userProfile.getSendImgResume());
+
+        // AI智能功能配置
+        dto.setEnableAIGreeting(userProfile.getEnableAIGreeting());
+        dto.setEnableAIJobMatchDetection(userProfile.getEnableAIJobMatchDetection());
+        dto.setRecommendJobs(userProfile.getRecommendJobs());
+
         return dto;
     }
-}
 
+    /**
+     * 转换为布尔值
+     * 支持以下格式：
+     * 1. Boolean 类型直接返回
+     * 2. String 类型转换（"true", "1", "yes" 等）
+     * 3. Number 类型转换（非0为true）
+     */
+    private Boolean convertToBoolean(Object value) {
+        if (value == null)
+            return null;
+
+        // 如果已经是 Boolean，直接返回
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+
+        // 如果是字符串，进行转换
+        if (value instanceof String) {
+            String strValue = ((String) value).trim().toLowerCase();
+            return "true".equals(strValue) || "1".equals(strValue) || "yes".equals(strValue);
+        }
+
+        // 如果是数字，非0为true
+        if (value instanceof Number) {
+            return ((Number) value).intValue() != 0;
+        }
+
+        return false;
+    }
+}

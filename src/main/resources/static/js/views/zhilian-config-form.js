@@ -107,10 +107,7 @@ class ZhilianConfigForm {
             companyNature: document.getElementById('zhilianCompanyNatureComboBox')?.value || '',
 
             // 功能开关
-            blacklistFilter: document.getElementById('zhilianBlacklistFilterCheckBox')?.checked || false,
-
-            // AI配置
-            enableAIJobMatch: document.getElementById('zhilianEnableAIJobMatchCheckBox')?.checked || false
+            blacklistFilter: document.getElementById('zhilianBlacklistFilterCheckBox')?.checked || false
         };
     }
 
@@ -178,8 +175,7 @@ class ZhilianConfigForm {
             scale: 'zhilianScaleComboBox',
             companyNature: 'zhilianCompanyNatureComboBox',
             blacklistFilter: 'zhilianBlacklistFilterCheckBox',
-            blacklistKeywords: 'zhilianBlacklistKeywordsTextArea',
-            enableAIJobMatch: 'zhilianEnableAIJobMatchCheckBox'
+            blacklistKeywords: 'zhilianBlacklistKeywordsTextArea'
         };
         return map[key] || key;
     }

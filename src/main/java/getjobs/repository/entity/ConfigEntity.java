@@ -16,8 +16,7 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 public class ConfigEntity extends BaseEntity {
 
-    @Column(name = "say_hi", columnDefinition = "TEXT")
-    private String sayHi;
+    // 注意：sayHi 已迁移到 UserProfile
 
     @Convert(converter = JsonListStringConverter.class)
     @Column(name = "keywords", columnDefinition = "TEXT")
@@ -63,20 +62,11 @@ public class ConfigEntity extends BaseEntity {
     @Column(name = "stage", columnDefinition = "TEXT")
     private List<String> stage;
 
-    @Column(name = "enable_ai_job_match_detection")
-    private Boolean enableAIJobMatchDetection;
-
-    @Column(name = "enable_ai_greeting")
-    private Boolean enableAIGreeting;
+    // 注意：enableAIJobMatchDetection、enableAIGreeting、sendImgResume、resumeImagePath
+    // 已迁移到 UserProfile
 
     @Column(name = "filter_dead_hr")
     private Boolean filterDeadHR;
-
-    @Column(name = "send_img_resume")
-    private Boolean sendImgResume;
-
-    @Column(name = "resume_image_path")
-    private String resumeImagePath;
 
     @Column(name = "resume_content", columnDefinition = "TEXT")
     private String resumeContent;
@@ -98,8 +88,7 @@ public class ConfigEntity extends BaseEntity {
     @Column(name = "key_filter")
     private Boolean keyFilter;
 
-    @Column(name = "recommend_jobs")
-    private Boolean recommendJobs;
+    // 注意：recommendJobs 已迁移到 UserProfile
 
     @Column(name = "check_state_owned")
     private Boolean checkStateOwned;

@@ -138,6 +138,17 @@
                     aiPlatformKeyInput.value = firstKey;
                 }
             }
+            
+            // 填充AI智能功能开关
+            const enableAIJobMatchCheckbox = document.getElementById('commonEnableAIJobMatch');
+            if (enableAIJobMatchCheckbox && config.enableAIJobMatch !== undefined) {
+                enableAIJobMatchCheckbox.checked = config.enableAIJobMatch;
+            }
+            
+            const enableAIGreetingCheckbox = document.getElementById('commonEnableAIGreeting');
+            if (enableAIGreetingCheckbox && config.enableAIGreeting !== undefined) {
+                enableAIGreetingCheckbox.checked = config.enableAIGreeting;
+            }
 
             console.log('公共配置加载成功', config);
         } catch (error) {
@@ -266,8 +277,12 @@
                 delete aiPlatformConfigs[aiPlatform];
                 delete aiPlatformConfigsCache[aiPlatform];
             }
+            
+            // 获取AI智能功能开关
+            const enableAIJobMatch = document.getElementById('commonEnableAIJobMatch')?.checked || false;
+            const enableAIGreeting = document.getElementById('commonEnableAIGreeting')?.checked || false;
 
-            // 构建完整配置对象（包括黑名单、候选人信息、简历配置和AI配置）
+            // 构建完整配置对象（包括黑名单、候选人信息、简历配置、AI配置和AI功能开关）
             const config = {
                 jobBlacklistKeywords: jobKeywords,
                 companyBlacklistKeywords: companyKeywords,
@@ -287,7 +302,10 @@
                 resumeImagePath: profileData.resumeImagePath,
                 sayHiContent: profileData.sayHiContent,
                 // AI配置（JSON键值对）
-                aiPlatformConfigs: aiPlatformConfigs
+                aiPlatformConfigs: aiPlatformConfigs,
+                // AI智能功能开关
+                enableAIJobMatch: enableAIJobMatch,
+                enableAIGreeting: enableAIGreeting
             };
 
             // 显示加载状态
@@ -386,6 +404,16 @@
             }
             // 清空AI配置缓存
             aiPlatformConfigsCache = {};
+            
+            // 重置AI智能功能开关
+            const enableAIJobMatchCheckbox = document.getElementById('commonEnableAIJobMatch');
+            if (enableAIJobMatchCheckbox) {
+                enableAIJobMatchCheckbox.checked = false;
+            }
+            const enableAIGreetingCheckbox = document.getElementById('commonEnableAIGreeting');
+            if (enableAIGreetingCheckbox) {
+                enableAIGreetingCheckbox.checked = false;
+            }
             
             if (window.CommonUtils && window.CommonUtils.showToast) {
                 window.CommonUtils.showToast('所有配置已重置', 'info');

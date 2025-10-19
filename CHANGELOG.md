@@ -1,6 +1,138 @@
 # Changelog 💖
 Hello 小可爱们！这里是我们的成长日记，所有酷炫的更新和优化都会在这里记录哦！
 
+## [2.1.14] - 2025-10-19 🎯
+
+### Changed
+- **代码重构！🏗️ 消除重复代码，引入优雅的抽象基类**
+  - **创建抽象基类 AbstractRecruitmentService**：
+    - 将各平台招聘服务中重复的 `convertConfigEntityToDTO()` 方法抽取到抽象基类
+    - 提供统一的配置转换逻辑，减少代码重复约150行×2=300行
+    - 引入模板方法模式，支持子类通过 `populatePlatformSpecificFields()` 扩展平台特定字段
+  - **重构招聘服务实现类**：
+    - `BossRecruitmentServiceImpl` 继承 `AbstractRecruitmentService`，移除重复代码
+    - `LiepinRecruitmentServiceImpl` 继承 `AbstractRecruitmentService`，移除重复代码并覆写方法添加平台特定字段（publishTime）
+    - 构造函数调整为先调用父类构造器 `super(configService, userProfileRepository)`
+  - **设计模式应用**：
+    - 使用模板方法模式（Template Method Pattern）提供可扩展的配置转换框架
+    - 遵循开闭原则（Open-Closed Principle），对扩展开放、对修改封闭
+    - 符合 DRY 原则（Don't Repeat Yourself），消除代码重复
+
+- **配置架构再优化！✨ 全局配置全面统一到用户画像**
+  - **核心配置迁移 🚀**：将简历、AI智能、推荐职位等核心配置从各平台配置（ConfigEntity）统一迁移到用户画像（UserProfile）
+  - **一处配置，全局生效 🌍**：
+    - 简历配置：`resumeImagePath`（简历图片路径）、`sendImgResume`（是否发送图片简历）、`sayHi`（打招呼内容）
+    - AI智能功能：`enableAIGreeting`（AI智能打招呼）、`enableAIJobMatchDetection`（AI职位匹配检测）
+    - 推荐职位：`recommendJobs`（推荐职位开关）
+  - **架构更合理 🏗️**：
+    - 用户个性化配置统一存储在 UserProfile，体现"一个候选人"的完整画像
+    - 平台配置（ConfigEntity）专注于平台相关的筛选条件和技术参数
+    - 职责分离更清晰，代码结构更优雅
+  - **接口全面适配 🔧**：
+    - 更新 `CommonConfigController`：在公共配置接口中支持这 6 个字段的保存和加载
+    - 更新 `ConfigController`：移除平台配置中对这些字段的处理，避免重复配置
+    - 新增 `convertToBoolean()` 辅助方法，智能转换布尔值（支持 Boolean、String、Number 等多种格式）
+  - **数据结构优化 📊**：
+    - `UserProfile` 实体新增 6 个字段，完善用户画像信息
+    - `UserProfileDTO` 同步新增对应字段，保持前后端数据一致性
+    - `ConfigEntity` 清理已迁移字段，保持代码简洁
+
+### Technical Details
+- **新增文件**：
+  - `AbstractRecruitmentService.java`：抽象基类，提供通用的配置转换逻辑
+    - 定义 `convertConfigEntityToDTO()` 方法，统一处理配置实体到 DTO 的转换
+    - 提供 `populatePlatformSpecificFields()` 钩子方法，允许子类添加平台特定字段
+    - 管理 `ConfigService` 和 `UserProfileRepository` 依赖
+- **修改文件**：
+  - `UserProfile.java`：新增 `sayHi`、`resumeImagePath`、`sendImgResume`、`enableAIGreeting`、`enableAIJobMatchDetection`、`recommendJobs` 字段
+  - `UserProfileDTO.java`：同步新增 6 个字段的 DTO 定义
+  - `ConfigEntity.java`：移除已迁移的 6 个字段，添加迁移说明注释
+  - `CommonConfigController.java`：
+    - 在 `saveCommonConfig()` 中添加 6 个字段的保存逻辑
+    - 在 `convertToDTO()` 中添加 6 个字段的数据转换
+    - 新增 `convertToBoolean()` 辅助方法，支持多种格式的布尔值转换
+  - `ConfigController.java`：在 `toEntity()` 方法中移除 6 个字段的处理，添加迁移说明注释
+  - `BossRecruitmentServiceImpl.java`：
+    - 继承 `AbstractRecruitmentService` 抽象基类
+    - 移除重复的 `convertConfigEntityToDTO()` 方法（约80行代码）
+    - 调整构造函数，调用父类构造器传递 `ConfigService` 和 `UserProfileRepository`
+    - 清理不再需要的依赖字段和 import 语句
+  - `LiepinRecruitmentServiceImpl.java`：
+    - 继承 `AbstractRecruitmentService` 抽象基类
+    - 移除重复的 `convertConfigEntityToDTO()` 方法（约80行代码）
+    - 覆写 `populatePlatformSpecificFields()` 方法，添加猎聘特有的 `publishTime` 字段
+    - 调整构造函数，调用父类构造器传递 `ConfigService` 和 `UserProfileRepository`
+    - 移除 `@RequiredArgsConstructor` 注解，改用显式构造函数
+    - 清理不再需要的 import 语句
+- **迁移字段清单**（从 ConfigEntity → UserProfile）：
+  - `sayHi` - 打招呼内容（TEXT）
+  - `resumeImagePath` - 简历图片路径（VARCHAR）
+  - `sendImgResume` - 是否发送图片简历（Boolean）
+  - `enableAIGreeting` - 启用AI智能打招呼（Boolean）
+  - `enableAIJobMatchDetection` - 启用AI职位匹配检测（Boolean）
+  - `recommendJobs` - 推荐职位（Boolean）
+- **数据来源调整**：
+  - 各平台招聘服务实现类统一从 UserProfile 获取用户个性化配置
+  - 从 ConfigEntity 获取平台相关的筛选条件和技术参数
+  - 确保配置读取的一致性和准确性
+- **重构收益**：
+  - 减少重复代码约 160 行（80行×2个平台）
+  - 提高代码可维护性，修改配置转换逻辑只需在一处进行
+  - 便于未来新增招聘平台，只需继承基类即可复用配置转换逻辑
+  - 通过钩子方法支持平台特定扩展，灵活性与统一性兼得
+- **设计理念**：
+  - UserProfile：存储"我是谁"（候选人画像、简历、AI偏好）
+  - ConfigEntity：存储"我要找什么"（平台筛选条件、技术参数）
+  - AbstractRecruitmentService：提供"怎么转换"（统一的配置转换逻辑）
+
+## [2.1.13] - 2025-10-18 🤖
+
+### Changed
+- **AI智能配置大统一！✨ 一处配置，全平台生效**
+  - **告别重复配置 🎯**：将Boss直聘、智联招聘、51job、猎聘等各平台的AI智能配置统一移至公共配置中心
+  - **一键掌控全局 🌍**：
+    - 在公共配置中设置AI职位匹配检测开关，自动应用到所有招聘平台
+    - 在公共配置中设置AI智能打招呼开关，自动应用到所有招聘平台
+    - 无需在每个平台重复配置，省心省力！
+  - **界面更简洁 ✂️**：
+    - 移除Boss直聘、智联招聘、51job、猎聘四个平台的独立AI配置卡片
+    - 公共配置新增"AI智能功能"区域，包含两个核心开关：
+      - AI职位匹配检测：智能分析职位描述，检测岗位匹配度
+      - AI智能打招呼：根据候选人信息和JD生成个性化招呼语
+  - **代码全面重构 🔧**：
+    - 更新 `common-config.js`：添加AI智能功能开关的收集、保存、加载逻辑
+    - 更新 `boss-config-form.js`：移除 `enableAIJobMatchDetection`、`enableAIGreeting`、`checkStateOwned` 相关代码
+    - 更新 `zhilian-config-form.js`：移除 `enableAIJobMatch` 相关代码
+    - 更新 `job51-config-form.js`：移除 `enableAIJobMatch` 相关代码
+    - 更新 `liepin-config-form.js`：移除 `enableAIJobMatch` 相关代码
+    - 清理HTML：删除各平台重复的AI智能配置卡片（约100行代码）
+  - **用户体验提升 🚀**：
+    - 配置管理更集中，避免在多个平台重复配置相同功能
+    - AI功能开关统一管理，切换更便捷
+    - 界面更清爽，减少认知负担
+
+### Technical Details
+- **修改文件**：
+  - `index.html`：
+    - 公共配置新增AI智能功能区域（`commonEnableAIJobMatch`、`commonEnableAIGreeting`）
+    - 删除Boss直聘、智联招聘、51job、猎聘的AI配置卡片
+  - `common-config.js`：
+    - 在 `saveCommonConfig()` 中添加AI智能功能开关的收集
+    - 在 `loadCommonConfig()` 中添加AI智能功能开关的回填
+    - 在 `resetCommonConfig()` 中添加AI智能功能开关的重置
+  - `boss-config-form.js`：从 `saveConfig()`、`getFieldId()`、`getCurrentConfig()` 中移除AI配置字段
+  - `zhilian-config-form.js`：从 `getCurrentConfig()`、`getFieldId()` 中移除AI配置字段
+  - `job51-config-form.js`：从 `saveConfig()`、`getFieldId()`、`getCurrentConfig()` 中移除AI配置字段
+  - `liepin-config-form.js`：从 `saveConfig()`、`getFieldId()`、`getCurrentConfig()` 中移除AI配置字段
+- **新增字段**（公共配置）：
+  - `enableAIJobMatch` - AI职位匹配检测开关（应用于所有平台）
+  - `enableAIGreeting` - AI智能打招呼开关（应用于所有平台）
+- **移除字段**（各平台配置）：
+  - Boss直聘：`enableAIJobMatchDetection`、`enableAIGreeting`、`checkStateOwned`
+  - 智联招聘：`enableAIJobMatch`
+  - 51job：`enableAIJobMatch`
+  - 猎聘：`enableAIJobMatch`
+
 ## [2.1.12] - 2025-10-18 🎯
 
 ### Removed

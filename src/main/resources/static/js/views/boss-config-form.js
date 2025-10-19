@@ -180,9 +180,6 @@
                 filterDeadHR: document.getElementById('filterDeadHRCheckBox').checked,
                 sendImgResume: document.getElementById('sendImgResumeCheckBox').checked,
                 recommendJobs: document.getElementById('recommendJobsCheckBox').checked,
-                enableAIJobMatchDetection: document.getElementById('enableAIJobMatchDetectionCheckBox').checked,
-                enableAIGreeting: document.getElementById('enableAIGreetingCheckBox').checked,
-                checkStateOwned: document.getElementById('checkStateOwnedCheckBox').checked,
                 bossHrStatusKeywords: this.hrStatusTagsInput ? this.hrStatusTagsInput.getValue() : ''
             };
             localStorage.setItem('bossConfig', JSON.stringify(this.config));
@@ -704,9 +701,6 @@
                 filterDeadHR: 'filterDeadHRCheckBox',
                 sendImgResume: 'sendImgResumeCheckBox',
                 recommendJobs: 'recommendJobsCheckBox',
-                enableAIJobMatchDetection: 'enableAIJobMatchDetectionCheckBox',
-                enableAIGreeting: 'enableAIGreetingCheckBox',
-                checkStateOwned: 'checkStateOwnedCheckBox',
                 waitTime: 'waitTimeField'
             };
             return fieldMap[key] || key;
@@ -782,9 +776,6 @@
                 sendImgResume: document.getElementById('sendImgResumeCheckBox')?.checked || false,
                 recommendJobs: document.getElementById('recommendJobsCheckBox')?.checked || false,
                 enableBlacklistFilter: document.getElementById('enableBlacklistFilterCheckBox')?.checked || false,
-                enableAIJobMatchDetection: document.getElementById('enableAIJobMatchDetectionCheckBox')?.checked || false,
-                enableAIGreeting: document.getElementById('enableAIGreetingCheckBox')?.checked || false,
-                checkStateOwned: document.getElementById('checkStateOwnedCheckBox')?.checked || false,
                 deadStatus: this.hrStatusTagsInput ? this.hrStatusTagsInput.getTags() : []
             };
         }

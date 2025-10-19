@@ -105,5 +105,40 @@ public class UserProfile extends BaseEntity {
     @Column(name = "ai_platform_configs", columnDefinition = "TEXT")
     @Convert(converter = JsonMapStringConverter.class)
     private Map<String, String> aiPlatformConfigs;
-}
 
+    /**
+     * 打招呼内容
+     */
+    @Column(name = "say_hi", columnDefinition = "TEXT")
+    private String sayHi;
+
+    /**
+     * 简历图片路径
+     */
+    @Column(name = "resume_image_path")
+    private String resumeImagePath;
+
+    /**
+     * 是否发送图片简历
+     */
+    @Column(name = "send_img_resume")
+    private Boolean sendImgResume;
+
+    /**
+     * 启用AI智能打招呼
+     */
+    @Column(name = "enable_ai_greeting")
+    private Boolean enableAIGreeting;
+
+    /**
+     * 启用AI职位匹配检测
+     */
+    @Column(name = "enable_ai_job_match_detection")
+    private Boolean enableAIJobMatchDetection;
+
+    /**
+     * 推荐职位
+     */
+    @Column(name = "recommend_jobs")
+    private Boolean recommendJobs;
+}

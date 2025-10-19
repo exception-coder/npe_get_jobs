@@ -59,8 +59,7 @@ class LiepinConfigForm {
             scale: document.getElementById('liepinScaleComboBox')?.value || '',
             companyNature: document.getElementById('liepinCompanyNatureComboBox')?.value || '',
             recruiterActivity: document.getElementById('liepinRecruiterActivityComboBox')?.value || '',
-            blacklistFilter: document.getElementById('liepinBlacklistFilterCheckBox')?.checked || false,
-            enableAIJobMatch: document.getElementById('liepinEnableAIJobMatchCheckBox')?.checked || false
+            blacklistFilter: document.getElementById('liepinBlacklistFilterCheckBox')?.checked || false
         };
 
         localStorage.setItem('liepinConfig', JSON.stringify(this.config));
@@ -166,8 +165,7 @@ class LiepinConfigForm {
             companyNature: 'liepinCompanyNatureComboBox',
             recruiterActivity: 'liepinRecruiterActivityComboBox',
             blacklistFilter: 'liepinBlacklistFilterCheckBox',
-            blacklistKeywords: 'liepinBlacklistKeywordsTextArea',
-            enableAIJobMatch: 'liepinEnableAIJobMatchCheckBox'
+            blacklistKeywords: 'liepinBlacklistKeywordsTextArea'
         };
         return fieldMap[key] || `liepin${key.charAt(0).toUpperCase() + key.slice(1)}Field`;
     }
@@ -602,8 +600,7 @@ class LiepinConfigForm {
             companyNature: document.getElementById('liepinCompanyNatureComboBox')?.value || '',
             recruiterActivity: document.getElementById('liepinRecruiterActivityComboBox')?.value || '',
             blacklistFilter: document.getElementById('liepinBlacklistFilterCheckBox')?.checked || false,
-            blacklistKeywords: document.getElementById('liepinBlacklistKeywordsTextArea')?.value || '',
-            enableAIJobMatch: document.getElementById('liepinEnableAIJobMatchCheckBox')?.checked || false
+            blacklistKeywords: document.getElementById('liepinBlacklistKeywordsTextArea')?.value || ''
         };
     }
 

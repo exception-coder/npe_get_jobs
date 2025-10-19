@@ -20,8 +20,8 @@ import getjobs.repository.UserProfileRepository;
 import getjobs.repository.entity.ConfigEntity;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.entity.UserProfile;
+import getjobs.service.AbstractRecruitmentService;
 import getjobs.service.ConfigService;
-import getjobs.service.RecruitmentService;
 import getjobs.utils.JobUtils;
 import getjobs.modules.ai.greeting.service.GreetingService;
 import getjobs.modules.ai.greeting.dto.GreetingRequest;
@@ -50,38 +50,35 @@ import static getjobs.modules.boss.BossElementLocators.*;
  * Boss直聘招聘服务实现类
  *
  * @author loks666
- * 项目链接: <a href=
- * "https://github.com/loks666/get_jobs">https://github.com/loks666/get_jobs</a>
+ *         项目链接: <a href=
+ *         "https://github.com/loks666/get_jobs">https://github.com/loks666/get_jobs</a>
  */
 @Slf4j
 @Service
-public class BossRecruitmentServiceImpl implements RecruitmentService {
+public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
 
     private static final String HOME_URL = RecruitmentPlatformEnum.BOSS_ZHIPIN.getHomeUrl();
     private static final String GEEK_JOB_URL = HOME_URL + "/web/geek/job?";
     private static final String GEEK_CHAT_URL = HOME_URL + "/web/geek/chat";
 
-    private final ConfigService configService;
     private final BossApiMonitorService bossApiMonitorService;
     private final JobRepository jobRepository;
     private final JobFilterService jobFilterService;
     private final PlaywrightService playwrightService;
     private final GreetingService greetingService;
-    private final UserProfileRepository userProfileRepository;
 
     private Page page;
 
     public BossRecruitmentServiceImpl(ConfigService configService, BossApiMonitorService bossApiMonitorService,
-                                      JobRepository jobRepository, JobFilterService jobFilterService,
-                                      PlaywrightService playwrightService, GreetingService greetingService,
-                                      UserProfileRepository userProfileRepository) {
-        this.configService = configService;
+            JobRepository jobRepository, JobFilterService jobFilterService,
+            PlaywrightService playwrightService, GreetingService greetingService,
+            UserProfileRepository userProfileRepository) {
+        super(configService, userProfileRepository);
         this.bossApiMonitorService = bossApiMonitorService;
         this.jobRepository = jobRepository;
         this.jobFilterService = jobFilterService;
         this.playwrightService = playwrightService;
         this.greetingService = greetingService;
-        this.userProfileRepository = userProfileRepository;
     }
 
     @PostConstruct
@@ -227,7 +224,8 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
     @Override
     public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
         // 从数据库获取boss平台的配置，不使用前端传递的config
-        ConfigEntity configEntity = configService.loadByPlatformType(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
+        ConfigEntity configEntity = configService
+                .loadByPlatformType(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
         if (configEntity == null) {
             log.warn("数据库中未找到boss平台配置，跳过过滤");
             return jobDTOS;
@@ -327,77 +325,6 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
     // ==================== 私有辅助方法 ====================
 
     /**
-     * 将ConfigEntity转换为ConfigDTO
-     * 使用反射创建ConfigDTO实例，因为构造函数是私有的
-     */
-    private ConfigDTO convertConfigEntityToDTO(ConfigEntity entity) {
-        try {
-            // 通过反射创建ConfigDTO实例
-            java.lang.reflect.Constructor<ConfigDTO> constructor = ConfigDTO.class.getDeclaredConstructor();
-            constructor.setAccessible(true);
-            ConfigDTO dto = constructor.newInstance();
-
-            // 基础字段映射
-            dto.setSayHi(entity.getSayHi());
-            dto.setEnableAIJobMatchDetection(entity.getEnableAIJobMatchDetection());
-            dto.setEnableAIGreeting(entity.getEnableAIGreeting());
-            dto.setFilterDeadHR(entity.getFilterDeadHR());
-            dto.setSendImgResume(entity.getSendImgResume());
-            dto.setKeyFilter(entity.getKeyFilter());
-            dto.setRecommendJobs(entity.getRecommendJobs());
-            dto.setCheckStateOwned(entity.getCheckStateOwned());
-            dto.setResumeImagePath(entity.getResumeImagePath());
-            dto.setResumeContent(entity.getResumeContent());
-            dto.setWaitTime(entity.getWaitTime());
-            dto.setPlatformType(entity.getPlatformType());
-
-            // 列表字段转换为逗号分隔的字符串
-            if (entity.getKeywords() != null) {
-                dto.setKeywords(String.join(",", entity.getKeywords()));
-            }
-            if (entity.getCityCode() != null) {
-                dto.setCityCode(String.join(",", entity.getCityCode()));
-            }
-            if (entity.getIndustry() != null) {
-                dto.setIndustry(String.join(",", entity.getIndustry()));
-            }
-            if (entity.getExperience() != null) {
-                dto.setExperience(String.join(",", entity.getExperience()));
-            }
-            if (entity.getDegree() != null) {
-                dto.setDegree(String.join(",", entity.getDegree()));
-            }
-            if (entity.getScale() != null) {
-                dto.setScale(String.join(",", entity.getScale()));
-            }
-            if (entity.getStage() != null) {
-                dto.setStage(String.join(",", entity.getStage()));
-            }
-            if (entity.getDeadStatus() != null) {
-                dto.setDeadStatus(entity.getDeadStatus());
-            }
-
-            // 期望薪资处理
-            if (entity.getExpectedSalary() != null && entity.getExpectedSalary().size() >= 2) {
-                dto.setMinSalary(entity.getExpectedSalary().get(0));
-                dto.setMaxSalary(entity.getExpectedSalary().get(1));
-            }
-
-            // 其他字段
-            dto.setCustomCityCode(entity.getCustomCityCode());
-            dto.setJobType(entity.getJobType());
-            dto.setSalary(entity.getSalary());
-            dto.setExpectedPosition(entity.getExpectedPosition());
-
-            return dto;
-        } catch (Exception e) {
-            log.error("ConfigEntity转换为ConfigDTO失败", e);
-            // 如果转换失败，返回ConfigDTO的单例实例作为备用
-            return ConfigDTO.getInstance();
-        }
-    }
-
-    /**
      * 按城市采集岗位
      */
     private void collectJobsByCity(String cityCode, String keyword, ConfigDTO config) {
@@ -437,7 +364,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
      */
     private String getSearchUrl(String cityCode, ConfigDTO config) {
         return GEEK_JOB_URL +
-                // 城市参数：指定搜索的城市代码
+        // 城市参数：指定搜索的城市代码
                 JobUtils.appendParam("city", cityCode) +
                 // 职位类型参数：指定搜索的职位类型代码（如：全职、兼职、实习等）
                 JobUtils.appendParam("jobType", config.getJobType()) +
@@ -611,7 +538,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
                 // 准备打招呼内容
                 String greetingMessage = config.getSayHi().replaceAll("\\r|\\n", "");
 
-                if (config.getEnableAIGreeting()){
+                if (config.getEnableAIGreeting()) {
                     try {
                         // 使用AI生成打招呼内容
                         String aiGreeting = generateAIGreeting(jobDTO, config);
@@ -658,7 +585,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
                 if (imageFile.exists() && imageFile.isFile()) {
                     Locator fileInput = jobPage.locator(IMAGE_UPLOAD);
                     if (fileInput.isVisible()) {
-                        fileInput.setInputFiles(new Path[]{Paths.get(imageFile.getPath())});
+                        fileInput.setInputFiles(new Path[] { Paths.get(imageFile.getPath()) });
                         Locator imageSendBtn = jobPage.locator(".image-uploader-btn");
                         if (imageSendBtn.isVisible(new Locator.IsVisibleOptions().setTimeout(2000.0))) {
                             imageSendBtn.click();
@@ -1095,7 +1022,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
             UserProfile userProfile = userProfileRepository.findAll().stream()
                     .findFirst()
                     .orElse(null);
-            
+
             if (userProfile == null) {
                 log.warn("未找到用户配置信息，无法生成AI打招呼内容");
                 return null;
@@ -1118,7 +1045,7 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
             request.setProfile(convertToProfileDTO(userProfile));
             request.setJdText(jdText.toString());
             request.setJdKeywords(jobDTO.getSkills()); // 使用职位技能作为关键词
-            
+
             // 设置打招呼参数
             GreetingParams params = new GreetingParams();
             params.setTone("platform"); // 使用平台风格
@@ -1129,9 +1056,9 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
 
             // 调用AI生成服务
             GreetingResponse response = greetingService.generate(request);
-            
+
             return response.getGreeting();
-            
+
         } catch (Exception e) {
             log.error("生成AI打招呼内容时发生异常", e);
             return null;
@@ -1159,4 +1086,3 @@ public class BossRecruitmentServiceImpl implements RecruitmentService {
         return profileDTO;
     }
 }
-
