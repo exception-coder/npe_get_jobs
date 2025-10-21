@@ -130,8 +130,7 @@ class Job51ConfigForm {
             
             
             // 功能开关
-            autoApply: document.getElementById('job51AutoApplyCheckBox')?.checked || false,
-            blacklistFilter: document.getElementById('job51BlacklistFilterCheckBox')?.checked || false
+            autoApply: document.getElementById('job51AutoApplyCheckBox')?.checked || false
         };
 
         localStorage.setItem('job51Config', JSON.stringify(this.config));
@@ -337,9 +336,7 @@ class Job51ConfigForm {
             degree: 'job51DegreeComboBox',
             scale: 'job51ScaleComboBox',
             companyNature: 'job51CompanyNatureComboBox',
-            autoApply: 'job51AutoApplyCheckBox',
-            blacklistFilter: 'job51BlacklistFilterCheckBox',
-            blacklistKeywords: 'job51BlacklistKeywordsTextArea'
+            autoApply: 'job51AutoApplyCheckBox'
         };
         return fieldMap[key] || key;
     }
@@ -835,9 +832,7 @@ class Job51ConfigForm {
             degree: document.getElementById('job51DegreeComboBox')?.value || '',
             scale: document.getElementById('job51ScaleComboBox')?.value || '',
             companyNature: document.getElementById('job51CompanyNatureComboBox')?.value || '',
-            autoApply: document.getElementById('job51AutoApplyCheckBox')?.checked || false,
-            blacklistFilter: document.getElementById('job51BlacklistFilterCheckBox')?.checked || false,
-            blacklistKeywords: document.getElementById('job51BlacklistKeywordsTextArea')?.value || ''
+            autoApply: document.getElementById('job51AutoApplyCheckBox')?.checked || false
         };
     }
 

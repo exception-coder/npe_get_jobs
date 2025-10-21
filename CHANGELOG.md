@@ -1,6 +1,396 @@
 # Changelog 💖
 Hello 小可爱们！这里是我们的成长日记，所有酷炫的更新和优化都会在这里记录哦！
 
+## [2.1.22] - 2025-10-21 🚀
+
+### Fixed
+- **应用启动数据恢复顺序优化！✨ 数据库数据优先加载，告别初始化失败**
+  - **问题背景 🐛**：应用启动时，PlaywrightService 在 `@PostConstruct` 中初始化并加载平台 Cookie 配置
+    - 此时 DataRestoreListener 还未执行（使用的是 `ApplicationReadyEvent`，优先级低）
+    - 导致从数据库查询配置时查不到数据（本地备份还未恢复到内存数据库）
+    - Cookie 加载失败，平台页面初始化为未登录状态
+  - **优化方案 🎯**：
+    - **DataRestoreListener 改用 `@PostConstruct`**：将监听器从 `ApplicationReadyEvent` 改为 `@PostConstruct`
+    - **设置最高优先级**：使用 `@Order(Ordered.HIGHEST_PRECEDENCE)` 确保最早执行
+    - **显式依赖声明**：PlaywrightService 添加 `@DependsOn("dataRestoreInitializer")` 注解
+    - **明确Bean名称**：将组件命名为 `dataRestoreInitializer`，便于其他组件引用
+  - **启动顺序调整 📊**：
+    - **调整前**：Bean实例化 → PlaywrightService.@PostConstruct（查询为空❌） → ApplicationReadyEvent → DataRestoreListener（数据恢复✅，但太晚）
+    - **调整后**：Bean实例化 → DataRestoreListener.@PostConstruct（最高优先级，数据恢复✅） → PlaywrightService.@PostConstruct（查询成功✅）
+  - **日志优化 📝**：
+    - 数据恢复流程添加清晰的开始/完成标记和进度提示
+    - Playwright 初始化添加数据库就绪提示
+    - 使用图形化符号（✓、✗）增强日志可读性
+  - **收益 ✅**：
+    - 应用启动时自动恢复本地备份数据到内存数据库
+    - PlaywrightService 初始化时能正确加载平台配置和 Cookie
+    - 启动后平台页面自动恢复登录状态，无需重新登录
+    - 数据恢复失败不影响应用启动，优雅降级
+
+### Technical Details
+- **修改文件**：
+  - `DataRestoreListener.java`：
+    - 重命名类注释为"应用启动数据恢复初始化器"
+    - 从 `@EventListener(ApplicationReadyEvent.class)` 改为 `@PostConstruct`
+    - 添加 `@Order(Ordered.HIGHEST_PRECEDENCE)` 注解，设置最高优先级
+    - 添加 `@Component("dataRestoreInitializer")` 显式指定 Bean 名称
+    - 方法重命名：`onApplicationReady()` → `restoreDataOnStartup()`
+    - 优化日志输出，添加结构化的进度标记和图形符号
+  - `PlaywrightService.java`：
+    - 添加 `@DependsOn("dataRestoreInitializer")` 注解，确保在数据恢复后初始化
+    - 添加类注释说明依赖关系
+    - 优化初始化日志，添加数据库就绪提示
+- **Spring Boot 启动顺序**：
+  1. Bean 实例化（所有 `@Component` 创建）
+  2. `@PostConstruct` 执行（按 `@Order` 优先级排序）
+     - `dataRestoreInitializer`（HIGHEST_PRECEDENCE，最先执行）
+     - `PlaywrightService`（依赖 dataRestoreInitializer，确保后执行）
+  3. `ApplicationReadyEvent` 触发（已废弃用于数据恢复）
+- **最佳实践应用**：
+  - ✅ 使用 `@PostConstruct` 替代事件监听，确保初始化顺序可控
+  - ✅ 使用 `@Order` 显式声明优先级，避免依赖 Spring 默认排序
+  - ✅ 使用 `@DependsOn` 显式声明依赖关系，增强代码可读性
+  - ✅ 显式命名 Bean，便于其他组件引用和依赖管理
+  - ✅ 异常不抛出，数据恢复失败降级为空数据库启动
+- **设计原则**：
+  - **依赖倒置原则**：通过 Spring 依赖注入管理组件依赖关系
+  - **单一职责原则**：DataRestoreListener 专注数据恢复，PlaywrightService 专注浏览器管理
+  - **容错设计**：数据恢复失败不影响应用启动，确保系统可用性
+
+### 日志示例
+```
+=== 开始数据恢复流程（优先级: HIGHEST） ===
+检查本地备份文件并恢复到内存数据库...
+✓ 发现备份文件，准备恢复数据
+  - 备份文件路径: /Users/xxx/.getjobs/data.json
+  - 备份文件大小: 12345 bytes
+  - 备份时间: 2025-10-21T10:30:00
+  - 备份配置数量: 4
+  - 备份职位数量: 150
+✓ 数据恢复成功！内存数据库已就绪
+=== 数据恢复流程完成 ===
+
+=== 开始初始化 Playwright 服务 ===
+（数据库已就绪，可以加载平台配置和Cookie）
+✓ 已为平台 Boss直聘 初始化页面: https://www.zhipin.com
+✓ 已为平台 智联招聘 初始化页面: https://www.zhaopin.com
+✓ Playwright 服务初始化成功
+=== Playwright 服务初始化完成 ===
+```
+
+## [2.1.21] - 2025-10-21 🧹
+
+### Removed
+- **黑名单过滤配置开关移除！✨ 自动化过滤，无需手动开关**
+  - **简化配置 🎯**：移除了所有平台（Boss直聘、智联招聘、51job、猎聘）的"过滤黑名单"开关
+  - **自动化过滤 🤖**：只要在公共配置中配置了黑名单关键词，系统会自动进行过滤，无需额外开关控制
+  - **界面更简洁 ✂️**：
+    - 删除Boss直聘的 `enableBlacklistFilterCheckBox` 复选框
+    - 删除智联招聘的整个"功能开关"卡片（仅包含黑名单过滤开关）
+    - 删除51job的整个"功能开关"卡片（仅包含黑名单过滤开关）
+    - 删除猎聘的整个"功能开关"卡片（仅包含黑名单过滤开关）
+  - **代码全面清理 🧹**：
+    - 从 `boss-config-form.js` 的 `getCurrentConfig()` 中移除 `enableBlacklistFilter` 字段
+    - 从 `zhilian-config-form.js` 的 `getCurrentConfig()` 和 `getFieldId()` 中移除 `blacklistFilter` 字段
+    - 从 `job51-config-form.js` 的 `saveConfig()`、`getCurrentConfig()` 和 `getFieldId()` 中移除 `blacklistFilter` 字段
+    - 从 `liepin-config-form.js` 的 `saveConfig()`、`getCurrentConfig()` 和 `getFieldId()` 中移除 `blacklistFilter` 字段
+    - 从 `index.html` 移除所有4个平台的黑名单过滤复选框HTML代码
+  - **用户体验提升 🚀**：
+    - 配置更简单，减少不必要的开关
+    - 黑名单过滤自动生效，符合用户直觉
+    - 界面更清爽，减少认知负担
+
+### Technical Details
+- **修改文件**：
+  - `index.html`：删除4个平台的黑名单过滤复选框（约60行代码）
+  - `boss-config-form.js`：从 `getCurrentConfig()` 移除 `enableBlacklistFilter` 字段
+  - `zhilian-config-form.js`：从 `getCurrentConfig()` 和 `getFieldId()` 移除 `blacklistFilter` 字段
+  - `job51-config-form.js`：从 `saveConfig()`、`getCurrentConfig()` 和 `getFieldId()` 移除 `blacklistFilter` 字段
+  - `liepin-config-form.js`：从 `saveConfig()`、`getCurrentConfig()` 和 `getFieldId()` 移除 `blacklistFilter` 字段
+- **移除字段**：
+  - Boss直聘：`enableBlacklistFilter`
+  - 智联招聘：`blacklistFilter`
+  - 51job：`blacklistFilter`
+  - 猎聘：`blacklistFilter`
+- **设计理念**：
+  - 黑名单功能由公共配置统一管理，配置即生效
+  - 减少冗余开关，降低配置复杂度
+  - 符合"约定优于配置"的设计原则
+
+## [2.1.20] - 2025-10-21 🚀
+
+### Added
+- **快速投递任务模块上线！✨ 一键投递，智能高效**
+  - **全新 quickdelivery 模块 🎯**：在 `modules/task/quickdelivery` 包下构建了完整的快速投递任务框架
+    - 基于任务调度基础设施模块，提供统一的投递任务管理
+    - 为每个平台（Boss直聘、智联招聘、51job、猎聘）提供独立的投递任务实现
+    - 每个平台的投递任务全局唯一，避免并发执行导致的冲突
+  - **核心功能实现 🚀**：
+    - **平台投递任务**：4个平台各自独立的快速投递任务类
+      - `BossQuickDeliveryTask` - Boss直聘快速投递任务
+      - `ZhilianQuickDeliveryTask` - 智联招聘快速投递任务
+      - `Job51QuickDeliveryTask` - 51job快速投递任务
+      - `LiepinQuickDeliveryTask` - 猎聘快速投递任务
+    - **统一调度服务**：`QuickDeliveryScheduler` 管理所有平台的投递任务
+      - 支持按平台提交快速投递任务
+      - 提供一键提交所有平台投递任务的功能
+      - 完善的任务状态跟踪和日志记录
+    - **丰富的DTO模型**：完整的数据传输对象定义
+      - `QuickDeliveryRequest` - 投递请求参数，支持关键词筛选、最大投递数量、延迟时间等配置
+      - `QuickDeliveryResult` - 投递结果统计，包含成功率、耗时、详细失败原因等
+      - `QuickDeliveryStatus` - 任务状态查询，支持实时进度跟踪
+    - **HTTP接口支持**：`QuickDeliveryController` 提供完整的RESTful API
+      - `/api/task/quick-delivery/submit/{platformCode}` - 按平台代码提交任务
+      - `/api/task/quick-delivery/submit/boss` - Boss直聘快速投递
+      - `/api/task/quick-delivery/submit/zhilian` - 智联招聘快速投递
+      - `/api/task/quick-delivery/submit/51job` - 51job快速投递
+      - `/api/task/quick-delivery/submit/liepin` - 猎聘快速投递
+      - `/api/task/quick-delivery/submit/all` - 所有平台一键投递
+  - **一键投递服务 🎁**：全新的 `JobDeliveryService` 整合三大环节
+    - 自动执行"采集 → 过滤 → 投递"完整流程
+    - 统一管理四个平台的投递逻辑，简化业务调用
+    - 支持按平台单独执行或批量执行所有平台
+    - 详细的执行日志和统计信息
+  - **架构设计亮点 🎨**：
+    - **模块化设计**：清晰的分层结构（domain/service/dto/web）
+    - **全局唯一约束**：每个平台的投递任务同一时刻只能执行一个（`globalUnique=true`）
+    - **任务超时控制**：默认30分钟超时，避免任务无限期执行
+    - **完整的文档**：包含 README.md 和 package-info.java，使用示例丰富
+  - **任务配置说明 📋**：
+    - 任务名称："{平台名称}快速投递任务"
+    - 任务类型：`QUICK_DELIVERY_{平台代码}`
+    - 全局唯一：true
+    - 超时时间：1800000ms (30分钟)
+
+### Technical Details
+- **新增文件**（12个核心文件）：
+  - **领域层**（4个任务实现）：
+    - `BossQuickDeliveryTask.java` - Boss直聘投递任务
+    - `ZhilianQuickDeliveryTask.java` - 智联招聘投递任务
+    - `Job51QuickDeliveryTask.java` - 51job投递任务
+    - `LiepinQuickDeliveryTask.java` - 猎聘投递任务
+  - **服务层**（2个服务）：
+    - `QuickDeliveryScheduler.java` - 快速投递任务调度服务
+    - `JobDeliveryService.java` - 一键投递整合服务
+  - **DTO层**（3个数据对象）：
+    - `QuickDeliveryRequest.java` - 投递请求参数
+    - `QuickDeliveryResult.java` - 投递结果统计
+    - `QuickDeliveryStatus.java` - 任务状态查询
+  - **Web层**（1个控制器）：
+    - `QuickDeliveryController.java` - HTTP接口控制器
+  - **文档**（2个文档文件）：
+    - `README.md` - 模块详细说明文档
+    - `package-info.java` - 包级别API文档
+- **模块结构**：
+  ```
+  quickdelivery/
+  ├── domain/          # 任务领域层（4个平台任务）
+  ├── service/         # 服务层（调度服务 + 一键投递服务）
+  ├── dto/             # 数据传输对象（请求、结果、状态）
+  ├── web/             # Web控制器（HTTP接口）
+  ├── README.md        # 模块说明文档
+  └── package-info.java # 包级别文档
+  ```
+- **任务执行流程**：
+  1. 通过 `QuickDeliveryScheduler` 提交任务
+  2. 调用 `JobDeliveryService` 执行一键投递
+  3. 依次执行：采集岗位 → 过滤岗位 → 投递岗位
+  4. 返回投递结果统计
+- **代码统计**：
+  - Java核心代码：~1,000行
+  - 注释和文档：~500行
+  - 总计12个Java文件
+- **设计原则遵循**：
+  - 单一职责原则（SRP）：每个任务类专注于一个平台
+  - 开闭原则（OCP）：易于扩展新平台
+  - 依赖倒置原则（DIP）：依赖 RecruitmentService 抽象接口
+  - DRY原则：统一的任务调度框架
+
+### 收益
+- ✅ 提供统一的快速投递入口，简化用户操作
+- ✅ 全局唯一任务约束，避免重复投递
+- ✅ 完整的任务生命周期管理和状态跟踪
+- ✅ 支持HTTP接口调用，易于集成
+- ✅ 清晰的模块结构，便于维护和扩展
+- ✅ 一键投递服务整合三大环节，自动化程度更高
+
+## [2.1.19] - 2025-10-21 🔧
+
+### Fixed
+- **Spring Bean名称冲突修复！✨ TaskExecutor重命名避免启动失败**
+  - **问题背景 🐛**：应用启动时抛出异常 `Cannot register alias 'taskExecutor' for name 'applicationTaskExecutor': Alias would override bean definition 'taskExecutor'`
+    - 自定义的 `TaskExecutor` 组件与Spring框架默认的异步任务执行器 `taskExecutor` bean名称冲突
+    - 导致Spring容器无法正常初始化，应用启动失败
+  - **修复方案 🎯**：
+    - 移除 `TaskExecutor` 类上的 `@Component` 注解，改为通过配置类手动创建bean
+    - 在 `TaskInfrastructureConfig` 中将 `@Bean` 方法名从 `taskExecutor` 改为 `infrastructureTaskExecutor`
+    - 显式指定bean名称为 `infrastructureTaskExecutor`，完全避免命名冲突
+  - **代码调整 🔧**：
+    - 移除 `@RequiredArgsConstructor` 注解，改为手动编写构造函数
+    - 添加详细注释说明不使用 `@Component` 的原因
+    - 保持原有功能不变，仅调整bean注册方式
+  - **收益 ✅**：
+    - 应用启动正常，不再与Spring框架默认bean冲突
+    - 代码更规范，避免框架保留名称
+    - 显式配置更清晰，便于理解bean的创建过程
+
+### Technical Details
+- **修改文件**：
+  - `TaskExecutor.java`：
+    - 移除 `@Component` 和 `@RequiredArgsConstructor` 注解
+    - 添加显式构造函数
+    - 添加注释说明通过配置类创建bean的原因
+  - `TaskInfrastructureConfig.java`：
+    - 将 `@Bean` 方法名从 `taskExecutor` 改为 `infrastructureTaskExecutor`
+    - 显式指定 `@Bean(name = "infrastructureTaskExecutor")`
+    - 添加注释说明避免与Spring默认bean冲突
+  - `TaskSchedulerService.java`：
+    - 移除 `@RequiredArgsConstructor` 注解
+    - 添加显式构造函数
+    - 在构造函数参数上使用 `@Qualifier("infrastructureTaskExecutor")` 注解
+    - 明确指定注入我们自定义的 `infrastructureTaskExecutor` bean
+- **Spring保留bean名称**：
+  - `taskExecutor` - Spring异步任务执行器（`@EnableAsync` 相关）
+  - `applicationTaskExecutor` - Spring Boot自动配置的任务执行器
+  - 自定义bean应避免使用这些名称
+- **最佳实践**：
+  - 自定义Executor类型的bean建议使用更具体的命名，如 `xxxTaskExecutor`
+  - 避免使用Spring框架保留的bean名称
+  - 使用 `@Bean(name = "...")` 显式指定bean名称更清晰
+
+## [2.1.18] - 2025-10-21 🧹
+
+### Removed
+- **旧版数据备份调度器下线！✨ 全面拥抱新架构**
+  - **删除旧版本 🗑️**：移除了 `DataBackupScheduler.java`，该类已被 `DataBackupSchedulerV2.java` 完全替代
+  - **架构统一 🎯**：
+    - V2版本基于任务调度基础设施模块，提供更强大的功能
+    - 支持全局唯一任务约束，避免并发执行导致的资源竞争
+    - 提供完善的任务状态跟踪和通知机制
+    - 支持任务超时控制，更可靠的执行保障
+  - **代码简化 ✂️**：
+    - 消除重复代码，统一使用新的任务调度框架
+    - 提高代码可维护性，降低维护成本
+    - 所有定时备份功能无缝迁移到V2版本
+  - **用户无感知 🚀**：
+    - 功能保持不变，自动备份机制继续工作
+    - 启动延迟备份和定时备份功能完全保留
+    - 更好的异常处理和日志记录
+
+### Technical Details
+- **删除文件**：
+  - `DataBackupScheduler.java`：旧版数据备份调度器（66行）
+- **迁移路径**：
+  - 旧版：直接调用 `DataBackupService.exportData()`
+  - 新版：通过 `TaskSchedulerService.submitTask(dataBackupTask)` 提交任务
+- **功能对比**：
+  - ✅ 定时备份（每5秒）：两版本均支持
+  - ✅ 启动延迟备份（5分钟）：两版本均支持
+  - ✅ 异常处理：V2版本更完善
+  - ✅ 日志记录：V2版本更详细
+  - 🆕 全局唯一约束：仅V2版本支持
+  - 🆕 任务状态跟踪：仅V2版本支持
+  - 🆕 任务超时控制：仅V2版本支持
+- **收益**：
+  - 消除重复代码，减少维护负担 ✅
+  - 统一任务调度架构，代码更优雅 📐
+  - 提升系统可靠性和可观测性 📊
+  - 为未来扩展更多定时任务打下基础 🚀
+
+## [2.1.17] - 2025-10-21 🏗️
+
+### Added
+- **任务调度基础设施模块上线！✨ DDD架构的优雅实现**
+  - **全新基础设施 🎯**：在 `common/infrastructure/task` 包下构建了完整的任务调度框架
+    - 采用DDD（领域驱动设计）模式，分层清晰、职责明确
+    - 支持任务生命周期管理（待执行、执行中、成功、失败、已取消）
+    - 提供统一的任务接口约束和执行规范
+  - **核心功能实现 🚀**：
+    - **任务接口约束**：通过 `ScheduledTask` 接口定义任务契约
+      - 强制要求任务名称 (`taskName`)
+      - 自动管理任务状态 (`TaskStatusEnum`)
+      - 内置完成通知机制 (`TaskNotificationListener`)
+    - **全局唯一任务**：通过 `UniqueTaskManager` 管理任务唯一性
+      - 配置 `TaskConfig.globalUnique = true` 即可启用
+      - 确保同一类型任务在同一时刻只能执行一个
+      - 自动处理任务冲突，失败任务会立即返回并释放锁
+    - **任务通知机制**：基于观察者模式的事件通知
+      - 支持任务开始 (`onTaskStart`)、成功 (`onTaskSuccess`)、失败 (`onTaskFailed`)、取消 (`onTaskCancelled`) 通知
+      - 支持选择性监听特定类型任务
+      - 异常隔离，单个监听器异常不影响其他监听器
+    - **灵活执行策略**：
+      - 同步执行：`submitTask()` 阻塞等待任务完成
+      - 异步执行：`submitTaskAsync()` 立即返回Future对象
+      - 带超时执行：`submitTaskWithTimeout()` 限制任务执行时间
+  - **架构设计亮点 🎨**：
+    - **领域层**：`Task`（聚合根）、`TaskConfig`（值对象）、`TaskNotification`（值对象）
+    - **契约层**：`ScheduledTask`（任务接口）、`TaskNotificationListener`（监听器接口）
+    - **执行器层**：`TaskExecutor`（执行引擎）、`UniqueTaskManager`（唯一性管理）
+    - **应用服务层**：`TaskSchedulerService`（调度服务）
+  - **设计模式应用 📐**：
+    - 模板方法模式：`ScheduledTask` 接口提供前置/后置钩子方法
+    - 观察者模式：`TaskNotificationListener` 监听任务状态变化
+    - 策略模式：多种任务执行策略
+    - 建造者模式：`TaskConfig` 使用Builder模式构建
+  - **实际应用示例 💡**：
+    - 创建 `DataBackupTask`：数据备份任务实现，配置为全局唯一
+    - 创建 `TaskExecutionLogger`：任务执行日志监听器，记录所有任务状态
+    - 创建 `DataBackupSchedulerV2`：基于新框架的定时任务调度器
+    - 保留 `DataBackupScheduler`：原始版本，方便对比
+
+### Technical Details
+- **新增文件**（13个Java核心文件）：
+  - **领域模型层**：
+    - `Task.java`：任务实体（聚合根），管理任务完整生命周期
+    - `TaskConfig.java`：任务配置值对象，定义任务属性和约束
+    - `TaskNotification.java`：任务通知值对象，携带状态变化信息
+  - **枚举定义**：
+    - `TaskStatusEnum.java`：任务状态枚举（5种状态）
+  - **契约接口层**：
+    - `ScheduledTask.java`：可调度任务接口，定义任务契约
+    - `TaskNotificationListener.java`：任务通知监听器接口
+  - **执行器层**：
+    - `TaskExecutor.java`：任务执行器，核心执行引擎（192行）
+    - `UniqueTaskManager.java`：唯一任务管理器，管理全局唯一约束
+  - **调度服务层**：
+    - `TaskSchedulerService.java`：任务调度服务，对外接口
+  - **配置层**：
+    - `TaskInfrastructureConfig.java`：Spring配置类，自动装配
+  - **示例代码**：
+    - `ExampleUsage.java`：完整使用示例（232行）
+  - **包级文档**：
+    - `package-info.java`：API文档和使用示例（129行）
+- **业务集成示例**（4个文件）：
+  - `DataBackupTask.java`：数据备份任务实现
+  - `TaskExecutionLogger.java`：任务执行日志监听器
+  - `DataBackupSchedulerV2.java`：基于新框架的定时任务
+  - 保留 `DataBackupScheduler.java`：原始版本对照
+- **代码统计**：
+  - Java核心代码：~1,300行
+  - 注释和文档：~800行
+  - 总计17个Java文件
+- **线程安全保证**：
+  - 使用 `ConcurrentHashMap` 管理唯一任务映射
+  - 使用 `CachedThreadPool` 处理异步任务
+  - 监听器异常捕获，不影响任务执行
+- **Spring集成**：
+  - 完全集成Spring框架，支持依赖注入
+  - 自动装配监听器列表
+  - 可与 `@Scheduled` 定时任务无缝配合
+- **设计原则遵循**：
+  - 单一职责原则（SRP）：每个类职责明确
+  - 开闭原则（OCP）：对扩展开放，对修改封闭
+  - 依赖倒置原则（DIP）：依赖抽象而非具体实现
+  - DRY原则：消除重复代码
+
+### 收益
+- ✅ 提供统一的任务调度框架，规范任务实现
+- ✅ 全局唯一任务约束，避免资源竞争
+- ✅ 完善的任务监控和通知机制
+- ✅ 优雅的DDD架构，代码可维护性高
+- ✅ 丰富的文档和示例，易于上手
+- ✅ 支持多种执行策略，灵活性强
+
 ## [2.1.16] - 2025-10-19 🔄
 
 ### Changed

@@ -775,7 +775,6 @@
                 filterDeadHR: document.getElementById('filterDeadHRCheckBox')?.checked || false,
                 sendImgResume: document.getElementById('sendImgResumeCheckBox')?.checked || false,
                 recommendJobs: document.getElementById('recommendJobsCheckBox')?.checked || false,
-                enableBlacklistFilter: document.getElementById('enableBlacklistFilterCheckBox')?.checked || false,
                 deadStatus: this.hrStatusTagsInput ? this.hrStatusTagsInput.getTags() : []
             };
         }

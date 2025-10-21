@@ -8,6 +8,7 @@ import getjobs.service.ConfigService;
 import lombok.extern.slf4j.Slf4j;
 import com.github.openjson.JSONArray;
 import com.github.openjson.JSONObject;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -18,9 +19,12 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Playwright服务，统一管理Playwright实例、浏览器、上下文和页面。
  * 为每个招聘平台提供独立的BrowserContext和Page。
+ * 
+ * 依赖于 dataRestoreInitializer，确保在数据库数据恢复完成后再初始化
  */
 @Slf4j
 @Service
+@DependsOn("dataRestoreInitializer")
 public class PlaywrightService {
 
     private final ConfigService configService;
@@ -48,7 +52,8 @@ public class PlaywrightService {
     @PostConstruct
     public void init() {
         try {
-            log.info("Initializing Playwright service...");
+            log.info("=== 开始初始化 Playwright 服务 ===");
+            log.info("（数据库已就绪，可以加载平台配置和Cookie）");
             playwright = Playwright.create();
 
             browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
@@ -77,11 +82,12 @@ public class PlaywrightService {
 
                 page.navigate(platform.getHomeUrl());
                 pageMap.put(platform, page);
-                log.info("Initialized page for platform: {}, url: {}", platform.getPlatformName(),
+                log.info("✓ 已为平台 {} 初始化页面: {}", platform.getPlatformName(),
                         platform.getHomeUrl());
             }
 
-            log.info("Playwright service initialized successfully.");
+            log.info("✓ Playwright 服务初始化成功");
+            log.info("=== Playwright 服务初始化完成 ===");
         } catch (Exception e) {
             log.error("Failed to initialize Playwright service", e);
             // Ensure cleanup is called on initialization failure

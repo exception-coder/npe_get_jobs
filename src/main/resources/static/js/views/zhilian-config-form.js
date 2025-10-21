@@ -104,10 +104,7 @@ class ZhilianConfigForm {
             salary: document.getElementById('zhilianSalaryComboBox')?.value || '',
             degree: document.getElementById('zhilianDegreeComboBox')?.value || '',
             scale: document.getElementById('zhilianScaleComboBox')?.value || '',
-            companyNature: document.getElementById('zhilianCompanyNatureComboBox')?.value || '',
-
-            // 功能开关
-            blacklistFilter: document.getElementById('zhilianBlacklistFilterCheckBox')?.checked || false
+            companyNature: document.getElementById('zhilianCompanyNatureComboBox')?.value || ''
         };
     }
 
@@ -173,9 +170,7 @@ class ZhilianConfigForm {
             salary: 'zhilianSalaryComboBox',
             degree: 'zhilianDegreeComboBox',
             scale: 'zhilianScaleComboBox',
-            companyNature: 'zhilianCompanyNatureComboBox',
-            blacklistFilter: 'zhilianBlacklistFilterCheckBox',
-            blacklistKeywords: 'zhilianBlacklistKeywordsTextArea'
+            companyNature: 'zhilianCompanyNatureComboBox'
         };
         return map[key] || key;
     }
