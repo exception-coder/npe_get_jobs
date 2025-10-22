@@ -3,6 +3,7 @@ package getjobs.common.service;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Cookie;
 import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.common.util.PageRecoveryManager;
 import getjobs.repository.entity.ConfigEntity;
 import getjobs.service.ConfigService;
 import lombok.extern.slf4j.Slf4j;
@@ -227,5 +228,81 @@ public class PlaywrightService {
         } catch (Exception e) {
             log.error("从JSON加载Cookie失败", e);
         }
+    }
+
+    /**
+     * 检查指定平台的Page是否健康
+     * 
+     * @param platform 平台枚举
+     * @return true-健康, false-不健康
+     */
+    public boolean isPageHealthy(RecruitmentPlatformEnum platform) {
+        Page page = pageMap.get(platform);
+        return PageRecoveryManager.isPageReallyHealthy(page);
+    }
+
+    /**
+     * 刷新/重建指定平台的Page对象
+     * 
+     * 当检测到Page对象不健康时，可以调用此方法重建Page并恢复到当前状态
+     * 
+     * @param platform 平台枚举
+     * @return true-刷新成功, false-刷新失败
+     */
+    public boolean refreshPage(RecruitmentPlatformEnum platform) {
+        Page currentPage = pageMap.get(platform);
+        if (currentPage == null) {
+            log.error("平台 {} 的Page对象不存在，无法刷新", platform.getPlatformName());
+            return false;
+        }
+
+        try {
+            log.info("开始刷新平台 {} 的Page对象...", platform.getPlatformName());
+
+            // 1. 保存当前状态
+            PageRecoveryManager.PageSnapshot snapshot = PageRecoveryManager.captureSnapshot(currentPage);
+            if (snapshot == null) {
+                log.error("无法保存Page状态，刷新失败");
+                return false;
+            }
+
+            // 2. 重建Page
+            Page newPage = PageRecoveryManager.rebuildAndRestore(
+                    currentPage,
+                    context,
+                    snapshot,
+                    page -> pageMap.put(platform, page) // 更新全局引用
+            );
+
+            if (newPage == null) {
+                log.error("Page重建失败");
+                return false;
+            }
+
+            log.info("✓ 平台 {} 的Page对象刷新成功！", platform.getPlatformName());
+            return true;
+
+        } catch (Exception e) {
+            log.error("刷新Page对象时发生异常", e);
+            return false;
+        }
+    }
+
+    /**
+     * 自动检查并刷新不健康的Page
+     * 
+     * 可以在定时任务中调用此方法，主动检查和恢复不健康的Page
+     * 
+     * @param platform 平台枚举
+     * @return true-Page健康或已成功刷新, false-Page不健康且刷新失败
+     */
+    public boolean ensurePageHealthy(RecruitmentPlatformEnum platform) {
+        if (isPageHealthy(platform)) {
+            log.debug("平台 {} 的Page对象健康", platform.getPlatformName());
+            return true;
+        }
+
+        log.warn("检测到平台 {} 的Page对象不健康，尝试自动刷新...", platform.getPlatformName());
+        return refreshPage(platform);
     }
 }

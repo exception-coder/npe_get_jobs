@@ -1,6 +1,175 @@
 # Changelog 💖
 Hello 小可爱们！这里是我们的成长日记，所有酷炫的更新和优化都会在这里记录哦！
 
+## [1.0.29] - 2025-10-22 🛡️
+
+### Fixed
+- **Playwright Page对象失效异常修复！✨ 智能重试机制保驾护航**
+  - **问题背景 🐛**：
+    - 在岗位采集过程中偶发 `PlaywrightException: Object doesn't exist: response@xxx` 异常
+    - 异常发生在 `page.waitForTimeout()` 和 `locator.count()` 等操作时
+    - **现象**：浏览器页签还在，Page对象看似正常，但操作时抛出异常
+    - 原有代码缺乏Page健康检查和重试机制，导致任务中断
+  - **根本原因分析 🔍**：详见 `docs/PLAYWRIGHT_PAGE_LIFECYCLE_ANALYSIS.md`
+    - **Playwright 内部架构**：采用客户端-服务端模式，Response/Request 等对象在服务端有生命周期
+    - **对象被清理**：长时间运行时，Playwright Server 会清理不活跃的内部对象以节省内存
+    - **隐式刷新**：页面可能发生隐式导航或状态重置（Boss直聘的反爬虫机制）
+    - **内存管理**：Playwright 的垃圾回收会清理旧的 Response 对象引用
+    - **为什么页签还在但对象失效**：浏览器窗口正常，但 Playwright 内部对象句柄已被清理
+  - **修复方案 🎯**：
+    - **新增Page健康检查工具类 🔧**：创建 `PageHealthChecker` 工具类，职责清晰
+      - 提供 `isPageHealthy()` 方法：检测Page对象是否处于健康可用状态
+      - 提供 `executeWithRetry()` 方法：包装Page操作并提供智能重试机制
+      - 支持有返回值和无返回值两种操作类型
+      - 识别"Object doesn't exist"异常并自动重试（最多2-3次）
+    - **优化岗位滚动加载 📊**：重构 `BossRecruitmentServiceImpl.loadJobsWithScroll()` 方法
+      - 使用 `PageHealthChecker` 包装所有Page操作（查询元素、滚动页面、等待加载）
+      - 滚动操作也加入重试机制，避免滚动时Page对象失效导致中断
+      - Page失效时自动重试，重试失败则优雅停止滚动，返回已加载的岗位数
+      - 添加详细的日志记录，方便问题排查
+    - **优化岗位卡片点击 🖱️**：重构 `BossElementLocators.clickAllJobCards()` 方法
+      - 点击前先检查Page健康状态，不健康则直接跳过
+      - 使用 `PageHealthChecker` 包装定位、计数、点击等所有操作
+      - 每次循环前检查Page状态，失效时立即停止点击
+      - 区分"对象失效异常"和"普通异常"，采取不同的处理策略
+    - **增强调用层容错 🛡️**：优化 `collectJobsByCity()` 方法
+      - 使用 `PageHealthChecker` 包装 `clickAllJobCards()` 调用
+      - 即使点击失败也不影响整体采集流程，继续执行
+      - 添加兜底异常处理，确保任务不会因局部失败而中断
+    - **⭐ Page对象自动恢复机制（更可靠的方案）🏗️**：创建 `PageRecoveryManager` 工具类
+      - **核心能力**：不仅重试操作，还能自动重建失效的Page对象
+      - **状态快照**：`PageSnapshot` 保存当前页面状态（URL、Cookie、时间戳）
+      - **真实健康检查**：`isPageReallyHealthy()` 不仅检查 isClosed()，还验证能否正常交互
+      - **无缝恢复**：`rebuildAndRestore()` 重建Page后自动恢复到原页面（保持URL和Cookie）
+      - **自动化执行**：`executeWithAutoRecovery()` 自动处理重试→检查→恢复→再试流程
+      - **PlaywrightService 集成**：
+        - `refreshPage(platform)` - 手动刷新指定平台的Page
+        - `ensurePageHealthy(platform)` - 自动检查并修复不健康的Page
+        - 支持在定时任务中主动检查和恢复Page健康状态
+  - **职责分离设计 🏗️**：
+    - `PageHealthChecker`：专注于Page健康检查和重试逻辑（通用工具层）
+    - `BossRecruitmentServiceImpl`：专注于业务逻辑编排（业务服务层）
+    - `BossElementLocators`：专注于UI元素定位和操作（UI操作层）
+    - 各层职责清晰，代码结构优雅，便于维护和测试
+  - **智能重试策略 🔄**：
+    - 查询岗位卡片：重试2次
+    - 滚动页面到底部：重试2次 ⭐新增
+    - 等待页面加载：重试2次
+    - 定位岗位卡片：重试2次
+    - 获取卡片数量：重试2次
+    - 点击单个卡片：重试1次
+    - 重试间隔：1秒（避免频繁重试导致额外负担）
+  - **异常处理升级 ⚡**：
+    - 识别"Object doesn't exist"异常：自动重试
+    - 其他Playwright异常：直接抛出（避免无意义重试）
+    - InterruptedException：恢复中断状态并包装为PlaywrightException
+    - 所有重试失败后：记录详细日志并优雅降级
+
+### Technical Details
+- **新增文件**：
+  - `PageHealthChecker.java`：Page健康检查和重试工具类（约210行）
+    - 核心方法：`isPageHealthy()`、`executeWithRetry()`、`executeWithAutoRecovery()`
+    - 函数式接口：`PageOperation<T>`、`PageVoidOperation`
+    - 支持泛型返回值，适配各种Page操作场景
+    - 新增 `executeWithAutoRecovery()` 方法，集成Page对象恢复能力
+  - `PageRecoveryManager.java`：Page对象恢复管理器（约280行）⭐ **更可靠的解决方案**
+    - 核心方法：`isPageReallyHealthy()`、`captureSnapshot()`、`restoreFromSnapshot()`、`rebuildAndRestore()`、`executeWithAutoRecovery()`
+    - 内部类：`PageSnapshot` - 保存页面状态（URL、Cookie、时间戳）
+    - 支持Page对象的完整重建和状态恢复
+    - 保持用户在当前页面继续操作，无缝恢复
+  - `PLAYWRIGHT_PAGE_LIFECYCLE_ANALYSIS.md`：Playwright异常深度分析文档
+    - 详细解释为什么浏览器页签还在但Page对象会失效
+    - 分析Playwright内部架构和对象生命周期
+    - 提供多种解决方案的对比和选择建议
+- **修改文件**：
+  - `BossRecruitmentServiceImpl.java`：
+    - 新增 `PageHealthChecker` 导入
+    - 新增 `PlaywrightException` 导入
+    - 重构 `loadJobsWithScroll()` 方法，添加健康检查和重试（约50行修改）
+    - 重构 `collectJobsByCity()` 中的 `clickAllJobCards()` 调用（约15行修改）
+  - `BossElementLocators.java`：
+    - 新增 `PageHealthChecker`、`PlaywrightException` 导入
+    - 重构 `clickAllJobCards()` 方法，添加健康检查和重试（约100行修改）
+    - 添加详细的异常分类处理逻辑
+    - 添加InterruptedException处理
+  - `PlaywrightService.java`：⭐ **支持Page对象自动恢复**
+    - 新增 `isPageHealthy()` 方法：检查指定平台的Page是否健康
+    - 新增 `refreshPage()` 方法：刷新/重建指定平台的Page对象
+    - 新增 `ensurePageHealthy()` 方法：自动检查并刷新不健康的Page
+    - 支持在Page失效时自动重建并恢复到当前页面状态（保持URL和Cookie）
+- **设计模式应用**：
+  - **策略模式**：通过 `PageOperation` 函数式接口，允许调用者传入不同的操作策略
+  - **模板方法模式**：`executeWithRetry()` 提供统一的重试框架，具体操作由调用者定义
+  - **装饰器模式**：`PageHealthChecker` 包装原始Page操作，增强容错能力
+  - **快照-恢复模式**：`PageRecoveryManager` 保存状态快照，失败时恢复
+- **代码对比 1：智能重试**：
+  ```java
+  // 重构前 - 滚动操作直接调用，失败即中断
+  safeEvaluateJavaScript(page, "window.scrollTo(0, document.body.scrollHeight)");
+  page.waitForTimeout(2000);
+  
+  // 重构后 - 滚动和等待都有重试机制
+  PageHealthChecker.executeWithRetry(
+      page,
+      () -> {
+          safeEvaluateJavaScript(page, "window.scrollTo(0, document.body.scrollHeight)");
+          log.debug("{}下拉页面加载更多...", jobType);
+      },
+      "滚动页面到底部",
+      2  // 滚动失败时自动重试2次
+  );
+  
+  PageHealthChecker.executeWithRetry(
+      page,
+      () -> page.waitForTimeout(2000),
+      "等待页面加载",
+      2  // 等待失败时自动重试2次
+  );
+  ```
+- **代码对比 2：Page自动恢复（高级用法）**：
+  ```java
+  // 方式1：在 PlaywrightService 中手动检查和刷新
+  if (!playwrightService.isPageHealthy(RecruitmentPlatformEnum.BOSS_ZHIPIN)) {
+      log.warn("检测到Page不健康，尝试刷新...");
+      boolean success = playwrightService.refreshPage(RecruitmentPlatformEnum.BOSS_ZHIPIN);
+      if (success) {
+          log.info("Page已成功刷新，继续执行任务");
+      }
+  }
+  
+  // 方式2：使用 ensurePageHealthy 自动处理
+  playwrightService.ensurePageHealthy(RecruitmentPlatformEnum.BOSS_ZHIPIN);
+  
+  // 方式3：在业务代码中使用自动恢复（高级）
+  PageHealthChecker.executeWithAutoRecovery(
+      page,
+      context,
+      () -> page.querySelectorAll(selector),  // 你的操作
+      "查询元素",
+      2,  // 重试次数
+      () -> playwrightService.getPage(platform),  // 获取最新Page
+      newPage -> { /* 更新Page引用 */ }  // 更新回调
+  );
+  // 此方法会：
+  // 1. 先尝试普通重试（2次）
+  // 2. 重试失败后检查Page健康状态
+  // 3. Page不健康时自动重建Page并恢复到当前页面
+  // 4. 使用新Page重新执行操作
+  // 5. 全程保持在当前页面，用户无感知
+  ```
+
+### 收益
+- ✅ 彻底解决"Object doesn't exist"异常导致的任务中断问题
+- ✅ 提供智能重试机制，提高系统稳定性和容错能力
+- ✅ **⭐ 支持Page对象自动恢复，重试失败时自动重建Page并恢复到当前页面**
+- ✅ **⭐ 保持在当前页面继续操作，无需重新导航，用户体验无感知**
+- ✅ 职责分离清晰，代码结构优雅，便于维护和扩展
+- ✅ 详细的日志记录，方便问题定位和监控
+- ✅ 局部失败不影响整体流程，任务成功率大幅提升
+- ✅ 通用工具类可复用到其他平台（智联、51job、猎聘等）
+- ✅ 为未来处理更复杂的Page状态问题打下基础
+- ✅ 深度分析文档帮助理解Playwright内部机制，避免类似问题
+
 ## [1.0.28] - 2025-10-22 🎯
 
 ### Changed

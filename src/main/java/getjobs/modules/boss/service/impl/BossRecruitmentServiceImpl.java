@@ -5,10 +5,12 @@ import com.github.openjson.JSONObject;
 import com.microsoft.playwright.ElementHandle;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.Cookie;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.service.PlaywrightService;
+import getjobs.common.util.PageHealthChecker;
 import getjobs.modules.boss.BossElementLocators;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.modules.boss.dto.JobDTO;
@@ -364,7 +366,21 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
         }
 
         // 点击所有岗位卡片以触发详情API调用，让监控服务获取更多岗位信息
-        BossElementLocators.clickAllJobCards(page, 5000);
+        // 使用安全的执行方式，避免Page对象失效导致任务中断
+        try {
+            PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        BossElementLocators.clickAllJobCards(page, 5000);
+                        return null;
+                    },
+                    "点击岗位卡片",
+                    2 // 最多重试2次
+            );
+        } catch (Exception e) {
+            log.error("点击岗位卡片失败，跳过此步骤: {}", e.getMessage());
+            // 即使点击失败也不影响整体流程，继续执行
+        }
 
         log.info("城市: {}，关键词: {} 的岗位采集操作完成，实际数据由监控服务自动入库", cityCode, keyword);
     }
@@ -406,7 +422,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
     }
 
     /**
-     * 滚动加载岗位数据
+     * 滚动加载岗位数据（带Page健康检查和重试机制）
      */
     private int loadJobsWithScroll(Page page, String jobType) {
         int previousJobCount = 0;
@@ -414,25 +430,64 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
         int unchangedCount = 0;
 
         while (unchangedCount < 2) {
-            List<ElementHandle> jobCards = page.querySelectorAll(JOB_LIST_SELECTOR);
-            currentJobCount = jobCards.size();
+            try {
+                // 使用健康检查包装器执行查询操作
+                List<ElementHandle> jobCards = PageHealthChecker.executeWithRetry(
+                        page,
+                        () -> page.querySelectorAll(JOB_LIST_SELECTOR),
+                        "查询岗位卡片",
+                        2 // 最多重试2次
+                );
 
-            log.debug("滚动加载中，当前岗位数: {}", currentJobCount);
+                currentJobCount = jobCards.size();
+                log.debug("滚动加载中，当前岗位数: {}", currentJobCount);
 
-            if (currentJobCount > previousJobCount) {
-                previousJobCount = currentJobCount;
-                unchangedCount = 0;
+                if (currentJobCount > previousJobCount) {
+                    previousJobCount = currentJobCount;
+                    unchangedCount = 0;
 
-                safeEvaluateJavaScript(page, "window.scrollTo(0, document.body.scrollHeight)");
-                log.debug("{}下拉页面加载更多...", jobType);
-                page.waitForTimeout(2000);
-            } else {
-                unchangedCount++;
-                if (unchangedCount < 2) {
-                    log.debug("{}下拉后岗位数量未增加，再次尝试...", jobType);
-                    safeEvaluateJavaScript(page, "window.scrollTo(0, document.body.scrollHeight)");
-                    page.waitForTimeout(2000);
+                    // 使用健康检查包装器执行滚动操作
+                    PageHealthChecker.executeWithRetry(
+                            page,
+                            () -> {
+                                safeEvaluateJavaScript(page, "window.scrollTo(0, document.body.scrollHeight)");
+                                log.debug("{}下拉页面加载更多...", jobType);
+                            },
+                            "滚动页面到底部",
+                            2);
+
+                    // 使用健康检查包装器执行等待操作
+                    PageHealthChecker.executeWithRetry(
+                            page,
+                            () -> page.waitForTimeout(2000),
+                            "等待页面加载",
+                            2);
+                } else {
+                    unchangedCount++;
+                    if (unchangedCount < 2) {
+                        log.debug("{}下拉后岗位数量未增加，再次尝试...", jobType);
+
+                        // 使用健康检查包装器执行滚动操作
+                        PageHealthChecker.executeWithRetry(
+                                page,
+                                () -> {
+                                    safeEvaluateJavaScript(page, "window.scrollTo(0, document.body.scrollHeight)");
+                                },
+                                "滚动页面到底部（重试）",
+                                2);
+
+                        // 使用健康检查包装器执行等待操作
+                        PageHealthChecker.executeWithRetry(
+                                page,
+                                () -> page.waitForTimeout(2000),
+                                "等待页面加载",
+                                2);
+                    }
                 }
+            } catch (PlaywrightException e) {
+                log.error("滚动加载岗位时Page对象失效，停止滚动加载: {}", e.getMessage());
+                // Page失效时，返回当前已加载的数量
+                break;
             }
         }
 

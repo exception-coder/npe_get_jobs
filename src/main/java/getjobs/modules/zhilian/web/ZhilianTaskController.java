@@ -40,7 +40,7 @@ public class ZhilianTaskController {
         log.info("接收到智联招聘登录请求");
 
         try {
-            LoginResult result = zhilianTaskService.login(config);
+            LoginResult result = zhilianTaskService.login();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", result.isSuccess());
@@ -77,7 +77,7 @@ public class ZhilianTaskController {
         log.info("接收到智联招聘岗位采集请求");
 
         try {
-            CollectResult result = zhilianTaskService.collectJobs(config);
+            CollectResult result = zhilianTaskService.collectJobs();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -113,7 +113,7 @@ public class ZhilianTaskController {
         log.info("接收到智联招聘岗位过滤请求");
 
         try {
-            FilterResult result = zhilianTaskService.filterJobs(request.getConfig());
+            FilterResult result = zhilianTaskService.filterJobs();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -151,9 +151,7 @@ public class ZhilianTaskController {
                 request.isEnableActualDelivery());
 
         try {
-            DeliveryResult result = zhilianTaskService.deliverJobs(
-                    request.getConfig(),
-                    request.isEnableActualDelivery());
+            DeliveryResult result = zhilianTaskService.deliverJobs(request.isEnableActualDelivery());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

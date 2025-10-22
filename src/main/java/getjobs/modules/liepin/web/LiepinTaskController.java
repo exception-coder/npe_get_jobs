@@ -39,7 +39,7 @@ public class LiepinTaskController {
         log.info("接收到猎聘登录请求");
 
         try {
-            LoginResult result = liepinTaskService.login(config);
+            LoginResult result = liepinTaskService.login();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", result.isSuccess());
@@ -76,7 +76,7 @@ public class LiepinTaskController {
         log.info("接收到猎聘岗位采集请求");
 
         try {
-            CollectResult result = liepinTaskService.collectJobs(config);
+            CollectResult result = liepinTaskService.collectJobs();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -112,7 +112,7 @@ public class LiepinTaskController {
         log.info("接收到猎聘岗位过滤请求");
 
         try {
-            FilterResult result = liepinTaskService.filterJobs(request.getConfig());
+            FilterResult result = liepinTaskService.filterJobs();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -151,7 +151,6 @@ public class LiepinTaskController {
 
         try {
             DeliveryResult result = liepinTaskService.deliverJobs(
-                    request.getConfig(),
                     request.isEnableActualDelivery());
 
             Map<String, Object> response = new HashMap<>();

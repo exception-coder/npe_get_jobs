@@ -2,6 +2,8 @@ package getjobs.modules.boss;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
+import getjobs.common.util.PageHealthChecker;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -13,16 +15,16 @@ public class BossElementLocators {
     // 主页相关元素
     public static final String LOGIN_BTN = "//li[@class='nav-figure']";
     public static final String LOGIN_SUCCESS_HEADER = "//*[@id=\"header\"]/div[1]/div[@class='user-nav']/ul/li[@class='nav-figure']";
-    
+
     // 登录状态判断相关元素
     // 未登录状态：存在"登录/注册"按钮
     public static final String HEADER_LOGIN_BTN = "//a[@class='btn btn-outline header-login-btn']";
     public static final String HEADER_LOGIN_BTN_ALT = "a.header-login-btn"; // CSS选择器备用
-    
+
     // 已登录状态：存在消息、简历等链接
     public static final String HEADER_MESSAGE_LINK = "//a[@ka='header-message']"; // 消息链接
-    public static final String HEADER_RESUME_LINK = "//a[@ka='header-resume']";   // 简历链接
-    public static final String NAV_FIGURE = "//li[@class='nav-figure']";          // 用户头像区域
+    public static final String HEADER_RESUME_LINK = "//a[@ka='header-resume']"; // 简历链接
+    public static final String NAV_FIGURE = "//li[@class='nav-figure']"; // 用户头像区域
 
     /**
      * 搜索结果页相关元素
@@ -107,16 +109,38 @@ public class BossElementLocators {
      * @param delayMillis 每次点击之间的延迟时间（毫秒）
      * @return 成功点击的岗位数量
      */
+    /**
+     * 点击所有岗位卡片以触发详情API调用（带Page健康检查和重试机制）
+     * 
+     * @param page        Page对象
+     * @param delayMillis 每次点击的延迟时间（毫秒）
+     * @return 成功点击的卡片数量
+     */
     public static int clickAllJobCards(Page page, int delayMillis) {
         if (page == null) {
             log.error("Page对象为空，无法执行点击操作");
             return 0;
         }
 
+        // 检查Page健康状态
+        if (!PageHealthChecker.isPageHealthy(page)) {
+            log.error("Page对象不健康，跳过点击操作");
+            return 0;
+        }
+
         try {
-            // 使用JOB_LIST_CONTAINER_CARDS定位器获取所有岗位卡片
-            Locator jobCards = page.locator(JOB_LIST_CONTAINER_CARDS);
-            int cardCount = jobCards.count();
+            // 使用健康检查包装器获取岗位卡片数量
+            Locator jobCards = PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> page.locator(JOB_LIST_CONTAINER_CARDS),
+                    "定位岗位卡片",
+                    2);
+
+            int cardCount = PageHealthChecker.executeWithRetry(
+                    page,
+                    jobCards::count,
+                    "获取岗位卡片数量",
+                    2);
 
             if (cardCount == 0) {
                 log.warn("未找到任何job-card-box元素");
@@ -129,29 +153,66 @@ public class BossElementLocators {
             // 遍历所有岗位卡片并点击
             for (int i = 0; i < cardCount; i++) {
                 try {
-                    Locator currentCard = jobCards.nth(i);
-
-                    // 确保元素可见且可点击
-                    if (currentCard.isVisible()) {
-                        log.debug("正在点击第 {} 个岗位卡片", i + 1);
-                        currentCard.click();
-                        successCount++;
-
-                        // 添加延迟，避免点击过快
-                        if (delayMillis > 0) {
-                            Thread.sleep(delayMillis);
-                        }
-                    } else {
-                        log.warn("第 {} 个岗位卡片不可见，跳过", i + 1);
+                    // 每次循环前检查Page健康状态
+                    if (!PageHealthChecker.isPageHealthy(page)) {
+                        log.warn("Page对象在点击第 {} 个卡片时变为不健康，停止点击", i + 1);
+                        break;
                     }
-                } catch (Exception e) {
+
+                    final int currentIndex = i;
+
+                    // 使用健康检查包装器执行点击操作
+                    PageHealthChecker.executeWithRetry(
+                            page,
+                            () -> {
+                                Locator currentCard = jobCards.nth(currentIndex);
+
+                                // 确保元素可见且可点击
+                                if (currentCard.isVisible()) {
+                                    log.debug("正在点击第 {} 个岗位卡片", currentIndex + 1);
+                                    currentCard.click();
+
+                                    // 添加延迟，避免点击过快
+                                    if (delayMillis > 0) {
+                                        try {
+                                            Thread.sleep(delayMillis);
+                                        } catch (InterruptedException ie) {
+                                            Thread.currentThread().interrupt();
+                                            throw new PlaywrightException("点击延迟被中断", ie);
+                                        }
+                                    }
+                                } else {
+                                    log.warn("第 {} 个岗位卡片不可见，跳过", currentIndex + 1);
+                                }
+                            },
+                            "点击第" + (i + 1) + "个岗位卡片",
+                            1 // 单个卡片点击失败时重试1次
+                    );
+
+                    successCount++;
+
+                } catch (PlaywrightException e) {
+                    // 如果是Page对象失效异常，停止后续点击
+                    if (e.getMessage() != null && e.getMessage().contains("Object doesn't exist")) {
+                        log.error("Page对象失效（第 {} 个卡片），停止点击操作: {}", i + 1, e.getMessage());
+                        break;
+                    }
                     log.error("点击第 {} 个岗位卡片时发生错误: {}", i + 1, e.getMessage());
+                } catch (Exception e) {
+                    log.error("点击第 {} 个岗位卡片时发生未知错误: {}", i + 1, e.getMessage());
                 }
             }
 
             log.info("岗位卡片点击完成，成功点击 {} 个，总共 {} 个", successCount, cardCount);
             return successCount;
 
+        } catch (PlaywrightException e) {
+            if (e.getMessage() != null && e.getMessage().contains("Object doesn't exist")) {
+                log.error("Page对象失效，无法执行点击操作: {}", e.getMessage());
+            } else {
+                log.error("执行岗位卡片点击操作时发生Playwright异常: {}", e.getMessage(), e);
+            }
+            return 0;
         } catch (Exception e) {
             log.error("执行岗位卡片点击操作时发生异常: {}", e.getMessage(), e);
             return 0;
@@ -175,35 +236,35 @@ public class BossElementLocators {
                 log.error("Page对象为空，无法检查登录状态");
                 return false;
             }
-            
+
             log.debug("检查Boss直聘用户登录状态...");
-            
+
             try {
                 // 等待页面加载完成
                 page.waitForLoadState();
                 page.waitForTimeout(1500);
-                
+
                 // 方法1：检查是否存在"登录/注册"按钮（未登录特征）
                 Locator loginButton = page.locator(HEADER_LOGIN_BTN);
                 if (loginButton.count() > 0 && loginButton.isVisible()) {
                     log.debug("检测到'登录/注册'按钮，用户未登录");
                     return false;
                 }
-                
+
                 // 方法2：检查是否存在"消息"链接（已登录特征）
                 Locator messageLink = page.locator(HEADER_MESSAGE_LINK);
                 if (messageLink.count() > 0 && messageLink.isVisible()) {
                     log.debug("检测到'消息'链接，用户已登录");
                     return true;
                 }
-                
+
                 // 方法3：检查是否存在"简历"链接（已登录特征）
                 Locator resumeLink = page.locator(HEADER_RESUME_LINK);
                 if (resumeLink.count() > 0 && resumeLink.isVisible()) {
                     log.debug("检测到'简历'链接，用户已登录");
                     return true;
                 }
-                
+
                 // 方法4：检查是否存在用户头像区域（已登录特征）
                 Locator navFigure = page.locator(NAV_FIGURE);
                 if (navFigure.count() > 0) {
@@ -214,15 +275,15 @@ public class BossElementLocators {
                         return true;
                     }
                 }
-                
+
                 log.warn("无法明确判断登录状态，默认为未登录");
                 return false;
-                
+
             } catch (Exception e) {
                 log.debug("检查Boss直聘登录状态时发生异常: {}", e.getMessage());
                 return false;
             }
-            
+
         } catch (Exception e) {
             log.error("检查Boss直聘用户登录状态时发生异常", e);
             return false; // 出现异常时，默认未登录
