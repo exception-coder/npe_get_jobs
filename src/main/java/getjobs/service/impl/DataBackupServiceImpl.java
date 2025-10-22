@@ -96,7 +96,7 @@ public class DataBackupServiceImpl implements DataBackupService {
         Path backupFilePath = getBackupFilePath();
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(backupFilePath.toFile(), backupData);
 
-        log.info("数据备份完成 - 配置: {} 条, 职位: {} 条, 用户求职信息: {} 条, 备份文件: {}",
+        log.debug("数据备份完成 - 配置: {} 条, 职位: {} 条, 用户求职信息: {} 条, 备份文件: {}",
                 configs.size(), jobs.size(), userProfiles.size(), backupFilePath);
 
         return backupFilePath.toString();

@@ -45,59 +45,113 @@ public abstract class AbstractRecruitmentService implements RecruitmentService {
 
             if (userProfile != null) {
                 // 已迁移到 UserProfile 的字段
-                dto.setSayHi(userProfile.getSayHi());
-                dto.setEnableAIJobMatchDetection(userProfile.getEnableAIJobMatchDetection());
-                dto.setEnableAIGreeting(userProfile.getEnableAIGreeting());
-                dto.setSendImgResume(userProfile.getSendImgResume());
-                dto.setResumeImagePath(userProfile.getResumeImagePath());
-                dto.setRecommendJobs(userProfile.getRecommendJobs());
+                dto.setSayHi(userProfile.getSayHi() != null ? userProfile.getSayHi() : "");
+
+                // Boolean类型，默认为false
+                dto.setEnableAIJobMatchDetection(
+                        userProfile.getEnableAIJobMatchDetection() != null
+                                ? userProfile.getEnableAIJobMatchDetection()
+                                : false);
+                dto.setEnableAIGreeting(
+                        userProfile.getEnableAIGreeting() != null
+                                ? userProfile.getEnableAIGreeting()
+                                : false);
+                dto.setSendImgResume(
+                        userProfile.getSendImgResume() != null
+                                ? userProfile.getSendImgResume()
+                                : false);
+                dto.setRecommendJobs(
+                        userProfile.getRecommendJobs() != null
+                                ? userProfile.getRecommendJobs()
+                                : false);
+                dto.setFilterDeadHR(
+                        userProfile.getFilterDeadHR() != null
+                                ? userProfile.getFilterDeadHR()
+                                : false);
+
+                // String类型，默认为空字符串
+                dto.setResumeImagePath(
+                        userProfile.getResumeImagePath() != null
+                                ? userProfile.getResumeImagePath()
+                                : "");
+
+                // HR状态过滤关键词 - List类型，默认为空列表
+                if (userProfile.getHrStatusKeywords() != null && !userProfile.getHrStatusKeywords().isEmpty()) {
+                    dto.setDeadStatus(userProfile.getHrStatusKeywords());
+                    dto.setBossHrStatusKeywords(String.join(",", userProfile.getHrStatusKeywords()));
+                } else {
+                    dto.setDeadStatus(new java.util.ArrayList<>());
+                    dto.setBossHrStatusKeywords("");
+                }
+            } else {
+                // UserProfile不存在时，设置所有字段的默认值
+                dto.setSayHi("");
+                dto.setEnableAIJobMatchDetection(false);
+                dto.setEnableAIGreeting(false);
+                dto.setSendImgResume(false);
+                dto.setRecommendJobs(false);
+                dto.setFilterDeadHR(false);
+                dto.setResumeImagePath("");
+                dto.setDeadStatus(new java.util.ArrayList<>());
+                dto.setBossHrStatusKeywords("");
             }
 
             // 基础字段映射（从 ConfigEntity 获取）
-            dto.setFilterDeadHR(entity.getFilterDeadHR());
-            dto.setKeyFilter(entity.getKeyFilter());
-            dto.setCheckStateOwned(entity.getCheckStateOwned());
-            dto.setResumeContent(entity.getResumeContent());
-            dto.setWaitTime(entity.getWaitTime());
-            dto.setPlatformType(entity.getPlatformType());
+            // Boolean类型，默认为false
+            dto.setKeyFilter(entity.getKeyFilter() != null ? entity.getKeyFilter() : false);
+            dto.setCheckStateOwned(entity.getCheckStateOwned() != null ? entity.getCheckStateOwned() : false);
 
-            // 列表字段转换为逗号分隔的字符串
-            if (entity.getKeywords() != null) {
-                dto.setKeywords(String.join(",", entity.getKeywords()));
-            }
-            if (entity.getCityCode() != null) {
-                dto.setCityCode(String.join(",", entity.getCityCode()));
-            }
-            if (entity.getIndustry() != null) {
-                dto.setIndustry(String.join(",", entity.getIndustry()));
-            }
-            if (entity.getExperience() != null) {
-                dto.setExperience(String.join(",", entity.getExperience()));
-            }
-            if (entity.getDegree() != null) {
-                dto.setDegree(String.join(",", entity.getDegree()));
-            }
-            if (entity.getScale() != null) {
-                dto.setScale(String.join(",", entity.getScale()));
-            }
-            if (entity.getStage() != null) {
-                dto.setStage(String.join(",", entity.getStage()));
-            }
-            if (entity.getDeadStatus() != null) {
-                dto.setDeadStatus(entity.getDeadStatus());
-            }
+            // String类型，默认为空字符串
+            dto.setResumeContent(entity.getResumeContent() != null ? entity.getResumeContent() : "");
+            dto.setWaitTime(entity.getWaitTime() != null ? entity.getWaitTime() : "");
+            dto.setPlatformType(entity.getPlatformType() != null ? entity.getPlatformType() : "");
 
-            // 期望薪资处理
+            // 列表字段转换为逗号分隔的字符串，默认为空字符串
+            dto.setKeywords(
+                    entity.getKeywords() != null && !entity.getKeywords().isEmpty()
+                            ? String.join(",", entity.getKeywords())
+                            : "");
+            dto.setCityCode(
+                    entity.getCityCode() != null && !entity.getCityCode().isEmpty()
+                            ? String.join(",", entity.getCityCode())
+                            : "");
+            dto.setIndustry(
+                    entity.getIndustry() != null && !entity.getIndustry().isEmpty()
+                            ? String.join(",", entity.getIndustry())
+                            : "");
+            dto.setExperience(
+                    entity.getExperience() != null && !entity.getExperience().isEmpty()
+                            ? String.join(",", entity.getExperience())
+                            : "");
+            dto.setDegree(
+                    entity.getDegree() != null && !entity.getDegree().isEmpty()
+                            ? String.join(",", entity.getDegree())
+                            : "");
+            dto.setScale(
+                    entity.getScale() != null && !entity.getScale().isEmpty()
+                            ? String.join(",", entity.getScale())
+                            : "");
+            dto.setStage(
+                    entity.getStage() != null && !entity.getStage().isEmpty()
+                            ? String.join(",", entity.getStage())
+                            : "");
+
+            // 期望薪资处理 - Integer类型可以保持null（业务上可能需要区分"未设置"和"0"）
             if (entity.getExpectedSalary() != null && entity.getExpectedSalary().size() >= 2) {
                 dto.setMinSalary(entity.getExpectedSalary().get(0));
                 dto.setMaxSalary(entity.getExpectedSalary().get(1));
             }
 
             // 其他字段
-            dto.setCustomCityCode(entity.getCustomCityCode());
-            dto.setJobType(entity.getJobType());
-            dto.setSalary(entity.getSalary());
-            dto.setExpectedPosition(entity.getExpectedPosition());
+            // Map类型，默认为空Map
+            dto.setCustomCityCode(
+                    entity.getCustomCityCode() != null
+                            ? entity.getCustomCityCode()
+                            : new java.util.HashMap<>());
+            // String类型，默认为空字符串
+            dto.setJobType(entity.getJobType() != null ? entity.getJobType() : "");
+            dto.setSalary(entity.getSalary() != null ? entity.getSalary() : "");
+            dto.setExpectedPosition(entity.getExpectedPosition() != null ? entity.getExpectedPosition() : "");
 
             // 平台特定字段（子类可以重写此方法添加额外字段）
             populatePlatformSpecificFields(dto, entity);

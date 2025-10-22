@@ -55,7 +55,7 @@ public class LoginStatusCheckScheduler {
      */
     @Scheduled(fixedRate = 15000) // 15秒
     public void checkLoginStatus() {
-        log.info("========== 开始定时检查各平台登录状态 ==========");
+        log.debug("========== 开始定时检查各平台登录状态 ==========");
 
         try {
             // 预先检查所有平台的登录状态，确定哪些平台需要检查
@@ -91,7 +91,7 @@ public class LoginStatusCheckScheduler {
             log.error("定时检查登录状态时发生异常", e);
         }
 
-        log.info("========== 登录状态检查完成 ==========");
+        log.debug("========== 登录状态检查完成 ==========");
     }
 
     /**
@@ -162,7 +162,7 @@ public class LoginStatusCheckScheduler {
             String message = String.format("登录状态检查完成，%d/%d 个平台已登录",
                     loggedInCount, loginStatusMap.size());
 
-            log.info(message);
+            log.debug(message);
         } catch (Exception e) {
             log.error("发布检查完成事件失败", e);
         }
@@ -198,7 +198,7 @@ public class LoginStatusCheckScheduler {
             updateLoginStatus(RecruitmentPlatformEnum.LIEPIN, isLoggedIn,
                     isLoggedIn ? "已登录" : "未登录");
 
-            log.info("猎聘登录状态: {}", isLoggedIn ? "已登录" : "未登录");
+            log.debug("猎聘登录状态: {}", isLoggedIn ? "已登录" : "未登录");
 
         } catch (Exception e) {
             log.error("检查猎聘登录状态失败", e);
@@ -236,7 +236,7 @@ public class LoginStatusCheckScheduler {
             updateLoginStatus(RecruitmentPlatformEnum.JOB_51, isLoggedIn,
                     isLoggedIn ? "已登录" : "未登录");
 
-            log.info("51Job登录状态: {}", isLoggedIn ? "已登录" : "未登录");
+            log.debug("51Job登录状态: {}", isLoggedIn ? "已登录" : "未登录");
 
         } catch (Exception e) {
             log.error("检查51Job登录状态失败", e);
@@ -274,7 +274,7 @@ public class LoginStatusCheckScheduler {
             updateLoginStatus(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN, isLoggedIn,
                     isLoggedIn ? "已登录" : "未登录");
 
-            log.info("智联招聘登录状态: {}", isLoggedIn ? "已登录" : "未登录");
+            log.debug("智联招聘登录状态: {}", isLoggedIn ? "已登录" : "未登录");
 
         } catch (Exception e) {
             log.error("检查智联招聘登录状态失败", e);
@@ -312,7 +312,7 @@ public class LoginStatusCheckScheduler {
             updateLoginStatus(RecruitmentPlatformEnum.BOSS_ZHIPIN, isLoggedIn,
                     isLoggedIn ? "已登录" : "未登录");
 
-            log.info("Boss直聘登录状态: {}", isLoggedIn ? "已登录" : "未登录");
+            log.debug("Boss直聘登录状态: {}", isLoggedIn ? "已登录" : "未登录");
 
         } catch (Exception e) {
             log.error("检查Boss直聘登录状态失败", e);
@@ -366,15 +366,15 @@ public class LoginStatusCheckScheduler {
      * 打印登录状态汇总
      */
     private void printLoginStatusSummary() {
-        log.info("---------- 登录状态汇总 ----------");
+        log.debug("---------- 登录状态汇总 ----------");
         loginStatusMap.forEach((platform, status) -> {
-            log.info("平台: {} | 状态: {} | 备注: {} | 检查时间: {}",
+            log.debug("平台: {} | 状态: {} | 备注: {} | 检查时间: {}",
                     platform.getPlatformName(),
                     status.getIsLoggedIn() ? "✓ 已登录" : "✗ 未登录",
                     status.getRemark(),
                     status.getCheckTime());
         });
-        log.info("----------------------------------");
+        log.debug("----------------------------------");
     }
 
     /**
@@ -400,7 +400,7 @@ public class LoginStatusCheckScheduler {
      * 立即执行登录状态检查（手动触发）
      */
     public void checkNow() {
-        log.info("手动触发登录状态检查");
+        log.debug("手动触发登录状态检查");
         checkLoginStatus();
     }
 
@@ -415,13 +415,13 @@ public class LoginStatusCheckScheduler {
             // 获取当前页面URL的所有cookie
             var cookies = page.context().cookies(page.url());
 
-            log.info("========== {} 登录成功，当前域Cookie信息 ==========", platformName);
-            log.info("当前URL: {}", page.url());
-            log.info("Cookie数量: {}", cookies.size());
+            log.debug("========== {} 登录成功，当前域Cookie信息 ==========", platformName);
+            log.debug("当前URL: {}", page.url());
+            log.debug("Cookie数量: {}", cookies.size());
 
             for (int i = 0; i < cookies.size(); i++) {
                 var cookie = cookies.get(i);
-                log.info(
+                log.debug(
                         "Cookie[{}] - name: {}, value: {}, domain: {}, path: {}, expires: {}, httpOnly: {}, secure: {}",
                         i + 1,
                         cookie.name,
@@ -433,7 +433,7 @@ public class LoginStatusCheckScheduler {
                         cookie.secure);
             }
 
-            log.info("=".repeat(50 + platformName.length()));
+            log.debug("=".repeat(50 + platformName.length()));
         } catch (Exception e) {
             log.error("打印 {} 的Cookie信息失败", platformName, e);
         }
@@ -462,7 +462,7 @@ public class LoginStatusCheckScheduler {
             // 打印完整的Cookie信息到日志
             printSavedCookieDetails(platform, cookieJson);
 
-            log.info("平台 {} 的Cookie已保存到配置实体", platform.getPlatformName());
+            log.debug("平台 {} 的Cookie已保存到配置实体", platform.getPlatformName());
         } catch (Exception e) {
             log.error("保存平台 {} 的Cookie到配置失败", platform.getPlatformName(), e);
         }
@@ -511,8 +511,8 @@ public class LoginStatusCheckScheduler {
             JSONArray jsonArray = new JSONArray(cookieJson);
             int cookieCount = jsonArray.length();
 
-            log.info("========== {} 保存Cookie详细信息 ==========", platform.getPlatformName());
-            log.info("Cookie总数: {}", cookieCount);
+            log.debug("========== {} 保存Cookie详细信息 ==========", platform.getPlatformName());
+            log.debug("Cookie总数: {}", cookieCount);
 
             for (int i = 0; i < cookieCount; i++) {
                 JSONObject cookie = jsonArray.getJSONObject(i);
@@ -525,19 +525,19 @@ public class LoginStatusCheckScheduler {
                 boolean secure = cookie.optBoolean("secure", false);
                 boolean httpOnly = cookie.optBoolean("httpOnly", false);
 
-                log.info("Cookie[{}]:", i + 1);
-                log.info("  - name: {}", name);
-                log.info("  - value: {}", value.length() > 50 ? value.substring(0, 50) + "..." : value);
-                log.info("  - domain: {}", domain);
-                log.info("  - path: {}", path);
-                log.info("  - expires: {}", expires);
-                log.info("  - secure: {}", secure);
-                log.info("  - httpOnly: {}", httpOnly);
+                log.debug("Cookie[{}]:", i + 1);
+                log.debug("  - name: {}", name);
+                log.debug("  - value: {}", value.length() > 50 ? value.substring(0, 50) + "..." : value);
+                log.debug("  - domain: {}", domain);
+                log.debug("  - path: {}", path);
+                log.debug("  - expires: {}", expires);
+                log.debug("  - secure: {}", secure);
+                log.debug("  - httpOnly: {}", httpOnly);
             }
 
-            log.info("完整Cookie JSON (前500字符): {}",
+            log.debug("完整Cookie JSON (前500字符): {}",
                     cookieJson.length() > 500 ? cookieJson.substring(0, 500) + "..." : cookieJson);
-            log.info("=".repeat(50 + platform.getPlatformName().length()));
+            log.debug("=".repeat(50 + platform.getPlatformName().length()));
         } catch (Exception e) {
             log.error("打印 {} 的Cookie详细信息失败", platform.getPlatformName(), e);
         }

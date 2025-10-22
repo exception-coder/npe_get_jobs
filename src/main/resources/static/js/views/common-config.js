@@ -26,6 +26,9 @@
     let highlightsTagsInput;
     let dedupeKeywordsTagsInput;
     
+    // 功能开关相关
+    let hrStatusTagsInput;
+    
     // AI平台配置缓存（存储所有平台的配置）
     let aiPlatformConfigsCache = {};
 
@@ -66,6 +69,13 @@
         const dedupeKeywordsTagsWrapper = document.getElementById('profileDedupeKeywordsTags');
         if (dedupeKeywordsInput && dedupeKeywordsTagsWrapper) {
             dedupeKeywordsTagsInput = new window.TagsInput(dedupeKeywordsInput, dedupeKeywordsTagsWrapper);
+        }
+        
+        // 初始化HR状态标签输入组件
+        const hrStatusInput = document.getElementById('commonHrStatusKeywords');
+        const hrStatusTagsWrapper = document.getElementById('commonHrStatusTags');
+        if (hrStatusInput && hrStatusTagsWrapper) {
+            hrStatusTagsInput = new window.TagsInput(hrStatusInput, hrStatusTagsWrapper);
         }
 
         // 绑定事件
@@ -148,6 +158,27 @@
             const enableAIGreetingCheckbox = document.getElementById('commonEnableAIGreeting');
             if (enableAIGreetingCheckbox && config.enableAIGreeting !== undefined) {
                 enableAIGreetingCheckbox.checked = config.enableAIGreeting;
+            }
+            
+            // 填充功能开关
+            const filterDeadHRCheckbox = document.getElementById('commonFilterDeadHR');
+            if (filterDeadHRCheckbox && config.filterDeadHR !== undefined) {
+                filterDeadHRCheckbox.checked = config.filterDeadHR;
+            }
+            
+            const sendImgResumeCheckbox = document.getElementById('commonSendImgResume');
+            if (sendImgResumeCheckbox && config.sendImgResume !== undefined) {
+                sendImgResumeCheckbox.checked = config.sendImgResume;
+            }
+            
+            const recommendJobsCheckbox = document.getElementById('commonRecommendJobs');
+            if (recommendJobsCheckbox && config.recommendJobs !== undefined) {
+                recommendJobsCheckbox.checked = config.recommendJobs;
+            }
+            
+            // 填充HR状态关键词
+            if (config.hrStatusKeywords && hrStatusTagsInput) {
+                hrStatusTagsInput.setTags(config.hrStatusKeywords);
             }
 
             console.log('公共配置加载成功', config);
@@ -281,8 +312,14 @@
             // 获取AI智能功能开关
             const enableAIJobMatch = document.getElementById('commonEnableAIJobMatch')?.checked || false;
             const enableAIGreeting = document.getElementById('commonEnableAIGreeting')?.checked || false;
+            
+            // 获取功能开关
+            const filterDeadHR = document.getElementById('commonFilterDeadHR')?.checked || false;
+            const sendImgResume = document.getElementById('commonSendImgResume')?.checked || false;
+            const recommendJobs = document.getElementById('commonRecommendJobs')?.checked || false;
+            const hrStatusKeywords = hrStatusTagsInput ? hrStatusTagsInput.getValue() : '';
 
-            // 构建完整配置对象（包括黑名单、候选人信息、简历配置、AI配置和AI功能开关）
+            // 构建完整配置对象（包括黑名单、候选人信息、简历配置、AI配置、AI功能开关和功能开关）
             const config = {
                 jobBlacklistKeywords: jobKeywords,
                 companyBlacklistKeywords: companyKeywords,
@@ -305,7 +342,12 @@
                 aiPlatformConfigs: aiPlatformConfigs,
                 // AI智能功能开关
                 enableAIJobMatch: enableAIJobMatch,
-                enableAIGreeting: enableAIGreeting
+                enableAIGreeting: enableAIGreeting,
+                // 功能开关
+                filterDeadHR: filterDeadHR,
+                sendImgResume: sendImgResume,
+                recommendJobs: recommendJobs,
+                hrStatusKeywords: hrStatusKeywords
             };
 
             // 显示加载状态
@@ -413,6 +455,23 @@
             const enableAIGreetingCheckbox = document.getElementById('commonEnableAIGreeting');
             if (enableAIGreetingCheckbox) {
                 enableAIGreetingCheckbox.checked = false;
+            }
+            
+            // 重置功能开关
+            const filterDeadHRCheckbox = document.getElementById('commonFilterDeadHR');
+            if (filterDeadHRCheckbox) {
+                filterDeadHRCheckbox.checked = false;
+            }
+            const sendImgResumeCheckbox = document.getElementById('commonSendImgResume');
+            if (sendImgResumeCheckbox) {
+                sendImgResumeCheckbox.checked = false;
+            }
+            const recommendJobsCheckbox = document.getElementById('commonRecommendJobs');
+            if (recommendJobsCheckbox) {
+                recommendJobsCheckbox.checked = false;
+            }
+            if (hrStatusTagsInput) {
+                hrStatusTagsInput.clear();
             }
             
             if (window.CommonUtils && window.CommonUtils.showToast) {

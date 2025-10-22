@@ -40,7 +40,7 @@ public class TaskSchedulerService {
      * @return 任务实例
      */
     public Task submitTask(ScheduledTask scheduledTask) {
-        log.info("提交任务: {} - {}",
+        log.debug("提交任务: {} - {}",
                 scheduledTask.getTaskConfig().getTaskName(),
                 scheduledTask.getTaskConfig().getDescription());
 

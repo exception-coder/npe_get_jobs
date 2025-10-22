@@ -18,24 +18,79 @@ public class UserProfileDTO {
     private Long id;
 
     /**
-     * 职位角色
+     * 职位角色（保留旧字段兼容）
      */
     private String role;
 
     /**
-     * 工作年限
+     * 工作年限（保留旧字段兼容）
      */
     private Integer years;
 
     /**
-     * 领域列表
+     * 领域列表（保留旧字段兼容）
      */
     private List<String> domains;
 
     /**
-     * 核心技术栈列表
+     * 核心技术栈列表（保留旧字段兼容）
      */
     private List<String> coreStack;
+
+    /**
+     * 职位名称（新版候选人信息字段）
+     */
+    private String jobTitle;
+
+    /**
+     * 核心技能列表（新版候选人信息字段）
+     */
+    private List<String> skills;
+
+    /**
+     * 工作年限（新版候选人信息字段，如："3-5年"、"高级"等）
+     */
+    private String yearsOfExperience;
+
+    /**
+     * 职业意向（新版候选人信息字段）
+     */
+    private String careerIntent;
+
+    /**
+     * 领域经验（新版候选人信息字段）
+     */
+    private String domainExperience;
+
+    /**
+     * 期望地点（新版候选人信息字段）
+     */
+    private String location;
+
+    /**
+     * 沟通语气（新版候选人信息字段）
+     */
+    private String tone;
+
+    /**
+     * 语言（新版候选人信息字段）
+     */
+    private String language;
+
+    /**
+     * 个人亮点列表（新版候选人信息字段）
+     */
+    private List<String> highlights;
+
+    /**
+     * AI生成招呼语的最大字符数（新版候选人信息字段）
+     */
+    private Integer maxChars;
+
+    /**
+     * 去重关键词列表（新版候选人信息字段）
+     */
+    private List<String> dedupeKeywords;
 
     /**
      * 规模指标（包含qps_peak、sla等）
@@ -111,4 +166,14 @@ public class UserProfileDTO {
      * 推荐职位
      */
     private Boolean recommendJobs;
+
+    /**
+     * 过滤不活跃HR（全局功能开关）
+     */
+    private Boolean filterDeadHR;
+
+    /**
+     * HR过滤状态关键词列表（全局功能开关）
+     */
+    private List<String> hrStatusKeywords;
 }

@@ -188,6 +188,118 @@
                                 </div>
                             </div>
 
+                            <!-- 功能开关配置 -->
+                            <div class="mb-4">
+                                <h6 class="text-info mb-3">
+                                    <i class="bi bi-toggle-on me-2"></i>功能开关
+                                </h6>
+                                
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="commonFilterDeadHR">
+                                    <label class="form-check-label fw-semibold small" for="commonFilterDeadHR">
+                                        过滤不活跃HR
+                                        <i class="bi bi-question-circle text-muted ms-1"
+                                           data-bs-toggle="tooltip"
+                                           title="开启后将自动过滤最近未活跃的HR，提高沟通效率，应用于所有平台"></i>
+                                    </label>
+                                </div>
+
+                                <!-- HR Status Configuration (Accordion) -->
+                                <div class="accordion mb-3" id="commonHrStatusConfigAccordion">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button"
+                                                    data-bs-toggle="collapse" data-bs-target="#commonHrStatusConfig"
+                                                    aria-expanded="false" aria-controls="commonHrStatusConfig">
+                                                <i class="bi bi-gear-fill me-2"></i>HR过滤状态配置
+                                            </button>
+                                        </h2>
+                                        <div id="commonHrStatusConfig" class="accordion-collapse collapse"
+                                             data-bs-parent="#commonHrStatusConfigAccordion">
+                                            <div class="accordion-body p-2">
+                                                <div class="mb-2 small lh-sm">
+                                                    <label for="commonHrStatusKeywords" class="form-label fw-semibold small">
+                                                        HR过滤状态配置
+                                                        <i class="bi bi-question-circle text-muted ms-1"
+                                                           data-bs-toggle="tooltip"
+                                                           title="配置需要过滤的HR活跃状态。输入关键字后按回车添加"></i>
+                                                    </label>
+                                                    <div class="tags-input-container" id="commonHrStatusTagsContainer">
+                                                        <div class="tags-wrapper" id="commonHrStatusTags"></div>
+                                                        <input type="text" 
+                                                               class="tags-input" 
+                                                               id="commonHrStatusKeywords"
+                                                               placeholder="输入HR状态后按回车添加，如：半年前活跃">
+                                                    </div>
+                                                    <div class="form-text">
+                                                        <i class="bi bi-info-circle me-1"></i>
+                                                        输入关键字后<strong>按回车键</strong>添加，点击标签上的 × 可删除
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="commonSendImgResume">
+                                    <label class="form-check-label fw-semibold small" for="commonSendImgResume">
+                                        发送图片简历
+                                        <i class="bi bi-question-circle text-muted ms-1"
+                                           data-bs-toggle="tooltip"
+                                           title="开启后将自动发送图片版简历，提高简历查看率，应用于所有平台"></i>
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="commonRecommendJobs">
+                                    <label class="form-check-label fw-semibold small" for="commonRecommendJobs">
+                                        接收推荐岗位
+                                        <i class="bi bi-question-circle text-muted ms-1"
+                                           data-bs-toggle="tooltip"
+                                           title="开启后将自动接收系统推荐的相关职位，应用于所有平台"></i>
+                                    </label>
+                                </div>
+                                
+                                <div class="alert alert-info small mt-3 mb-0" role="alert">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    功能开关配置后将应用于所有招聘平台
+                                </div>
+                            </div>
+
+                            <!-- 简历配置 -->
+                            <div class="mb-4">
+                                <h6 class="text-primary mb-3">
+                                    <i class="bi bi-file-earmark-text me-2"></i>简历配置
+                                </h6>
+                                
+                                <!-- 简历图片路径 -->
+                                <div class="mb-3">
+                                    <label for="commonResumeImagePath" class="form-label fw-semibold">
+                                        简历图片路径 <span class="text-muted">(可选)</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="commonResumeImagePath" 
+                                           placeholder="如：/Users/zhang/my_resume.jpg">
+                                    <small class="form-text text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        设置简历图片的完整文件路径，支持常见图片格式（jpg、png、gif等），应用于所有平台
+                                    </small>
+                                </div>
+                                
+                                <!-- 打招呼内容 -->
+                                <div class="mb-3">
+                                    <label for="commonSayHiContent" class="form-label fw-semibold">
+                                        打招呼内容 <span class="text-muted">(可选)</span>
+                                    </label>
+                                    <textarea class="form-control" id="commonSayHiContent" rows="3" 
+                                              placeholder="您好，我对贵公司的职位很感兴趣..."></textarea>
+                                    <small class="form-text text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        设置与HR打招呼时的自动发送内容，应用于所有平台，建议个性化定制以增加回复率
+                                    </small>
+                                </div>
+                            </div>
+
                             <!-- 示例说明 -->
                             <div class="alert alert-info" role="alert">
                                 <h6 class="alert-heading">
@@ -349,39 +461,6 @@
                                        placeholder="输入关键词后按回车添加">
                                 <div id="profileDedupeKeywordsTags" class="tags-wrapper mt-2"></div>
                                 <small class="form-text text-muted">用于过滤不感兴趣的内容</small>
-                            </div>
-                            
-                            <hr class="my-4">
-                            
-                            <!-- 简历配置 -->
-                            <h6 class="text-primary mb-3">
-                                <i class="bi bi-file-earmark-text me-2"></i>简历配置
-                            </h6>
-                            
-                            <!-- 简历图片路径 -->
-                            <div class="mb-3">
-                                <label for="commonResumeImagePath" class="form-label fw-semibold">
-                                    简历图片路径 <span class="text-muted">(可选)</span>
-                                </label>
-                                <input type="text" class="form-control" id="commonResumeImagePath" 
-                                       placeholder="如：/Users/zhang/my_resume.jpg">
-                                <small class="form-text text-muted">
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    设置简历图片的完整文件路径，支持常见图片格式（jpg、png、gif等），应用于所有平台
-                                </small>
-                            </div>
-                            
-                            <!-- 打招呼内容 -->
-                            <div class="mb-3">
-                                <label for="commonSayHiContent" class="form-label fw-semibold">
-                                    打招呼内容 <span class="text-muted">(可选)</span>
-                                </label>
-                                <textarea class="form-control" id="commonSayHiContent" rows="3" 
-                                          placeholder="您好，我对贵公司的职位很感兴趣..."></textarea>
-                                <small class="form-text text-muted">
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    设置与HR打招呼时的自动发送内容，应用于所有平台，建议个性化定制以增加回复率
-                                </small>
                             </div>
                         </div>
                     </div>
@@ -665,84 +744,6 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex flex-column h-100">
 
-                                        <!-- Feature Toggles Card -->
-                                        <div class="config-card mb-2">
-                                            <h6 class="card-title text-info mb-2">
-                                                <i class="bi bi-toggle-on me-2"></i>功能开关
-                                            </h6>
-
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox"
-                                                       id="filterDeadHRCheckBox">
-                                                <label class="form-check-label fw-semibold small" for="filterDeadHRCheckBox">
-                                                    过滤不活跃HR
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="开启后将自动过滤最近未活跃的HR，提高沟通效率"></i>
-                                                </label>
-                                            </div>
-
-                                            <!-- HR Status Configuration (Accordion) -->
-                                            <div class="accordion" id="hrStatusConfigAccordion">
-                                                <div class="accordion-item">
-                                                    <h2 class="accordion-header">
-                                                        <button class="accordion-button collapsed" type="button"
-                                                                data-bs-toggle="collapse" data-bs-target="#hrStatusConfig"
-                                                                aria-expanded="false" aria-controls="hrStatusConfig">
-                                                            <i class="bi bi-gear-fill me-2"></i>HR过滤状态配置
-                                                        </button>
-                                                    </h2>
-                                                    <div id="hrStatusConfig" class="accordion-collapse collapse"
-                                                         data-bs-parent="#hrStatusConfigAccordion">
-                                                        <div class="accordion-body p-2">
-                                                            <div class="mb-2 small lh-sm">
-                                                                <label for="bossHrStatusKeywords" class="form-label fw-semibold small">
-                                                                    HR过滤状态配置
-                                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                                       data-bs-toggle="tooltip"
-                                                                       title="配置需要过滤的HR活跃状态。输入关键字后按回车添加"></i>
-                                                                </label>
-                                                                <div class="tags-input-container" id="hrStatusTagsContainer" style="max-width: 400px;">
-                                                                    <div class="tags-wrapper" id="hrStatusTags"></div>
-                                                                    <input type="text" 
-                                                                           class="tags-input" 
-                                                                           id="bossHrStatusKeywords"
-                                                                           placeholder="输入HR状态后按回车添加，如：半年前活跃">
-                                                                </div>
-                                                                <div class="form-text">
-                                                                    <i class="bi bi-info-circle me-1"></i>
-                                                                    输入关键字后<strong>按回车键</strong>添加，点击标签上的 × 可删除
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox"
-                                                       id="sendImgResumeCheckBox">
-                                                <label class="form-check-label fw-semibold small" for="sendImgResumeCheckBox">
-                                                    发送图片简历
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="开启后将自动发送图片版简历，提高简历查看率"></i>
-                                                </label>
-                                            </div>
-
-                                            
-
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox"
-                                                       id="recommendJobsCheckBox">
-                                                <label class="form-check-label fw-semibold small" for="recommendJobsCheckBox">
-                                                    接收推荐岗位
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="开启后将自动接收系统推荐的相关职位"></i>
-                                                </label>
-                                            </div>
-                                        </div>
 
 
                                         <!-- Action Buttons -->

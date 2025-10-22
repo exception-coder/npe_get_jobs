@@ -102,14 +102,14 @@ public class ExampleUsage {
 
         @Override
         public void onTaskStart(TaskNotification notification) {
-            log.info("监听到任务开始: {} [{}]",
+            log.debug("监听到任务开始: {} [{}]",
                     notification.getTaskName(),
                     notification.getTaskType());
         }
 
         @Override
         public void onTaskSuccess(TaskNotification notification) {
-            log.info("监听到任务成功: {} 耗时: {}ms",
+            log.debug("监听到任务成功: {} 耗时: {}ms",
                     notification.getTaskName(),
                     notification.getDuration());
 

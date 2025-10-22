@@ -7,14 +7,12 @@
             this.config = {};
             this.isRunning = false;
             this.dictDataLoaded = false; // 字典数据加载状态标志
-            this.hrStatusTagsInput = null; // HR状态标签输入组件
             this.taskExecutor = null; // 任务执行控制器
             this.init();
         }
 
         init() {
             this.initializeTooltips();
-            this.initializeTagsInput();
             this.bindEvents();
             // 先加载字典数据，再加载配置数据，确保下拉框已准备好
             this.loadDataSequentially();
@@ -43,15 +41,6 @@
                     }
                 }
             );
-        }
-
-        initializeTagsInput() {
-            // 初始化HR状态标签输入组件
-            const hrStatusInput = document.getElementById('bossHrStatusKeywords');
-            const hrStatusWrapper = document.getElementById('hrStatusTags');
-            if (hrStatusInput && hrStatusWrapper) {
-                this.hrStatusTagsInput = new window.TagsInput(hrStatusInput, hrStatusWrapper);
-            }
         }
 
         initializeTooltips() {
@@ -176,11 +165,7 @@
                 scale: document.getElementById('scaleComboBox').value,
                 stage: document.getElementById('stageComboBox').value,
                 minSalary: document.getElementById('minSalaryField').value,
-                maxSalary: document.getElementById('maxSalaryField').value,
-                filterDeadHR: document.getElementById('filterDeadHRCheckBox').checked,
-                sendImgResume: document.getElementById('sendImgResumeCheckBox').checked,
-                recommendJobs: document.getElementById('recommendJobsCheckBox').checked,
-                bossHrStatusKeywords: this.hrStatusTagsInput ? this.hrStatusTagsInput.getValue() : ''
+                maxSalary: document.getElementById('maxSalaryField').value
             };
             localStorage.setItem('bossConfig', JSON.stringify(this.config));
             try {
@@ -374,28 +359,6 @@
             
             // 特殊处理其他下拉框
             this.populateSelectBoxes();
-            
-            // 特殊处理HR状态标签
-            this.populateHrStatusTags();
-        }
-
-        // 填充HR状态标签
-        populateHrStatusTags() {
-            if (this.hrStatusTagsInput) {
-                // 优先使用新字段 bossHrStatusKeywords，兼容旧字段 deadStatus
-                const statusData = this.config.bossHrStatusKeywords || this.config.deadStatus;
-                if (statusData) {
-                    // 处理数组格式或逗号分隔的字符串
-                    let statusArray = [];
-                    if (Array.isArray(statusData)) {
-                        statusArray = statusData;
-                    } else if (typeof statusData === 'string') {
-                        statusArray = statusData.split(',').map(s => s.trim()).filter(Boolean);
-                    }
-                    console.log('BossConfigForm: 填充HR状态标签:', statusArray);
-                    this.hrStatusTagsInput.setTags(statusArray);
-                }
-            }
         }
 
         // 填充城市选择器
@@ -698,9 +661,6 @@
                 stage: 'stageComboBox',
                 minSalary: 'minSalaryField',
                 maxSalary: 'maxSalaryField',
-                filterDeadHR: 'filterDeadHRCheckBox',
-                sendImgResume: 'sendImgResumeCheckBox',
-                recommendJobs: 'recommendJobsCheckBox',
                 waitTime: 'waitTimeField'
             };
             return fieldMap[key] || key;
@@ -771,11 +731,7 @@
                 expectedSalary: [
                     document.getElementById('minSalaryField')?.value || '0',
                     document.getElementById('maxSalaryField')?.value || '0'
-                ],
-                filterDeadHR: document.getElementById('filterDeadHRCheckBox')?.checked || false,
-                sendImgResume: document.getElementById('sendImgResumeCheckBox')?.checked || false,
-                recommendJobs: document.getElementById('recommendJobsCheckBox')?.checked || false,
-                deadStatus: this.hrStatusTagsInput ? this.hrStatusTagsInput.getTags() : []
+                ]
             };
         }
 

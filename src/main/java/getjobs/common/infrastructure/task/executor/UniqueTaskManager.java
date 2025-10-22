@@ -43,7 +43,7 @@ public class UniqueTaskManager {
 
         // 注册当前任务
         runningUniqueTasks.put(taskType, task);
-        log.info("唯一任务 [{}] 类型 [{}] 已注册并开始执行",
+        log.debug("唯一任务 [{}] 类型 [{}] 已注册并开始执行",
                 task.getConfig().getTaskName(), taskType);
         return true;
     }
@@ -58,7 +58,7 @@ public class UniqueTaskManager {
         Task removedTask = runningUniqueTasks.remove(taskType);
 
         if (removedTask != null) {
-            log.info("唯一任务 [{}] 类型 [{}] 已完成并释放",
+            log.debug("唯一任务 [{}] 类型 [{}] 已完成并释放",
                     task.getConfig().getTaskName(), taskType);
         }
     }

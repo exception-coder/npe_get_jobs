@@ -136,7 +136,7 @@ public class TaskExecutor {
             task.start();
             notifyListeners(listener -> listener.onTaskStart(task.toNotification("任务开始执行")));
 
-            log.info("开始执行任务 [{}] 类型 [{}] ID [{}]",
+            log.debug("开始执行任务 [{}] 类型 [{}] ID [{}]",
                     task.getConfig().getTaskName(),
                     task.getConfig().getTaskType(),
                     task.getExecutionId());
@@ -146,7 +146,7 @@ public class TaskExecutor {
 
             // 任务成功
             task.success(result);
-            log.info("任务执行成功 [{}] ID [{}] 耗时: {}ms",
+            log.debug("任务执行成功 [{}] ID [{}] 耗时: {}ms",
                     task.getConfig().getTaskName(),
                     task.getExecutionId(),
                     java.time.Duration.between(task.getStartTime(), task.getEndTime()).toMillis());

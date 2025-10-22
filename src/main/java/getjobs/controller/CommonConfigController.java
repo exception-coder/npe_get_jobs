@@ -63,8 +63,58 @@ public class CommonConfigController {
                 userProfile.setCompanyBlacklist(convertToList(configData.get("companyBlacklistKeywords")));
             }
 
-            // 候选人基本信息
-            if (configData.containsKey("role")) {
+            // 新版候选人基本信息（优先使用新字段）
+            if (configData.containsKey("jobTitle")) {
+                String jobTitle = String.valueOf(configData.get("jobTitle"));
+                userProfile.setJobTitle(jobTitle);
+                // 同时更新旧字段以兼容
+                userProfile.setRole(jobTitle);
+            }
+            if (configData.containsKey("skills")) {
+                List<String> skills = convertToList(configData.get("skills"));
+                userProfile.setSkills(skills);
+                // 同时更新旧字段以兼容
+                userProfile.setCoreStack(skills);
+            }
+            if (configData.containsKey("yearsOfExperience")) {
+                userProfile.setYearsOfExperience(String.valueOf(configData.get("yearsOfExperience")));
+            }
+            if (configData.containsKey("careerIntent")) {
+                userProfile.setCareerIntent(String.valueOf(configData.get("careerIntent")));
+            }
+            if (configData.containsKey("domainExperience")) {
+                userProfile.setDomainExperience(String.valueOf(configData.get("domainExperience")));
+            }
+            if (configData.containsKey("location")) {
+                userProfile.setLocation(String.valueOf(configData.get("location")));
+            }
+            if (configData.containsKey("tone")) {
+                userProfile.setTone(String.valueOf(configData.get("tone")));
+            }
+            if (configData.containsKey("language")) {
+                userProfile.setLanguage(String.valueOf(configData.get("language")));
+            }
+            if (configData.containsKey("highlights")) {
+                userProfile.setHighlights(convertToList(configData.get("highlights")));
+            }
+            if (configData.containsKey("maxChars")) {
+                Object maxCharsValue = configData.get("maxChars");
+                if (maxCharsValue instanceof Number) {
+                    userProfile.setMaxChars(((Number) maxCharsValue).intValue());
+                } else if (maxCharsValue instanceof String) {
+                    try {
+                        userProfile.setMaxChars(Integer.parseInt((String) maxCharsValue));
+                    } catch (NumberFormatException e) {
+                        // 忽略无效值
+                    }
+                }
+            }
+            if (configData.containsKey("dedupeKeywords")) {
+                userProfile.setDedupeKeywords(convertToList(configData.get("dedupeKeywords")));
+            }
+
+            // 旧版候选人基本信息（保留兼容，但优先使用新字段）
+            if (configData.containsKey("role") && !configData.containsKey("jobTitle")) {
                 userProfile.setRole(String.valueOf(configData.get("role")));
             }
             if (configData.containsKey("years")) {
@@ -82,7 +132,7 @@ public class CommonConfigController {
             if (configData.containsKey("domains")) {
                 userProfile.setDomains(convertToList(configData.get("domains")));
             }
-            if (configData.containsKey("coreStack")) {
+            if (configData.containsKey("coreStack") && !configData.containsKey("skills")) {
                 userProfile.setCoreStack(convertToList(configData.get("coreStack")));
             }
             if (configData.containsKey("achievements")) {
@@ -112,29 +162,38 @@ public class CommonConfigController {
             }
 
             // 简历和打招呼配置
-            if (configData.containsKey("sayHi")) {
-                userProfile.setSayHi(String.valueOf(configData.get("sayHi")));
+            if (configData.containsKey("sayHi") || configData.containsKey("sayHiContent")) {
+                // 兼容旧字段 sayHi 和新字段 sayHiContent
+                String sayHi = String.valueOf(configData.getOrDefault("sayHiContent", configData.get("sayHi")));
+                userProfile.setSayHi(sayHi);
             }
             if (configData.containsKey("resumeImagePath")) {
                 userProfile.setResumeImagePath(String.valueOf(configData.get("resumeImagePath")));
             }
-            if (configData.containsKey("sendImgResume")) {
-                Object sendImgResumeValue = configData.get("sendImgResume");
-                userProfile.setSendImgResume(convertToBoolean(sendImgResumeValue));
-            }
 
             // AI智能功能配置
             if (configData.containsKey("enableAIGreeting")) {
-                Object enableAIGreetingValue = configData.get("enableAIGreeting");
-                userProfile.setEnableAIGreeting(convertToBoolean(enableAIGreetingValue));
+                userProfile.setEnableAIGreeting(convertToBoolean(configData.get("enableAIGreeting")));
             }
-            if (configData.containsKey("enableAIJobMatchDetection")) {
-                Object enableAIJobMatchDetectionValue = configData.get("enableAIJobMatchDetection");
-                userProfile.setEnableAIJobMatchDetection(convertToBoolean(enableAIJobMatchDetectionValue));
+            if (configData.containsKey("enableAIJobMatch") || configData.containsKey("enableAIJobMatchDetection")) {
+                // 兼容旧字段 enableAIJobMatchDetection 和新字段 enableAIJobMatch
+                Object value = configData.getOrDefault("enableAIJobMatch",
+                        configData.get("enableAIJobMatchDetection"));
+                userProfile.setEnableAIJobMatchDetection(convertToBoolean(value));
             }
+
+            // 功能开关配置
             if (configData.containsKey("recommendJobs")) {
-                Object recommendJobsValue = configData.get("recommendJobs");
-                userProfile.setRecommendJobs(convertToBoolean(recommendJobsValue));
+                userProfile.setRecommendJobs(convertToBoolean(configData.get("recommendJobs")));
+            }
+            if (configData.containsKey("sendImgResume")) {
+                userProfile.setSendImgResume(convertToBoolean(configData.get("sendImgResume")));
+            }
+            if (configData.containsKey("filterDeadHR")) {
+                userProfile.setFilterDeadHR(convertToBoolean(configData.get("filterDeadHR")));
+            }
+            if (configData.containsKey("hrStatusKeywords")) {
+                userProfile.setHrStatusKeywords(convertToList(configData.get("hrStatusKeywords")));
             }
 
             // 保存到数据库
@@ -306,6 +365,8 @@ public class CommonConfigController {
     private UserProfileDTO convertToDTO(UserProfile userProfile) {
         UserProfileDTO dto = new UserProfileDTO();
         dto.setId(userProfile.getId());
+
+        // 旧版字段（保留兼容）
         dto.setRole(userProfile.getRole());
         dto.setYears(userProfile.getYears());
         dto.setDomains(userProfile.getDomains());
@@ -316,8 +377,25 @@ public class CommonConfigController {
         dto.setImprovements(userProfile.getImprovements());
         dto.setAvailability(userProfile.getAvailability());
         dto.setLinks(userProfile.getLinks());
+
+        // 新版候选人信息字段
+        dto.setJobTitle(userProfile.getJobTitle());
+        dto.setSkills(userProfile.getSkills());
+        dto.setYearsOfExperience(userProfile.getYearsOfExperience());
+        dto.setCareerIntent(userProfile.getCareerIntent());
+        dto.setDomainExperience(userProfile.getDomainExperience());
+        dto.setLocation(userProfile.getLocation());
+        dto.setTone(userProfile.getTone());
+        dto.setLanguage(userProfile.getLanguage());
+        dto.setHighlights(userProfile.getHighlights());
+        dto.setMaxChars(userProfile.getMaxChars());
+        dto.setDedupeKeywords(userProfile.getDedupeKeywords());
+
+        // 黑名单配置
         dto.setJobBlacklistKeywords(userProfile.getPositionBlacklist());
         dto.setCompanyBlacklistKeywords(userProfile.getCompanyBlacklist());
+
+        // AI平台配置
         dto.setAiPlatformConfigs(userProfile.getAiPlatformConfigs());
 
         // 简历和打招呼配置
@@ -328,7 +406,11 @@ public class CommonConfigController {
         // AI智能功能配置
         dto.setEnableAIGreeting(userProfile.getEnableAIGreeting());
         dto.setEnableAIJobMatchDetection(userProfile.getEnableAIJobMatchDetection());
+
+        // 功能开关配置
         dto.setRecommendJobs(userProfile.getRecommendJobs());
+        dto.setFilterDeadHR(userProfile.getFilterDeadHR());
+        dto.setHrStatusKeywords(userProfile.getHrStatusKeywords());
 
         return dto;
     }

@@ -19,30 +19,99 @@ import java.util.Map;
 public class UserProfile extends BaseEntity {
 
     /**
-     * 职位角色
+     * 职位角色（保留旧字段兼容）
      */
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String role;
 
     /**
-     * 工作年限
+     * 工作年限（保留旧字段兼容）
      */
-    @Column(nullable = false)
+    @Column
     private Integer years;
 
     /**
-     * 领域列表（以JSON格式存储）
+     * 领域列表（以JSON格式存储）（保留旧字段兼容）
      */
     @Column(columnDefinition = "TEXT")
     @Convert(converter = JsonListStringConverter.class)
     private List<String> domains;
 
     /**
-     * 核心技术栈列表（以JSON格式存储）
+     * 核心技术栈列表（以JSON格式存储）（保留旧字段兼容）
      */
     @Column(name = "core_stack", columnDefinition = "TEXT")
     @Convert(converter = JsonListStringConverter.class)
     private List<String> coreStack;
+
+    /**
+     * 职位名称（新版候选人信息字段）
+     */
+    @Column(name = "job_title", length = 100)
+    private String jobTitle;
+
+    /**
+     * 核心技能列表（新版候选人信息字段，以JSON格式存储）
+     */
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = JsonListStringConverter.class)
+    private List<String> skills;
+
+    /**
+     * 工作年限（新版候选人信息字段，如："3-5年"、"高级"等）
+     */
+    @Column(name = "years_of_experience", length = 50)
+    private String yearsOfExperience;
+
+    /**
+     * 职业意向（新版候选人信息字段）
+     */
+    @Column(name = "career_intent", columnDefinition = "TEXT")
+    private String careerIntent;
+
+    /**
+     * 领域经验（新版候选人信息字段，如："跨境电商"、"金融科技"等）
+     */
+    @Column(name = "domain_experience", length = 100)
+    private String domainExperience;
+
+    /**
+     * 期望地点（新版候选人信息字段）
+     */
+    @Column(length = 200)
+    private String location;
+
+    /**
+     * 沟通语气（新版候选人信息字段，如："礼貌亲切"、"专业克制"等）
+     */
+    @Column(length = 50)
+    private String tone;
+
+    /**
+     * 语言（新版候选人信息字段，如："zh_CN"、"en_US"）
+     */
+    @Column(length = 20)
+    private String language;
+
+    /**
+     * 个人亮点列表（新版候选人信息字段，以JSON格式存储）
+     */
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = JsonListStringConverter.class)
+    private List<String> highlights;
+
+    /**
+     * AI生成招呼语的最大字符数（新版候选人信息字段）
+     */
+    @Column(name = "max_chars")
+    private Integer maxChars;
+
+    /**
+     * 去重关键词列表（新版候选人信息字段，以JSON格式存储）
+     */
+    @Column(name = "dedupe_keywords", columnDefinition = "TEXT")
+    @Convert(converter = JsonListStringConverter.class)
+    private List<String> dedupeKeywords;
 
     /**
      * 规模指标（以JSON格式存储，包含qps_peak、sla等）
@@ -141,4 +210,17 @@ public class UserProfile extends BaseEntity {
      */
     @Column(name = "recommend_jobs")
     private Boolean recommendJobs;
+
+    /**
+     * 过滤不活跃HR（全局功能开关）
+     */
+    @Column(name = "filter_dead_hr")
+    private Boolean filterDeadHR;
+
+    /**
+     * HR过滤状态关键词列表（全局功能开关，以JSON格式存储）
+     */
+    @Column(name = "hr_status_keywords", columnDefinition = "TEXT")
+    @Convert(converter = JsonListStringConverter.class)
+    private List<String> hrStatusKeywords;
 }

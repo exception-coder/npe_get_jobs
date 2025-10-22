@@ -18,24 +18,24 @@ public class TaskExecutionLogger implements TaskNotificationListener {
 
     @Override
     public void onTaskStart(TaskNotification notification) {
-        log.info("========================================");
-        log.info("任务开始执行");
-        log.info("任务ID: {}", notification.getExecutionId());
-        log.info("任务名称: {}", notification.getTaskName());
-        log.info("任务类型: {}", notification.getTaskType());
-        log.info("开始时间: {}", notification.getStartTime());
-        log.info("========================================");
+        log.debug("========================================");
+        log.debug("任务开始执行");
+        log.debug("任务ID: {}", notification.getExecutionId());
+        log.debug("任务名称: {}", notification.getTaskName());
+        log.debug("任务类型: {}", notification.getTaskType());
+        log.debug("开始时间: {}", notification.getStartTime());
+        log.debug("========================================");
     }
 
     @Override
     public void onTaskSuccess(TaskNotification notification) {
-        log.info("========================================");
-        log.info("任务执行成功");
-        log.info("任务ID: {}", notification.getExecutionId());
-        log.info("任务名称: {}", notification.getTaskName());
-        log.info("执行耗时: {} ms", notification.getDuration());
-        log.info("执行结果: {}", notification.getResultData());
-        log.info("========================================");
+        log.debug("========================================");
+        log.debug("任务执行成功");
+        log.debug("任务ID: {}", notification.getExecutionId());
+        log.debug("任务名称: {}", notification.getTaskName());
+        log.debug("执行耗时: {} ms", notification.getDuration());
+        log.debug("执行结果: {}", notification.getResultData());
+        log.debug("========================================");
     }
 
     @Override

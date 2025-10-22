@@ -34,9 +34,9 @@ public class DataBackupTask implements ScheduledTask {
 
     @Override
     public Object execute() throws Exception {
-        log.info("开始执行数据备份...");
+        log.debug("开始执行数据备份...");
         String backupFilePath = dataBackupService.exportData();
-        log.info("数据备份完成，备份文件: {}", backupFilePath);
+        log.debug("数据备份完成，备份文件: {}", backupFilePath);
         return backupFilePath;
     }
 
