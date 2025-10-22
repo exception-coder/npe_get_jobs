@@ -77,7 +77,7 @@ public class Job51TaskService {
             RecruitmentService job51Service = serviceFactory.getService(RecruitmentPlatformEnum.JOB_51);
 
             // 执行登录
-            boolean success = job51Service.login(config);
+            boolean success = job51Service.login();
 
             LoginResult result = new LoginResult();
             result.setSuccess(success);
@@ -120,7 +120,7 @@ public class Job51TaskService {
 
             // 采集搜索岗位
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, 0, "正在采集搜索岗位");
-            List<JobDTO> searchJobDTOS = job51Service.collectJobs(config);
+            List<JobDTO> searchJobDTOS = job51Service.collectJobs();
             allJobDTOS.addAll(searchJobDTOS);
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个岗位");
 
@@ -191,7 +191,7 @@ public class Job51TaskService {
                 JobDTO job = jobService.convertToDTO(entity);
                 jobDTOS.add(job);
             }
-            List<JobDTO> filterJobs = job51Service.filterJobs(jobDTOS, config);
+            List<JobDTO> filterJobs = job51Service.filterJobs(jobDTOS);
             filterJobs.forEach(job -> {
                 String filterReason = job.getFilterReason();
                 if (filterReason == null) {
@@ -280,7 +280,7 @@ public class Job51TaskService {
                 RecruitmentService job51Service = serviceFactory.getService(RecruitmentPlatformEnum.JOB_51);
 
                 // 执行实际投递
-                deliveredCount = job51Service.deliverJobs(filteredJobDTOS, config);
+                deliveredCount = job51Service.deliverJobs(filteredJobDTOS);
 
                 // 保存数据
                 job51Service.saveData(dataPath);

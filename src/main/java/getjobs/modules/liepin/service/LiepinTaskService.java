@@ -66,7 +66,7 @@ public class LiepinTaskService {
         try {
             log.info("开始执行猎聘登录操作");
             RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
-            boolean success = liepinService.login(config);
+            boolean success = liepinService.login();
 
             LoginResult result = new LoginResult();
             result.setSuccess(success);
@@ -96,7 +96,7 @@ public class LiepinTaskService {
             RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
 
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, 0, "正在采集岗位");
-            List<JobDTO> allJobDTOS = liepinService.collectJobs(config);
+            List<JobDTO> allJobDTOS = liepinService.collectJobs();
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个岗位");
 
 
@@ -145,7 +145,7 @@ public class LiepinTaskService {
             }
 
             List<JobDTO> jobDTOS = allJobEntities.stream().map(jobService::convertToDTO).collect(Collectors.toList());
-            List<JobDTO> filteredJobDTOS = liepinService.filterJobs(jobDTOS, config);
+            List<JobDTO> filteredJobDTOS = liepinService.filterJobs(jobDTOS);
 
             List<String> filteredJobIds = jobDTOS.stream()
                 .filter(j -> !filteredJobDTOS.contains(j))
@@ -196,7 +196,7 @@ public class LiepinTaskService {
 
             if (enableActualDelivery) {
                 RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
-                deliveredCount = liepinService.deliverJobs(filteredJobDTOS, config);
+                deliveredCount = liepinService.deliverJobs(filteredJobDTOS);
                 liepinService.saveData(dataPath);
                 log.info("实际投递完成，成功投递 {} 个岗位", deliveredCount);
             } else {

@@ -92,7 +92,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
     }
 
     @Override
-    public boolean login(ConfigDTO config) {
+    public boolean login() {
         log.info("开始Boss直聘登录检查");
 
         try {
@@ -122,9 +122,16 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
     }
 
     @Override
-    public List<JobDTO> collectJobs(ConfigDTO config) {
+    public List<JobDTO> collectJobs() {
         log.info("开始Boss直聘岗位采集");
         List<JobDTO> allJobDTOS = new ArrayList<>();
+
+        // 从数据库加载平台配置
+        ConfigDTO config = loadPlatformConfig();
+        if (config == null) {
+            log.warn("Boss直聘配置未找到，跳过岗位采集");
+            return allJobDTOS;
+        }
 
         // 记录采集开始时间，用于统计新增岗位数量
         LocalDateTime collectionStartTime = LocalDateTime.now();
@@ -161,7 +168,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
     }
 
     @Override
-    public List<JobDTO> collectRecommendJobs(ConfigDTO config) {
+    public List<JobDTO> collectRecommendJobs() {
         log.info("开始Boss直聘推荐岗位采集");
         List<JobDTO> recommendJobDTOS = new ArrayList<>();
 
@@ -222,25 +229,28 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
     }
 
     @Override
-    public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
-        // 从数据库获取boss平台的配置，不使用前端传递的config
-        ConfigEntity configEntity = configService
-                .loadByPlatformType(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
-        if (configEntity == null) {
-            log.warn("数据库中未找到boss平台配置，跳过过滤");
+    public List<JobDTO> filterJobs(List<JobDTO> jobDTOS) {
+        // 从数据库获取boss平台的配置
+        ConfigDTO config = loadPlatformConfig();
+        if (config == null) {
+            log.warn("Boss直聘配置未找到，跳过过滤");
             return jobDTOS;
         }
 
-        // 将ConfigEntity转换为ConfigDTO
-        ConfigDTO dbConfig = convertConfigEntityToDTO(configEntity);
-
-        return jobFilterService.filterJobs(jobDTOS, dbConfig);
+        return jobFilterService.filterJobs(jobDTOS, config);
     }
 
     @Override
-    public int deliverJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
+    public int deliverJobs(List<JobDTO> jobDTOS) {
         log.info("开始Boss直聘岗位投递，待投递岗位数量: {}", jobDTOS.size());
         int successCount = 0;
+
+        // 从数据库加载平台配置
+        ConfigDTO config = loadPlatformConfig();
+        if (config == null) {
+            log.warn("Boss直聘配置未找到，跳过岗位投递");
+            return 0;
+        }
 
         for (JobDTO jobDTO : jobDTOS) {
             try {
@@ -903,8 +913,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
      */
     private String getCookieFromConfig() {
         try {
-            ConfigEntity config = configService
-                    .loadByPlatformType(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
+            ConfigEntity config = loadPlatformConfigEntity();
             return config != null ? config.getCookieData() : null;
         } catch (Exception e) {
             log.error("从配置中获取Cookie失败", e);
@@ -917,8 +926,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
      */
     private void saveCookieToConfig() {
         try {
-            ConfigEntity config = configService
-                    .loadByPlatformType(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
+            ConfigEntity config = loadPlatformConfigEntity();
             if (config == null) {
                 config = new ConfigEntity();
             }
@@ -927,7 +935,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
             String cookieJson = getCurrentCookiesAsJson();
             config.setCookieData(cookieJson);
 
-            config.setPlatformType(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
+            config.setPlatformType(getPlatform().getPlatformCode());
             configService.save(config);
             log.info("Cookie已保存到配置实体");
         } catch (Exception e) {

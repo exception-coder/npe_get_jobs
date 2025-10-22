@@ -77,7 +77,7 @@ public class ZhilianTaskService {
             RecruitmentService zhilianService = serviceFactory.getService(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN);
 
             // 执行登录
-            boolean success = zhilianService.login(config);
+            boolean success = zhilianService.login();
 
             LoginResult result = new LoginResult();
             result.setSuccess(success);
@@ -120,7 +120,7 @@ public class ZhilianTaskService {
 
             // 采集搜索岗位
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, 0, "正在采集岗位");
-            List<JobDTO> searchJobDTOS = zhilianService.collectJobs(config);
+            List<JobDTO> searchJobDTOS = zhilianService.collectJobs();
             allJobDTOS.addAll(searchJobDTOS);
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个岗位");
 
@@ -191,7 +191,7 @@ public class ZhilianTaskService {
                 JobDTO job = jobService.convertToDTO(entity);
                 jobDTOS.add(job);
             }
-            List<JobDTO> filterJobs = zhilianService.filterJobs(jobDTOS, config);
+            List<JobDTO> filterJobs = zhilianService.filterJobs(jobDTOS);
             filterJobs.forEach(job -> {
                 String filterReason = job.getFilterReason();
                 if (filterReason == null) {
@@ -280,7 +280,7 @@ public class ZhilianTaskService {
                 RecruitmentService zhilianService = serviceFactory.getService(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN);
 
                 // 执行实际投递
-                deliveredCount = zhilianService.deliverJobs(filteredJobDTOS, config);
+                deliveredCount = zhilianService.deliverJobs(filteredJobDTOS);
 
                 // 保存数据
                 zhilianService.saveData(dataPath);

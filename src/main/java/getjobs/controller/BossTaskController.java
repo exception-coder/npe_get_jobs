@@ -4,7 +4,6 @@ import getjobs.common.dto.ConfigDTO;
 import getjobs.modules.boss.service.BossTaskService;
 import getjobs.modules.boss.service.BossTaskService.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -182,8 +181,6 @@ public class BossTaskController {
             return ResponseEntity.internalServerError().body(response);
         }
     }
-
-
 
     // 请求DTO类
     public static class FilterRequest {

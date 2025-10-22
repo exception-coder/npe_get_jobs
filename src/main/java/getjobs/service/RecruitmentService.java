@@ -1,6 +1,5 @@
 package getjobs.service;
 
-import getjobs.common.dto.ConfigDTO;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 
@@ -27,48 +26,48 @@ public interface RecruitmentService {
     /**
      * 1. 登录功能
      * 检查登录状态，如果未登录则进行登录操作
+     * 配置信息从数据库自动加载
      * 
-     * @param config 配置信息
      * @return 是否登录成功
      */
-    boolean login(ConfigDTO config);
+    boolean login();
 
     /**
      * 2. 采集岗位功能
      * 根据配置的城市代码和关键词搜索并采集岗位信息
+     * 配置信息（城市代码、关键词等搜索条件）从数据库自动加载
      * 
-     * @param config 配置信息，包含城市代码、关键词等搜索条件
      * @return 采集到的岗位列表
      */
-    List<JobDTO> collectJobs(ConfigDTO config);
+    List<JobDTO> collectJobs();
 
     /**
      * 采集推荐岗位
+     * 配置信息从数据库自动加载
      * 
-     * @param config 配置信息
      * @return 推荐岗位列表
      */
-    List<JobDTO> collectRecommendJobs(ConfigDTO config);
+    List<JobDTO> collectRecommendJobs();
 
     /**
      * 3. 过滤岗位功能
      * 根据配置的过滤条件对岗位进行筛选
+     * 配置信息（薪资范围、黑名单等过滤条件）从数据库自动加载
      * 
-     * @param jobDTOS   原始岗位列表
-     * @param config 配置信息，包含薪资范围、黑名单等过滤条件
+     * @param jobDTOS 原始岗位列表
      * @return 过滤后的岗位列表
      */
-    List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config);
+    List<JobDTO> filterJobs(List<JobDTO> jobDTOS);
 
     /**
      * 4. 执行投递功能
      * 对过滤后的岗位执行投递操作
+     * 配置信息（打招呼内容、简历等）从数据库自动加载
      * 
-     * @param jobDTOS   过滤后的岗位列表
-     * @param config 配置信息，包含打招呼内容、简历等
+     * @param jobDTOS 过滤后的岗位列表
      * @return 投递成功的岗位数量
      */
-    int deliverJobs(List<JobDTO> jobDTOS, ConfigDTO config);
+    int deliverJobs(List<JobDTO> jobDTOS);
 
     /**
      * 检查是否已达投递上限

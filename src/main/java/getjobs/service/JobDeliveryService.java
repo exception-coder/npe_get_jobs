@@ -85,7 +85,7 @@ public class JobDeliveryService {
 
             // 步骤1: 登录检查
             log.info("步骤1: 检查{}登录状态", platform.getPlatformName());
-            boolean loginSuccess = recruitmentService.login(config);
+            boolean loginSuccess = recruitmentService.login();
             if (!loginSuccess) {
                 String errorMsg = platform.getPlatformName() + "登录失败，请先登录";
                 log.error(errorMsg);
@@ -102,14 +102,14 @@ public class JobDeliveryService {
             List<JobDTO> collectedJobs = new ArrayList<>();
 
             // 采集搜索岗位
-            List<JobDTO> searchJobs = recruitmentService.collectJobs(config);
+            List<JobDTO> searchJobs = recruitmentService.collectJobs();
             if (searchJobs != null && !searchJobs.isEmpty()) {
                 collectedJobs.addAll(searchJobs);
             }
 
             // 采集推荐岗位（如果配置了需要推荐职位）
             if (config.getRecommendJobs() != null && config.getRecommendJobs()) {
-                List<JobDTO> recommendJobs = recruitmentService.collectRecommendJobs(config);
+                List<JobDTO> recommendJobs = recruitmentService.collectRecommendJobs();
                 if (recommendJobs != null && !recommendJobs.isEmpty()) {
                     collectedJobs.addAll(recommendJobs);
                 }
@@ -133,7 +133,7 @@ public class JobDeliveryService {
 
             // 步骤3: 过滤岗位
             log.info("步骤3: 开始过滤{}岗位", platform.getPlatformName());
-            List<JobDTO> filteredJobs = recruitmentService.filterJobs(collectedJobs, config);
+            List<JobDTO> filteredJobs = recruitmentService.filterJobs(collectedJobs);
             int filteredCount = filteredJobs.size();
             int skippedCount = totalScanned - filteredCount;
             log.info("✓ {}岗位过滤完成，过滤后剩余 {} 个岗位，跳过 {} 个岗位",
@@ -153,7 +153,7 @@ public class JobDeliveryService {
 
             // 步骤4: 执行投递
             log.info("步骤4: 开始执行{}岗位投递", platform.getPlatformName());
-            int successCount = recruitmentService.deliverJobs(filteredJobs, config);
+            int successCount = recruitmentService.deliverJobs(filteredJobs);
             int failedCount = filteredCount - successCount;
             log.info("✓ {}岗位投递完成，成功 {} 个，失败 {} 个",
                     platform.getPlatformName(), successCount, failedCount);

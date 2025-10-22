@@ -6,8 +6,9 @@ import getjobs.common.dto.ConfigDTO;
 import getjobs.common.service.PlaywrightService;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.modules.job51.service.Job51ElementLocators;
-import getjobs.service.RecruitmentService;
-import lombok.RequiredArgsConstructor;
+import getjobs.repository.UserProfileRepository;
+import getjobs.service.AbstractRecruitmentService;
+import getjobs.service.ConfigService;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,13 +27,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 51job招聘服务实现
  *
  * @author loks666
- * 项目链接: <a href=
- * "https://github.com/loks666/get_jobs">https://github.com/loks666/get_jobs</a>
+ *         项目链接: <a href=
+ *         "https://github.com/loks666/get_jobs">https://github.com/loks666/get_jobs</a>
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class Job51RecruitmentServiceImpl implements RecruitmentService {
+public class Job51RecruitmentServiceImpl extends AbstractRecruitmentService {
 
     private static final String HOME_URL = RecruitmentPlatformEnum.JOB_51.getHomeUrl();
     private static final String LOGIN_URL = "https://login.51job.com/login.php";
@@ -40,6 +40,13 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
 
     private final PlaywrightService playwrightService;
     private Page page;
+
+    public Job51RecruitmentServiceImpl(ConfigService configService,
+            UserProfileRepository userProfileRepository,
+            PlaywrightService playwrightService) {
+        super(configService, userProfileRepository);
+        this.playwrightService = playwrightService;
+    }
 
     @PostConstruct
     public void init() {
@@ -52,7 +59,7 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
     }
 
     @Override
-    public boolean login(ConfigDTO config) {
+    public boolean login() {
         log.info("开始51job登录检查");
 
         try {
@@ -62,7 +69,7 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
             // 检查是否需要登录
             if (isLoginRequired()) {
                 log.info("需要登录，开始登录流程");
-                return login();
+                return performLogin();
             } else {
                 log.info("51job已登录");
                 return true;
@@ -74,8 +81,16 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
     }
 
     @Override
-    public List<JobDTO> collectJobs(ConfigDTO config) {
+    public List<JobDTO> collectJobs() {
         log.info("开始执行51job岗位采集操作");
+
+        // 从数据库加载平台配置
+        ConfigDTO config = loadPlatformConfig();
+        if (config == null) {
+            log.warn("51job配置未找到，跳过岗位采集");
+            return List.of();
+        }
+
         try {
             config.getCityCodeCodes().forEach(cityCode -> {
                 // 构造完整的搜索条件
@@ -115,13 +130,13 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
     }
 
     @Override
-    public List<JobDTO> collectRecommendJobs(ConfigDTO config) {
+    public List<JobDTO> collectRecommendJobs() {
         // TODO: 实现51job推荐岗位采集逻辑
         return List.of();
     }
 
     @Override
-    public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
+    public List<JobDTO> filterJobs(List<JobDTO> jobDTOS) {
         log.info("开始执行51job岗位过滤操作，待过滤岗位数量: {}", jobDTOS.size());
         try {
             // TODO: 实现51job岗位过滤逻辑
@@ -138,7 +153,7 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
     }
 
     @Override
-    public int deliverJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
+    public int deliverJobs(List<JobDTO> jobDTOS) {
         log.info("开始执行51job岗位投递操作，待投递岗位数量: {}", jobDTOS.size());
 
         // 在新标签页中打开岗位详情
@@ -199,7 +214,8 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
 
     /**
      * 构建完整的搜索参数字符串
-     * 基于URL: https://we.51job.com/pc/search?jobArea=030200&keyword=java&salary=16000-20000&workYear=05&degree=04&companySize=03&companyType=04
+     * 基于URL:
+     * https://we.51job.com/pc/search?jobArea=030200&keyword=java&salary=16000-20000&workYear=05&degree=04&companySize=03&companyType=04
      *
      * @param cityCode 城市代码
      * @param config   配置信息
@@ -235,7 +251,7 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
             // industrytype - 行业类型
             appendParameterIfNotEmpty(params, "industrytype", config.getIndustry());
 
-            // jobtype - 职位类型 
+            // jobtype - 职位类型
             appendParameterIfNotEmpty(params, "jobtype", config.getJobType());
 
         } catch (Exception e) {
@@ -288,10 +304,10 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
     }
 
     /**
-     * 登录检查
+     * 执行登录操作
      */
     @SneakyThrows
-    private boolean login() {
+    private boolean performLogin() {
         page.navigate(LOGIN_URL);
         TimeUnit.SECONDS.sleep(3);
 
@@ -345,7 +361,6 @@ public class Job51RecruitmentServiceImpl implements RecruitmentService {
             } catch (Exception e) {
                 log.warn("分页元素加载超时，可能页面没有分页或加载失败: {}", e.getMessage());
             }
-
 
             // 额外等待一段时间，确保JS完全执行完毕
             TimeUnit.SECONDS.sleep(2);

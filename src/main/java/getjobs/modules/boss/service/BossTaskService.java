@@ -75,7 +75,7 @@ public class BossTaskService {
             RecruitmentService bossService = serviceFactory.getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
 
             // 执行登录
-            boolean success = bossService.login(config);
+            boolean success = bossService.login();
 
             LoginResult result = new LoginResult();
             result.setSuccess(success);
@@ -118,14 +118,14 @@ public class BossTaskService {
 
             // 采集搜索岗位
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, 0, "正在采集搜索岗位");
-            List<JobDTO> searchJobDTOS = bossService.collectJobs(config);
+            List<JobDTO> searchJobDTOS = bossService.collectJobs();
             allJobDTOS.addAll(searchJobDTOS);
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个搜索岗位");
 
             // 采集推荐岗位（如果配置开启）
             if (config.getRecommendJobs()) {
                 publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "正在采集推荐岗位");
-                List<JobDTO> recommendJobDTOS = bossService.collectRecommendJobs(config);
+                List<JobDTO> recommendJobDTOS = bossService.collectRecommendJobs();
                 allJobDTOS.addAll(recommendJobDTOS);
                 publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个岗位");
             }
@@ -198,7 +198,7 @@ public class BossTaskService {
                 JobDTO job = jobService.convertToDTO(entity);
                 jobDTOS.add(job);
             }
-            List<JobDTO> filterJobs = bossService.filterJobs(jobDTOS, config);
+            List<JobDTO> filterJobs = bossService.filterJobs(jobDTOS);
             filterJobs.forEach(job -> {
                 String filterReason = job.getFilterReason();
                 if (filterReason == null) {
@@ -287,7 +287,7 @@ public class BossTaskService {
                 RecruitmentService bossService = serviceFactory.getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
 
                 // 执行实际投递
-                deliveredCount = bossService.deliverJobs(filteredJobDTOS, config);
+                deliveredCount = bossService.deliverJobs(filteredJobDTOS);
 
                 // 保存数据
                 bossService.saveData(dataPath);

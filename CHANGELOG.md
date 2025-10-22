@@ -1,6 +1,230 @@
 # Changelog 💖
 Hello 小可爱们！这里是我们的成长日记，所有酷炫的更新和优化都会在这里记录哦！
 
+## [1.0.27] - 2025-10-22 🎯
+
+### Changed
+- **配置加载架构重大升级！✨ 告别前端参数传递，全面拥抱数据库驱动**
+  - **接口签名统一简化 🚀**：移除所有平台服务接口方法的 `ConfigDTO` 参数
+    - `login(ConfigDTO config)` → `login()`
+    - `collectJobs(ConfigDTO config)` → `collectJobs()`
+    - `collectRecommendJobs(ConfigDTO config)` → `collectRecommendJobs()`
+    - `filterJobs(List<JobDTO> jobDTOS, ConfigDTO config)` → `filterJobs(List<JobDTO> jobDTOS)`
+    - `deliverJobs(List<JobDTO> jobDTOS, ConfigDTO config)` → `deliverJobs(List<JobDTO> jobDTOS)`
+  - **数据库驱动配置 🎯**：
+    - 原来：前端传递配置参数 → 后端服务使用参数
+    - 现在：后端服务自动从数据库加载配置 → 统一配置管理
+    - 每个方法内部通过 `loadPlatformConfig()` 自动获取对应平台配置
+    - 配置不存在时优雅降级，记录警告日志并返回默认值
+  - **架构更合理 🏗️**：
+    - 配置管理完全由后端控制，前端无需关心配置传递
+    - 单一数据源原则：所有配置统一从数据库获取，避免数据不一致
+    - 职责分离更清晰：前端负责展示和用户交互，后端负责业务逻辑和配置管理
+  - **全平台统一实现 🌍**：
+    - Boss直聘、智联招聘、51job、猎聘四大平台全部适配
+    - 所有平台使用统一的配置加载机制
+    - 通过抽象基类 `AbstractRecruitmentService.loadPlatformConfig()` 复用配置加载逻辑
+  - **容错设计优化 🛡️**：
+    - 配置缺失时不会抛出异常，而是记录警告并跳过操作
+    - 详细的日志记录，方便问题排查和监控
+    - 确保系统在配置异常情况下仍能正常运行
+
+### Technical Details
+- **修改接口**：
+  - `RecruitmentService.java`：
+    - 移除5个核心方法的 `ConfigDTO` 参数
+    - 更新方法注释，说明"配置信息从数据库自动加载"
+    - 保持方法返回值不变，仅简化参数列表
+- **修改实现类**（4个平台）：
+  - `BossRecruitmentServiceImpl.java`：
+    - `login()`：移除参数，方法体无需修改（原本就不使用config）
+    - `collectJobs()`：在方法开头添加 `ConfigDTO config = loadPlatformConfig();` + 空值校验
+    - `collectRecommendJobs()`：移除参数，方法体无需修改（原本就不使用config）
+    - `filterJobs()`：在方法开头添加配置加载 + 空值校验
+    - `deliverJobs()`：在方法开头添加配置加载 + 空值校验
+  - `ZhiLianRecruitmentServiceImpl.java`：
+    - 同上述模式修改5个方法
+    - `collectJobs()` 中使用 config 参数的地方无需修改，已自动使用局部加载的 config
+  - `LiepinRecruitmentServiceImpl.java`：
+    - 同上述模式修改5个方法
+    - `deliverJobs()` 中使用 `config.getSayHi()` 的地方无需修改，已自动使用局部加载的 config
+  - `Job51RecruitmentServiceImpl.java`：
+    - 同上述模式修改5个方法
+    - 修复 `login()` 方法中的bug：原来调用 `login()` 导致递归，改为调用 `performLogin()`
+- **配置加载模式**：
+  ```java
+  // 重构前
+  @Override
+  public List<JobDTO> collectJobs(ConfigDTO config) {
+      // 直接使用传入的config参数
+      for (String cityCode : config.getCityCodeCodes()) {
+          // ...
+      }
+  }
+  
+  // 重构后
+  @Override
+  public List<JobDTO> collectJobs() {
+      // 从数据库加载平台配置
+      ConfigDTO config = loadPlatformConfig();
+      if (config == null) {
+          log.warn("平台配置未找到，跳过岗位采集");
+          return new ArrayList<>();
+      }
+      // 使用局部加载的config，其余逻辑不变
+      for (String cityCode : config.getCityCodeCodes()) {
+          // ...
+      }
+  }
+  ```
+- **空值处理策略**：
+  - `login()`：配置为空时跳过，但不影响登录流程（登录主要依赖Cookie）
+  - `collectJobs()`：配置为空时返回空列表，记录警告日志
+  - `collectRecommendJobs()`：配置为空时返回空列表
+  - `filterJobs()`：配置为空时返回原始列表（跳过过滤）
+  - `deliverJobs()`：配置为空时返回0（跳过投递）
+- **设计原则遵循**：
+  - **单一数据源原则**：所有配置统一从数据库获取，不依赖前端传参
+  - **DRY原则**：通过抽象基类 `loadPlatformConfig()` 统一配置加载逻辑
+  - **容错设计**：配置缺失时优雅降级，不影响系统稳定性
+  - **职责分离**：配置管理由后端统一控制，前端专注用户交互
+
+### 收益
+- ✅ 接口更简洁，参数列表大幅简化，调用更清晰
+- ✅ 配置管理统一，避免前端传参导致的数据不一致问题
+- ✅ 单一数据源，所有配置从数据库读取，便于管理和审计
+- ✅ 容错性更强，配置缺失时不会导致系统崩溃
+- ✅ 代码可维护性更高，配置加载逻辑集中管理
+- ✅ 为未来支持配置热更新、版本管理等高级特性打下基础
+
+## [1.0.26] - 2025-10-22 🏗️
+
+### Changed
+- **代码架构继续优化！✨ 51job 和智联招聘服务重构完成**
+  - **架构统一 🎯**：将 `Job51RecruitmentServiceImpl` 和 `ZhiLianRecruitmentServiceImpl` 也调整为继承 `AbstractRecruitmentService` 的方式
+  - **告别直接实现接口 👋**：
+    - 原来：直接实现 `RecruitmentService` 接口，配置转换逻辑需要自己实现
+    - 现在：继承 `AbstractRecruitmentService` 抽象基类，自动获得通用配置转换能力
+  - **代码更优雅 🎨**：
+    - 移除 `@RequiredArgsConstructor` 注解，改用显式构造函数
+    - 构造函数中调用父类构造器 `super(configService, userProfileRepository)`
+    - 自动获得 `loadPlatformConfig()`、`loadPlatformConfigEntity()` 等便捷方法
+  - **架构完全统一 🌍**：
+    - Boss直聘、智联招聘、51job、猎聘四大平台全部使用统一的抽象基类
+    - 所有平台都能复用配置转换、配置加载等通用逻辑
+    - 为未来新增招聘平台提供了标准化的实现模板
+
+### Technical Details
+- **修改文件**：
+  - `Job51RecruitmentServiceImpl.java`：
+    - 类声明从 `implements RecruitmentService` 改为 `extends AbstractRecruitmentService`
+    - 移除 `@RequiredArgsConstructor` 注解
+    - 新增显式构造函数，注入 `ConfigService`、`UserProfileRepository`、`PlaywrightService`
+    - 构造函数中调用 `super(configService, userProfileRepository)`
+    - 更新 import 语句，移除 `RecruitmentService` 直接导入，新增抽象类相关导入
+  - `ZhiLianRecruitmentServiceImpl.java`：
+    - 类声明从 `implements RecruitmentService` 改为 `extends AbstractRecruitmentService`
+    - 移除 `@RequiredArgsConstructor` 注解
+    - 新增显式构造函数，注入 `ConfigService`、`UserProfileRepository`、`PlaywrightService`
+    - 构造函数中调用 `super(configService, userProfileRepository)`
+    - 更新 import 语句，移除 `RecruitmentService` 直接导入，新增抽象类相关导入
+- **设计模式**：
+  - **模板方法模式**：所有平台都继承抽象基类，复用通用逻辑
+  - **DRY原则**：消除了四个平台中潜在的配置转换重复代码
+  - **统一架构**：四大平台实现方式完全一致，代码风格统一
+- **代码对比**：
+  ```java
+  // 重构前
+  @RequiredArgsConstructor
+  public class Job51RecruitmentServiceImpl implements RecruitmentService {
+      private final PlaywrightService playwrightService;
+      // 需要自己实现所有配置转换逻辑
+  }
+  
+  // 重构后
+  public class Job51RecruitmentServiceImpl extends AbstractRecruitmentService {
+      private final PlaywrightService playwrightService;
+      
+      public Job51RecruitmentServiceImpl(ConfigService configService, 
+                                         UserProfileRepository userProfileRepository,
+                                         PlaywrightService playwrightService) {
+          super(configService, userProfileRepository);
+          this.playwrightService = playwrightService;
+      }
+      // 自动继承配置转换、配置加载等通用方法
+  }
+  ```
+
+### 收益
+- ✅ 四大平台架构完全统一，代码风格一致
+- ✅ 自动获得配置转换和加载能力，无需重复实现
+- ✅ 代码可维护性更高，修改通用逻辑只需在基类进行
+- ✅ 为未来扩展新平台提供了标准化模板
+- ✅ 降低新增平台的开发成本和学习成本
+
+## [1.0.25] - 2025-10-22 🏗️
+
+### Changed
+- **配置加载逻辑进一步抽象！✨ 平台配置获取自动化**
+  - **新增通用配置加载方法 🎯**：在 `AbstractRecruitmentService` 抽象类中新增两个强大的通用方法
+    - `loadPlatformConfigEntity()` - 自动加载当前平台的配置实体
+    - `loadPlatformConfig()` - 自动加载并转换当前平台的配置为DTO
+  - **告别硬编码平台类型 👋**：
+    - 原来：`configService.loadByPlatformType(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode())`
+    - 现在：`loadPlatformConfigEntity()` 或 `loadPlatformConfig()`
+    - 自动根据 `getPlatform()` 方法获取对应平台配置，无需硬编码平台枚举
+  - **代码大幅简化 ✂️**：
+    - Boss直聘：3个方法受益（`filterJobs()`、`getCookieFromConfig()`、`saveCookieToConfig()`）
+    - 猎聘：1个方法受益（`filterJobs()`）
+    - 将原本7-9行的配置加载和转换代码简化为1-2行
+  - **架构更优雅 🎨**：
+    - 抽象类统一管理配置加载逻辑，子类直接调用即可
+    - 每个子类自动使用自己的平台配置，无需关心底层实现
+    - 为未来新增招聘平台提供开箱即用的配置管理能力
+
+### Technical Details
+- **修改文件**：
+  - `AbstractRecruitmentService.java`：
+    - 新增 `loadPlatformConfigEntity()` 方法（返回 ConfigEntity）
+    - 新增 `loadPlatformConfig()` 方法（返回 ConfigDTO）
+    - 两个方法都自动根据 `getPlatform().getPlatformCode()` 获取对应平台配置
+    - 配置不存在时自动记录警告日志并返回 null
+  - `BossRecruitmentServiceImpl.java`：
+    - `filterJobs()` 方法：使用 `loadPlatformConfig()` 替代手动加载（7行→2行）
+    - `getCookieFromConfig()` 方法：使用 `loadPlatformConfigEntity()` 替代手动加载
+    - `saveCookieToConfig()` 方法：使用 `loadPlatformConfigEntity()` 和 `getPlatform().getPlatformCode()`
+  - `LiepinRecruitmentServiceImpl.java`：
+    - `filterJobs()` 方法：使用 `loadPlatformConfig()` 替代手动加载（7行→2行）
+- **设计模式**：
+  - **模板方法模式**：抽象类提供通用配置加载逻辑，子类直接使用
+  - **DRY原则**：消除了各子类中重复的配置加载代码
+  - **自动化原则**：通过 `getPlatform()` 自动获取平台类型，无需硬编码
+- **代码对比**：
+  ```java
+  // 重构前（9行）
+  ConfigEntity configEntity = configService
+          .loadByPlatformType(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
+  if (configEntity == null) {
+      log.warn("数据库中未找到boss平台配置，跳过过滤");
+      return jobDTOS;
+  }
+  ConfigDTO dbConfig = convertConfigEntityToDTO(configEntity);
+  
+  // 重构后（4行）
+  ConfigDTO dbConfig = loadPlatformConfig();
+  if (dbConfig == null) {
+      log.warn("跳过过滤");
+      return jobDTOS;
+  }
+  ```
+
+### 收益
+- ✅ 消除重复代码，减少约20行重复逻辑
+- ✅ 代码更简洁，可读性更高
+- ✅ 维护成本降低，配置加载逻辑统一管理
+- ✅ 新增平台时可直接使用抽象方法，开发更快捷
+- ✅ 自动化程度更高，减少人为错误
+
 ## [1.0.24] - 2025-10-21 🎯
 
 ### Changed

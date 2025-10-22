@@ -59,7 +59,7 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
     }
 
     @Override
-    public boolean login(ConfigDTO config) {
+    public boolean login() {
         log.info("开始猎聘登录检查");
         try {
             page.navigate(HOME_URL);
@@ -78,9 +78,17 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
     }
 
     @Override
-    public List<JobDTO> collectJobs(ConfigDTO config) {
+    public List<JobDTO> collectJobs() {
         log.info("开始猎聘岗位采集");
         List<JobDTO> allJobDTOS = new ArrayList<>();
+
+        // 从数据库加载平台配置
+        ConfigDTO config = loadPlatformConfig();
+        if (config == null) {
+            log.warn("猎聘配置未找到，跳过岗位采集");
+            return allJobDTOS;
+        }
+
         try {
             for (String cityCode : config.getCityCodeCodes()) {
                 for (String keyword : config.getKeywordsList()) {
@@ -97,29 +105,34 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
     }
 
     @Override
-    public List<JobDTO> collectRecommendJobs(ConfigDTO config) {
+    public List<JobDTO> collectRecommendJobs() {
         return List.of();
     }
 
     @Override
-    public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
-        // 从数据库获取猎聘平台的配置，不使用前端传递的config
-        ConfigEntity configEntity = configService.loadByPlatformType(RecruitmentPlatformEnum.LIEPIN.getPlatformCode());
-        if (configEntity == null) {
-            log.warn("数据库中未找到猎聘平台配置，跳过过滤");
+    public List<JobDTO> filterJobs(List<JobDTO> jobDTOS) {
+        // 从数据库获取猎聘平台的配置
+        ConfigDTO config = loadPlatformConfig();
+        if (config == null) {
+            log.warn("猎聘配置未找到，跳过过滤");
             return jobDTOS;
         }
 
-        // 将ConfigEntity转换为ConfigDTO
-        ConfigDTO dbConfig = convertConfigEntityToDTO(configEntity);
-
-        return jobFilterService.filterJobs(jobDTOS, dbConfig, false);
+        return jobFilterService.filterJobs(jobDTOS, config, false);
     }
 
     @Override
-    public int deliverJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
+    public int deliverJobs(List<JobDTO> jobDTOS) {
         log.info("开始执行猎聘岗位投递操作，待投递岗位数量: {}", jobDTOS.size());
         AtomicInteger successCount = new AtomicInteger(0);
+
+        // 从数据库加载平台配置
+        ConfigDTO config = loadPlatformConfig();
+        if (config == null) {
+            log.warn("猎聘配置未找到，跳过岗位投递");
+            return 0;
+        }
+
         try (Page jobPage = page.context().newPage()) {
             for (JobDTO jobDTO : jobDTOS) {
                 try {
