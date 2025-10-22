@@ -1,6 +1,85 @@
 # Changelog 💖
 Hello 小可爱们！这里是我们的成长日记，所有酷炫的更新和优化都会在这里记录哦！
 
+## [1.0.28] - 2025-10-22 🎯
+
+### Changed
+- **TaskService架构全面统一！✨ 配置管理更优雅**
+  - **告别传参冗余 🎯**：将 `BossTaskService`、`Job51TaskService`、`LiepinTaskService`、`ZhilianTaskService` 四大平台TaskService全面优化
+  - **接口签名统一简化 🚀**：移除所有任务方法的 `ConfigDTO` 参数
+    - `login(ConfigDTO config)` → `login()`
+    - `collectJobs(ConfigDTO config)` → `collectJobs()`
+    - `filterJobs(ConfigDTO config)` → `filterJobs()`
+    - `deliverJobs(ConfigDTO config, boolean enableActualDelivery)` → `deliverJobs(boolean enableActualDelivery)`
+  - **服务层类型优化 🏗️**：
+    - 原来：`RecruitmentService service = serviceFactory.getService(...)`
+    - 现在：`AbstractRecruitmentService service = (AbstractRecruitmentService) serviceFactory.getService(...)`
+    - 通过父类类型转换，直接访问 `loadPlatformConfig()` 方法
+  - **配置自动加载 🤖**：
+    - 移除外部传参，TaskService内部通过 `service.loadPlatformConfig()` 自动获取平台配置
+    - 配置来源统一从数据库读取，确保数据一致性
+    - 无需关心配置如何传递，代码更简洁
+  - **架构更合理 📐**：
+    - TaskService 专注于任务编排和状态管理
+    - RecruitmentService 负责业务执行和配置获取
+    - 职责分离更清晰，符合单一职责原则
+  - **代码更简洁 ✂️**：
+    - 清理未使用的 `ConfigDTO` 和 `RecruitmentService` import
+    - 减少方法参数，调用链路更清晰
+    - 四大平台实现方式完全统一
+
+### Technical Details
+- **修改文件**（4个TaskService）：
+  - `BossTaskService.java`：
+    - 移除4个方法的 `ConfigDTO` 参数：`login()`、`collectJobs()`、`filterJobs()`、`deliverJobs(boolean)`
+    - 使用 `AbstractRecruitmentService` 类型替代 `RecruitmentService`
+    - 在 `collectJobs()` 中调用 `loadPlatformConfig()` 获取配置（用于判断是否采集推荐岗位）
+    - 添加显式 import `AbstractRecruitmentService`
+  - `Job51TaskService.java`：
+    - 移除4个方法的 `ConfigDTO` 参数
+    - 使用 `AbstractRecruitmentService` 类型替代 `RecruitmentService`
+    - 清理未使用的 import（`ConfigDTO`、`RecruitmentService`）
+  - `LiepinTaskService.java`：
+    - 移除4个方法的 `ConfigDTO` 参数
+    - 使用 `AbstractRecruitmentService` 类型替代 `RecruitmentService`
+    - 清理未使用的 import（`ConfigDTO`、`RecruitmentService`）
+  - `ZhilianTaskService.java`：
+    - 移除4个方法的 `ConfigDTO` 参数
+    - 使用 `AbstractRecruitmentService` 类型替代 `RecruitmentService`
+    - 清理未使用的 import（`ConfigDTO`、`RecruitmentService`）
+- **设计模式**：
+  - **策略模式**：通过 `AbstractRecruitmentService` 统一访问平台配置
+  - **依赖倒置**：TaskService 依赖抽象类型而非具体实现
+  - **单一职责**：TaskService 专注任务编排，配置管理交给 Service 层
+- **代码对比**：
+  ```java
+  // 重构前
+  public CollectResult collectJobs(ConfigDTO config) {
+      RecruitmentService service = serviceFactory.getService(...);
+      if (config.getRecommendJobs()) {
+          // 使用外部传入的config
+      }
+  }
+  
+  // 重构后
+  public CollectResult collectJobs() {
+      AbstractRecruitmentService service = (AbstractRecruitmentService) 
+          serviceFactory.getService(...);
+      ConfigDTO config = service.loadPlatformConfig();
+      if (config != null && config.getRecommendJobs()) {
+          // 服务自己加载配置
+      }
+  }
+  ```
+
+### 收益
+- ✅ 四大平台TaskService架构完全统一，代码风格一致
+- ✅ 接口签名更简洁，参数列表大幅简化
+- ✅ 配置管理统一，避免外部传参导致的数据不一致
+- ✅ 职责分离更清晰，TaskService专注任务编排
+- ✅ 代码可维护性更高，修改配置逻辑只需在Service层进行
+- ✅ 为未来扩展新平台提供了标准化模板
+
 ## [1.0.27] - 2025-10-22 🎯
 
 ### Changed

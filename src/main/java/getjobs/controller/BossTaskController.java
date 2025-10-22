@@ -40,7 +40,7 @@ public class BossTaskController {
         log.info("接收到Boss登录请求");
 
         try {
-            LoginResult result = bossTaskService.login(config);
+            LoginResult result = bossTaskService.login();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", result.isSuccess());
@@ -77,7 +77,7 @@ public class BossTaskController {
         log.info("接收到Boss岗位采集请求");
 
         try {
-            CollectResult result = bossTaskService.collectJobs(config);
+            CollectResult result = bossTaskService.collectJobs();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -113,7 +113,7 @@ public class BossTaskController {
         log.info("接收到Boss岗位过滤请求");
 
         try {
-            FilterResult result = bossTaskService.filterJobs(request.getConfig());
+            FilterResult result = bossTaskService.filterJobs();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -152,7 +152,6 @@ public class BossTaskController {
 
         try {
             DeliveryResult result = bossTaskService.deliverJobs(
-                    request.getConfig(),
                     request.isEnableActualDelivery());
 
             Map<String, Object> response = new HashMap<>();

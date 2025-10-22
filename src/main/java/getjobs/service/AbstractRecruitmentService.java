@@ -200,7 +200,7 @@ public abstract class AbstractRecruitmentService implements RecruitmentService {
          * 
          * @return ConfigDTO对象，如果配置不存在则返回null
          */
-        protected ConfigDTO loadPlatformConfig() {
+        public ConfigDTO loadPlatformConfig() {
                 ConfigEntity configEntity = loadPlatformConfigEntity();
                 if (configEntity == null) {
                         return null;

@@ -7,6 +7,7 @@ import getjobs.common.enums.JobStatusEnum;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
 import getjobs.service.*;
+import getjobs.service.AbstractRecruitmentService;
 import getjobs.modules.task.dto.TaskUpdatePayload;
 import getjobs.modules.task.enums.TaskStage;
 import getjobs.modules.task.enums.TaskStatus;
@@ -32,7 +33,6 @@ import java.util.stream.Collectors;
 @Service
 public class BossTaskService {
 
-
     private final RecruitmentServiceFactory serviceFactory;
 
     private final JobService jobService;
@@ -44,7 +44,8 @@ public class BossTaskService {
     private String dataPath;
 
     public BossTaskService(RecruitmentServiceFactory serviceFactory,
-                           JobService jobService, JobRepository jobRepository, JobFilterService jobFilterService, ApplicationEventPublisher eventPublisher) {
+            JobService jobService, JobRepository jobRepository, JobFilterService jobFilterService,
+            ApplicationEventPublisher eventPublisher) {
         this.serviceFactory = serviceFactory;
         this.jobService = jobService;
         this.jobRepository = jobRepository;
@@ -63,16 +64,16 @@ public class BossTaskService {
     /**
      * 1. 登录操作
      * 
-     * @param config 配置信息
      * @return 登录结果
      */
-    public LoginResult login(ConfigDTO config) {
+    public LoginResult login() {
         publishTaskUpdate(TaskStage.LOGIN, TaskStatus.STARTED, 0, "开始登录");
         try {
             log.info("开始执行登录操作");
 
             // 获取Boss直聘服务
-            RecruitmentService bossService = serviceFactory.getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
+            AbstractRecruitmentService bossService = (AbstractRecruitmentService) serviceFactory
+                    .getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
 
             // 执行登录
             boolean success = bossService.login();
@@ -82,7 +83,8 @@ public class BossTaskService {
             result.setMessage(success ? "登录成功" : "登录失败");
             result.setTimestamp(new Date());
 
-            publishTaskUpdate(TaskStage.LOGIN, success ? TaskStatus.SUCCESS : TaskStatus.FAILURE, 0, result.getMessage());
+            publishTaskUpdate(TaskStage.LOGIN, success ? TaskStatus.SUCCESS : TaskStatus.FAILURE, 0,
+                    result.getMessage());
 
             log.info("登录操作完成，结果: {}", success ? "成功" : "失败");
             return result;
@@ -102,16 +104,19 @@ public class BossTaskService {
     /**
      * 2. 采集操作
      * 
-     * @param config 配置信息
      * @return 采集结果
      */
-    public CollectResult collectJobs(ConfigDTO config) {
+    public CollectResult collectJobs() {
         publishTaskUpdate(TaskStage.COLLECT, TaskStatus.STARTED, 0, "开始采集");
         try {
             log.info("开始执行岗位采集操作");
 
             // 获取Boss直聘服务
-            RecruitmentService bossService = serviceFactory.getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
+            AbstractRecruitmentService bossService = (AbstractRecruitmentService) serviceFactory
+                    .getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
+
+            // 加载平台配置
+            ConfigDTO config = bossService.loadPlatformConfig();
 
             // 采集岗位
             List<JobDTO> allJobDTOS = new ArrayList<>();
@@ -120,14 +125,16 @@ public class BossTaskService {
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, 0, "正在采集搜索岗位");
             List<JobDTO> searchJobDTOS = bossService.collectJobs();
             allJobDTOS.addAll(searchJobDTOS);
-            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个搜索岗位");
+            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(),
+                    "已采集 " + allJobDTOS.size() + " 个搜索岗位");
 
             // 采集推荐岗位（如果配置开启）
-            if (config.getRecommendJobs()) {
+            if (config != null && config.getRecommendJobs()) {
                 publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "正在采集推荐岗位");
                 List<JobDTO> recommendJobDTOS = bossService.collectRecommendJobs();
                 allJobDTOS.addAll(recommendJobDTOS);
-                publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个岗位");
+                publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(),
+                        "已采集 " + allJobDTOS.size() + " 个岗位");
             }
 
             // 保存到数据库
@@ -172,15 +179,15 @@ public class BossTaskService {
     /**
      * 3. 过滤操作
      * 
-     * @param config 配置信息
      * @return 过滤结果
      */
-    public FilterResult filterJobs(ConfigDTO config) {
+    public FilterResult filterJobs() {
         publishTaskUpdate(TaskStage.FILTER, TaskStatus.STARTED, 0, "开始过滤");
         try {
             log.info("开始执行岗位过滤操作");
 
-            RecruitmentService bossService = serviceFactory.getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
+            AbstractRecruitmentService bossService = (AbstractRecruitmentService) serviceFactory
+                    .getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
 
             // 直接从数据库查询所有职位实体
             List<JobEntity> allJobEntities = jobService.findAllJobEntitiesByPlatform("BOSS直聘");
@@ -258,18 +265,17 @@ public class BossTaskService {
     /**
      * 4. 投递操作
      * 
-     * @param config               配置信息
      * @param enableActualDelivery 是否启用实际投递
      * @return 投递结果
      */
-    public DeliveryResult deliverJobs(ConfigDTO config, boolean enableActualDelivery) {
+    public DeliveryResult deliverJobs(boolean enableActualDelivery) {
         publishTaskUpdate(TaskStage.DELIVER, TaskStatus.STARTED, 0, "开始投递");
         try {
             log.info("开始执行BOSS直聘岗位投递操作，实际投递: {}", enableActualDelivery);
 
             // 从数据库获取待处理状态的BOSS直聘平台岗位记录
             List<JobEntity> jobEntities = jobRepository.findByStatusAndPlatform(
-                    JobStatusEnum.PENDING.getCode(), 
+                    JobStatusEnum.PENDING.getCode(),
                     "BOSS直聘");
             if (jobEntities == null || jobEntities.isEmpty()) {
                 throw new IllegalArgumentException("未找到可投递的BOSS直聘岗位记录，数据库中没有待处理状态的BOSS直聘岗位");
@@ -284,7 +290,8 @@ public class BossTaskService {
 
             if (enableActualDelivery) {
                 // 获取Boss直聘服务
-                RecruitmentService bossService = serviceFactory.getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
+                AbstractRecruitmentService bossService = (AbstractRecruitmentService) serviceFactory
+                        .getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
 
                 // 执行实际投递
                 deliveredCount = bossService.deliverJobs(filteredJobDTOS);

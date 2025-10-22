@@ -1,6 +1,5 @@
 package getjobs.modules.liepin.service;
 
-import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.JobStatusEnum;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.modules.boss.dto.JobDTO;
@@ -11,8 +10,8 @@ import getjobs.modules.task.event.TaskUpdateEvent;
 import getjobs.repository.JobRepository;
 import getjobs.repository.entity.JobEntity;
 import getjobs.service.JobService;
-import getjobs.service.RecruitmentService;
 import getjobs.service.RecruitmentServiceFactory;
+import getjobs.service.AbstractRecruitmentService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -33,7 +32,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class LiepinTaskService {
-
 
     private final RecruitmentServiceFactory serviceFactory;
 
@@ -61,11 +59,12 @@ public class LiepinTaskService {
         }
     }
 
-    public LoginResult login(ConfigDTO config) {
+    public LoginResult login() {
         publishTaskUpdate(TaskStage.LOGIN, TaskStatus.STARTED, 0, "开始登录");
         try {
             log.info("开始执行猎聘登录操作");
-            RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
+            AbstractRecruitmentService liepinService = (AbstractRecruitmentService) serviceFactory
+                    .getService(RecruitmentPlatformEnum.LIEPIN);
             boolean success = liepinService.login();
 
             LoginResult result = new LoginResult();
@@ -73,7 +72,8 @@ public class LiepinTaskService {
             result.setMessage(success ? "登录成功" : "登录失败");
             result.setTimestamp(new Date());
 
-            publishTaskUpdate(TaskStage.LOGIN, success ? TaskStatus.SUCCESS : TaskStatus.FAILURE, 0, result.getMessage());
+            publishTaskUpdate(TaskStage.LOGIN, success ? TaskStatus.SUCCESS : TaskStatus.FAILURE, 0,
+                    result.getMessage());
             log.info("猎聘登录操作完成，结果: {}", success ? "成功" : "失败");
             return result;
 
@@ -89,16 +89,17 @@ public class LiepinTaskService {
         }
     }
 
-    public CollectResult collectJobs(ConfigDTO config) {
+    public CollectResult collectJobs() {
         publishTaskUpdate(TaskStage.COLLECT, TaskStatus.STARTED, 0, "开始采集");
         try {
             log.info("开始执行猎聘岗位采集操作");
-            RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
+            AbstractRecruitmentService liepinService = (AbstractRecruitmentService) serviceFactory
+                    .getService(RecruitmentPlatformEnum.LIEPIN);
 
             publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, 0, "正在采集岗位");
             List<JobDTO> allJobDTOS = liepinService.collectJobs();
-            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(), "已采集 " + allJobDTOS.size() + " 个岗位");
-
+            publishTaskUpdate(TaskStage.COLLECT, TaskStatus.IN_PROGRESS, allJobDTOS.size(),
+                    "已采集 " + allJobDTOS.size() + " 个岗位");
 
             int savedCount = 0;
             if (!allJobDTOS.isEmpty()) {
@@ -134,12 +135,14 @@ public class LiepinTaskService {
         }
     }
 
-    public FilterResult filterJobs(ConfigDTO config) {
+    public FilterResult filterJobs() {
         publishTaskUpdate(TaskStage.FILTER, TaskStatus.STARTED, 0, "开始过滤");
         try {
             log.info("开始执行猎聘岗位过滤操作");
-            RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
-            List<JobEntity> allJobEntities = jobService.findAllJobEntitiesByPlatform(RecruitmentPlatformEnum.LIEPIN.getPlatformCode());
+            AbstractRecruitmentService liepinService = (AbstractRecruitmentService) serviceFactory
+                    .getService(RecruitmentPlatformEnum.LIEPIN);
+            List<JobEntity> allJobEntities = jobService
+                    .findAllJobEntitiesByPlatform(RecruitmentPlatformEnum.LIEPIN.getPlatformCode());
             if (allJobEntities == null || allJobEntities.isEmpty()) {
                 throw new IllegalArgumentException("数据库中未找到职位数据或职位数据为空");
             }
@@ -148,9 +151,9 @@ public class LiepinTaskService {
             List<JobDTO> filteredJobDTOS = liepinService.filterJobs(jobDTOS);
 
             List<String> filteredJobIds = jobDTOS.stream()
-                .filter(j -> !filteredJobDTOS.contains(j))
-                .map(JobDTO::getEncryptJobId)
-                .collect(Collectors.toList());
+                    .filter(j -> !filteredJobDTOS.contains(j))
+                    .map(JobDTO::getEncryptJobId)
+                    .collect(Collectors.toList());
 
             if (!filteredJobIds.isEmpty()) {
                 jobService.updateJobStatus(filteredJobIds, JobStatusEnum.FILTERED.getCode(), "被过滤");
@@ -160,13 +163,15 @@ public class LiepinTaskService {
             result.setOriginalCount(allJobEntities.size());
             result.setFilteredCount(filteredJobDTOS.size());
             result.setJobs(filteredJobDTOS);
-            String message = String.format("原始岗位 %d 个，过滤后剩余 %d 个，已过滤 %d 个", allJobEntities.size(), filteredJobDTOS.size(), filteredJobIds.size());
+            String message = String.format("原始岗位 %d 个，过滤后剩余 %d 个，已过滤 %d 个", allJobEntities.size(),
+                    filteredJobDTOS.size(), filteredJobIds.size());
             result.setMessage(message);
             result.setTimestamp(new Date());
 
             publishTaskUpdate(TaskStage.FILTER, TaskStatus.SUCCESS, filteredJobDTOS.size(), message);
 
-            log.info("猎聘岗位过滤操作完成，原始 {} 个，过滤后 {} 个，已过滤 {} 个", allJobEntities.size(), filteredJobDTOS.size(), filteredJobIds.size());
+            log.info("猎聘岗位过滤操作完成，原始 {} 个，过滤后 {} 个，已过滤 {} 个", allJobEntities.size(), filteredJobDTOS.size(),
+                    filteredJobIds.size());
             return result;
 
         } catch (Exception e) {
@@ -182,20 +187,23 @@ public class LiepinTaskService {
         }
     }
 
-    public DeliveryResult deliverJobs(ConfigDTO config, boolean enableActualDelivery) {
+    public DeliveryResult deliverJobs(boolean enableActualDelivery) {
         publishTaskUpdate(TaskStage.DELIVER, TaskStatus.STARTED, 0, "开始投递");
         try {
             log.info("开始执行猎聘岗位投递操作，实际投递: {}", enableActualDelivery);
-            List<JobEntity> jobEntities = jobRepository.findByStatusAndPlatform(JobStatusEnum.PENDING.getCode(), RecruitmentPlatformEnum.LIEPIN.getPlatformCode());
+            List<JobEntity> jobEntities = jobRepository.findByStatusAndPlatform(JobStatusEnum.PENDING.getCode(),
+                    RecruitmentPlatformEnum.LIEPIN.getPlatformCode());
             if (jobEntities == null || jobEntities.isEmpty()) {
                 throw new IllegalArgumentException("未找到可投递的猎聘岗位记录");
             }
 
-            List<JobDTO> filteredJobDTOS = jobEntities.stream().map(jobService::convertToDTO).collect(Collectors.toList());
+            List<JobDTO> filteredJobDTOS = jobEntities.stream().map(jobService::convertToDTO)
+                    .collect(Collectors.toList());
             int deliveredCount = 0;
 
             if (enableActualDelivery) {
-                RecruitmentService liepinService = serviceFactory.getService(RecruitmentPlatformEnum.LIEPIN);
+                AbstractRecruitmentService liepinService = (AbstractRecruitmentService) serviceFactory
+                        .getService(RecruitmentPlatformEnum.LIEPIN);
                 deliveredCount = liepinService.deliverJobs(filteredJobDTOS);
                 liepinService.saveData(dataPath);
                 log.info("实际投递完成，成功投递 {} 个岗位", deliveredCount);
@@ -247,7 +255,8 @@ public class LiepinTaskService {
 
     private List<String> buildJobDetails(List<JobDTO> jobDTOS) {
         return jobDTOS.stream()
-                .map(job -> String.format("%s - %s | %s | %s", job.getCompanyName(), job.getJobName(), job.getSalary(), job.getJobArea()))
+                .map(job -> String.format("%s - %s | %s | %s", job.getCompanyName(), job.getJobName(), job.getSalary(),
+                        job.getJobArea()))
                 .collect(Collectors.toList());
     }
 
@@ -270,14 +279,38 @@ public class LiepinTaskService {
         private boolean success;
         private String message;
         private Date timestamp;
-        public String getTaskId() { return taskId; }
-        public void setTaskId(String taskId) { this.taskId = taskId; }
-        public boolean isSuccess() { return success; }
-        public void setSuccess(boolean success) { this.success = success; }
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
-        public Date getTimestamp() { return timestamp; }
-        public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
+
+        public String getTaskId() {
+            return taskId;
+        }
+
+        public void setTaskId(String taskId) {
+            this.taskId = taskId;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public void setSuccess(boolean success) {
+            this.success = success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public Date getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(Date timestamp) {
+            this.timestamp = timestamp;
+        }
     }
 
     public static class CollectResult {
@@ -286,16 +319,46 @@ public class LiepinTaskService {
         private List<JobDTO> jobs;
         private String message;
         private Date timestamp;
-        public String getTaskId() { return taskId; }
-        public void setTaskId(String taskId) { this.taskId = taskId; }
-        public int getJobCount() { return jobCount; }
-        public void setJobCount(int jobCount) { this.jobCount = jobCount; }
-        public List<JobDTO> getJobs() { return jobs; }
-        public void setJobs(List<JobDTO> jobs) { this.jobs = jobs; }
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
-        public Date getTimestamp() { return timestamp; }
-        public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
+
+        public String getTaskId() {
+            return taskId;
+        }
+
+        public void setTaskId(String taskId) {
+            this.taskId = taskId;
+        }
+
+        public int getJobCount() {
+            return jobCount;
+        }
+
+        public void setJobCount(int jobCount) {
+            this.jobCount = jobCount;
+        }
+
+        public List<JobDTO> getJobs() {
+            return jobs;
+        }
+
+        public void setJobs(List<JobDTO> jobs) {
+            this.jobs = jobs;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public Date getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(Date timestamp) {
+            this.timestamp = timestamp;
+        }
     }
 
     public static class FilterResult {
@@ -305,18 +368,54 @@ public class LiepinTaskService {
         private List<JobDTO> jobs;
         private String message;
         private Date timestamp;
-        public String getTaskId() { return taskId; }
-        public void setTaskId(String taskId) { this.taskId = taskId; }
-        public int getOriginalCount() { return originalCount; }
-        public void setOriginalCount(int originalCount) { this.originalCount = originalCount; }
-        public int getFilteredCount() { return filteredCount; }
-        public void setFilteredCount(int filteredCount) { this.filteredCount = filteredCount; }
-        public List<JobDTO> getJobs() { return jobs; }
-        public void setJobs(List<JobDTO> jobs) { this.jobs = jobs; }
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
-        public Date getTimestamp() { return timestamp; }
-        public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
+
+        public String getTaskId() {
+            return taskId;
+        }
+
+        public void setTaskId(String taskId) {
+            this.taskId = taskId;
+        }
+
+        public int getOriginalCount() {
+            return originalCount;
+        }
+
+        public void setOriginalCount(int originalCount) {
+            this.originalCount = originalCount;
+        }
+
+        public int getFilteredCount() {
+            return filteredCount;
+        }
+
+        public void setFilteredCount(int filteredCount) {
+            this.filteredCount = filteredCount;
+        }
+
+        public List<JobDTO> getJobs() {
+            return jobs;
+        }
+
+        public void setJobs(List<JobDTO> jobs) {
+            this.jobs = jobs;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public Date getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(Date timestamp) {
+            this.timestamp = timestamp;
+        }
     }
 
     public static class DeliveryResult {
@@ -327,19 +426,61 @@ public class LiepinTaskService {
         private String message;
         private Date timestamp;
         private List<String> jobDetails;
-        public String getTaskId() { return taskId; }
-        public void setTaskId(String taskId) { this.taskId = taskId; }
-        public int getTotalCount() { return totalCount; }
-        public void setTotalCount(int totalCount) { this.totalCount = totalCount; }
-        public int getDeliveredCount() { return deliveredCount; }
-        public void setDeliveredCount(int deliveredCount) { this.deliveredCount = deliveredCount; }
-        public boolean isActualDelivery() { return actualDelivery; }
-        public void setActualDelivery(boolean actualDelivery) { this.actualDelivery = actualDelivery; }
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
-        public Date getTimestamp() { return timestamp; }
-        public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
-        public List<String> getJobDetails() { return jobDetails; }
-        public void setJobDetails(List<String> jobDetails) { this.jobDetails = jobDetails; }
+
+        public String getTaskId() {
+            return taskId;
+        }
+
+        public void setTaskId(String taskId) {
+            this.taskId = taskId;
+        }
+
+        public int getTotalCount() {
+            return totalCount;
+        }
+
+        public void setTotalCount(int totalCount) {
+            this.totalCount = totalCount;
+        }
+
+        public int getDeliveredCount() {
+            return deliveredCount;
+        }
+
+        public void setDeliveredCount(int deliveredCount) {
+            this.deliveredCount = deliveredCount;
+        }
+
+        public boolean isActualDelivery() {
+            return actualDelivery;
+        }
+
+        public void setActualDelivery(boolean actualDelivery) {
+            this.actualDelivery = actualDelivery;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public Date getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(Date timestamp) {
+            this.timestamp = timestamp;
+        }
+
+        public List<String> getJobDetails() {
+            return jobDetails;
+        }
+
+        public void setJobDetails(List<String> jobDetails) {
+            this.jobDetails = jobDetails;
+        }
     }
 }
