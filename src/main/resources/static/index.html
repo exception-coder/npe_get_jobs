@@ -91,15 +91,13 @@
                                        data-bs-toggle="tooltip"
                                        title="职位标题或描述中包含这些关键字的岗位将被过滤。输入关键字后按回车添加"></i>
                                 </label>
-                                <div class="tags-input-container" id="jobBlacklistTagsContainer">
-                                    <div class="tags-wrapper" id="jobBlacklistTags"></div>
-                                    <input type="text" class="tags-input" id="commonJobBlacklistKeywords" 
-                                           placeholder="输入关键字后按回车添加">
-                                </div>
-                                <div class="form-text">
+                                <input type="text" class="form-control" id="commonJobBlacklistKeywords" 
+                                       placeholder="输入关键字后按回车添加">
+                                <div id="jobBlacklistTags" class="tags-wrapper mt-2"></div>
+                                <small class="form-text text-muted">
                                     <i class="bi bi-info-circle me-1"></i>
                                     职位标题、职位描述中包含这些关键字的岗位将被自动过滤
-                                </div>
+                                </small>
                             </div>
 
                             <!-- 公司黑名单关键字 -->
@@ -110,15 +108,13 @@
                                        data-bs-toggle="tooltip"
                                        title="公司名称中包含这些关键字的公司将被过滤。输入关键字后按回车添加"></i>
                                 </label>
-                                <div class="tags-input-container" id="companyBlacklistTagsContainer">
-                                    <div class="tags-wrapper" id="companyBlacklistTags"></div>
-                                    <input type="text" class="tags-input" id="commonCompanyBlacklistKeywords" 
-                                           placeholder="输入关键字后按回车添加">
-                                </div>
-                                <div class="form-text">
+                                <input type="text" class="form-control" id="commonCompanyBlacklistKeywords" 
+                                       placeholder="输入关键字后按回车添加">
+                                <div id="companyBlacklistTags" class="tags-wrapper mt-2"></div>
+                                <small class="form-text text-muted">
                                     <i class="bi bi-info-circle me-1"></i>
                                     公司名称中包含这些关键字的岗位将被自动过滤
-                                </div>
+                                </small>
                             </div>
 
                             <!-- AI配置 -->
@@ -379,19 +375,10 @@
                                 <label for="profileDomainExperience" class="form-label fw-semibold">
                                     领域经验
                                 </label>
-                                <select class="form-select" id="profileDomainExperience">
-                                    <option value="">请选择（可选）</option>
-                                    <option value="跨境电商">跨境电商</option>
-                                    <option value="金融科技">金融科技</option>
-                                    <option value="SaaS">SaaS</option>
-                                    <option value="物流">物流</option>
-                                    <option value="制造">制造</option>
-                                    <option value="教育">教育</option>
-                                    <option value="医疗健康">医疗健康</option>
-                                    <option value="游戏">游戏</option>
-                                    <option value="社交媒体">社交媒体</option>
-                                    <option value="企业服务">企业服务</option>
-                                </select>
+                                <input type="text" class="form-control" id="profileDomainExperience"
+                                       placeholder="输入领域经验后按回车添加（可选）">
+                                <div id="profileDomainExperienceTags" class="tags-wrapper mt-2"></div>
+                                <small class="form-text text-muted">例如：跨境电商、金融科技、SaaS 等</small>
                             </div>
                             
                             <!-- 期望地点 -->

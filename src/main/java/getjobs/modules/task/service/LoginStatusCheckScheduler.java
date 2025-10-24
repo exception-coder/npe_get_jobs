@@ -1,7 +1,6 @@
 package getjobs.modules.task.service;
 
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.Cookie;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.service.PlaywrightService;
 import getjobs.modules.boss.BossElementLocators;
@@ -13,12 +12,8 @@ import getjobs.modules.task.enums.TaskStage;
 import getjobs.modules.task.enums.TaskStatus;
 import getjobs.modules.task.event.TaskUpdateEvent;
 import getjobs.modules.zhilian.service.ZhiLianElementLocators;
-import getjobs.repository.entity.ConfigEntity;
-import getjobs.service.ConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.github.openjson.JSONArray;
-import com.github.openjson.JSONObject;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -42,7 +37,6 @@ public class LoginStatusCheckScheduler {
 
     private final PlaywrightService playwrightService;
     private final ApplicationEventPublisher eventPublisher;
-    private final ConfigService configService;
 
     /**
      * 存储各平台的登录状态
@@ -187,13 +181,12 @@ public class LoginStatusCheckScheduler {
                 return;
             }
 
-            boolean isLoggedIn = LiepinElementLocators.isUserLoggedIn(page);
+            // 先保存Cookie（无论登录状态如何），防止页面变更导致登录判定失败而丢失Cookie
+            printPageCookies(page, "猎聘");
+            playwrightService.savePlatformCookieToConfig(RecruitmentPlatformEnum.LIEPIN, page);
 
-            // 如果登录成功，打印当前域的cookie并保存到配置
-            if (isLoggedIn) {
-                printPageCookies(page, "猎聘");
-                savePlatformCookieToConfig(RecruitmentPlatformEnum.LIEPIN, page);
-            }
+            // 再检查登录状态
+            boolean isLoggedIn = LiepinElementLocators.isUserLoggedIn(page);
 
             updateLoginStatus(RecruitmentPlatformEnum.LIEPIN, isLoggedIn,
                     isLoggedIn ? "已登录" : "未登录");
@@ -225,13 +218,12 @@ public class LoginStatusCheckScheduler {
                 return;
             }
 
-            boolean isLoggedIn = Job51ElementLocators.isUserLoggedIn(page);
+            // 先保存Cookie（无论登录状态如何），防止页面变更导致登录判定失败而丢失Cookie
+            printPageCookies(page, "51Job");
+            playwrightService.savePlatformCookieToConfig(RecruitmentPlatformEnum.JOB_51, page);
 
-            // 如果登录成功，打印当前域的cookie并保存到配置
-            if (isLoggedIn) {
-                printPageCookies(page, "51Job");
-                savePlatformCookieToConfig(RecruitmentPlatformEnum.JOB_51, page);
-            }
+            // 再检查登录状态
+            boolean isLoggedIn = Job51ElementLocators.isUserLoggedIn(page);
 
             updateLoginStatus(RecruitmentPlatformEnum.JOB_51, isLoggedIn,
                     isLoggedIn ? "已登录" : "未登录");
@@ -263,13 +255,12 @@ public class LoginStatusCheckScheduler {
                 return;
             }
 
-            boolean isLoggedIn = ZhiLianElementLocators.isUserLoggedIn(page);
+            // 先保存Cookie（无论登录状态如何），防止页面变更导致登录判定失败而丢失Cookie
+            printPageCookies(page, "智联招聘");
+            playwrightService.savePlatformCookieToConfig(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN, page);
 
-            // 如果登录成功，打印当前域的cookie并保存到配置
-            if (isLoggedIn) {
-                printPageCookies(page, "智联招聘");
-                savePlatformCookieToConfig(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN, page);
-            }
+            // 再检查登录状态
+            boolean isLoggedIn = ZhiLianElementLocators.isUserLoggedIn(page);
 
             updateLoginStatus(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN, isLoggedIn,
                     isLoggedIn ? "已登录" : "未登录");
@@ -301,13 +292,12 @@ public class LoginStatusCheckScheduler {
                 return;
             }
 
-            boolean isLoggedIn = BossElementLocators.isUserLoggedIn(page);
+            // 先保存Cookie（无论登录状态如何），防止页面变更导致登录判定失败而丢失Cookie
+            printPageCookies(page, "Boss直聘");
+            playwrightService.savePlatformCookieToConfig(RecruitmentPlatformEnum.BOSS_ZHIPIN, page);
 
-            // 如果登录成功，打印当前域的cookie并保存到配置
-            if (isLoggedIn) {
-                printPageCookies(page, "Boss直聘");
-                savePlatformCookieToConfig(RecruitmentPlatformEnum.BOSS_ZHIPIN, page);
-            }
+            // 再检查登录状态
+            boolean isLoggedIn = BossElementLocators.isUserLoggedIn(page);
 
             updateLoginStatus(RecruitmentPlatformEnum.BOSS_ZHIPIN, isLoggedIn,
                     isLoggedIn ? "已登录" : "未登录");
@@ -439,107 +429,4 @@ public class LoginStatusCheckScheduler {
         }
     }
 
-    /**
-     * 保存平台Cookie到配置实体
-     * 
-     * @param platform 平台枚举
-     * @param page     页面对象
-     */
-    private void savePlatformCookieToConfig(RecruitmentPlatformEnum platform, Page page) {
-        try {
-            ConfigEntity config = configService.loadByPlatformType(platform.getPlatformCode());
-            if (config == null) {
-                config = new ConfigEntity();
-            }
-
-            // 获取当前浏览器的Cookie并转换为JSON字符串
-            String cookieJson = getCookiesAsJson(page);
-            config.setCookieData(cookieJson);
-            config.setPlatformType(platform.getPlatformCode());
-
-            configService.save(config);
-
-            // 打印完整的Cookie信息到日志
-            printSavedCookieDetails(platform, cookieJson);
-
-            log.debug("平台 {} 的Cookie已保存到配置实体", platform.getPlatformName());
-        } catch (Exception e) {
-            log.error("保存平台 {} 的Cookie到配置失败", platform.getPlatformName(), e);
-        }
-    }
-
-    /**
-     * 获取页面Cookie并转换为JSON字符串
-     * 
-     * @param page 页面对象
-     * @return Cookie的JSON字符串
-     */
-    private String getCookiesAsJson(Page page) {
-        try {
-            List<Cookie> cookies = page.context().cookies();
-            JSONArray jsonArray = new JSONArray();
-
-            for (Cookie cookie : cookies) {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("name", cookie.name);
-                jsonObject.put("value", cookie.value);
-                jsonObject.put("domain", cookie.domain);
-                jsonObject.put("path", cookie.path);
-                if (cookie.expires != null) {
-                    jsonObject.put("expires", cookie.expires);
-                }
-                jsonObject.put("secure", cookie.secure);
-                jsonObject.put("httpOnly", cookie.httpOnly);
-                jsonArray.put(jsonObject);
-            }
-
-            return jsonArray.toString();
-        } catch (Exception e) {
-            log.error("获取Cookie失败", e);
-            return "[]";
-        }
-    }
-
-    /**
-     * 打印保存的Cookie详细信息
-     * 
-     * @param platform   平台枚举
-     * @param cookieJson Cookie的JSON字符串
-     */
-    private void printSavedCookieDetails(RecruitmentPlatformEnum platform, String cookieJson) {
-        try {
-            JSONArray jsonArray = new JSONArray(cookieJson);
-            int cookieCount = jsonArray.length();
-
-            log.debug("========== {} 保存Cookie详细信息 ==========", platform.getPlatformName());
-            log.debug("Cookie总数: {}", cookieCount);
-
-            for (int i = 0; i < cookieCount; i++) {
-                JSONObject cookie = jsonArray.getJSONObject(i);
-
-                String name = cookie.optString("name", "");
-                String value = cookie.optString("value", "");
-                String domain = cookie.optString("domain", "");
-                String path = cookie.optString("path", "");
-                String expires = cookie.has("expires") ? String.valueOf(cookie.getDouble("expires")) : "无";
-                boolean secure = cookie.optBoolean("secure", false);
-                boolean httpOnly = cookie.optBoolean("httpOnly", false);
-
-                log.debug("Cookie[{}]:", i + 1);
-                log.debug("  - name: {}", name);
-                log.debug("  - value: {}", value.length() > 50 ? value.substring(0, 50) + "..." : value);
-                log.debug("  - domain: {}", domain);
-                log.debug("  - path: {}", path);
-                log.debug("  - expires: {}", expires);
-                log.debug("  - secure: {}", secure);
-                log.debug("  - httpOnly: {}", httpOnly);
-            }
-
-            log.debug("完整Cookie JSON (前500字符): {}",
-                    cookieJson.length() > 500 ? cookieJson.substring(0, 500) + "..." : cookieJson);
-            log.debug("=".repeat(50 + platform.getPlatformName().length()));
-        } catch (Exception e) {
-            log.error("打印 {} 的Cookie详细信息失败", platform.getPlatformName(), e);
-        }
-    }
 }

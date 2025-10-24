@@ -214,9 +214,9 @@ public class CommonConfigController {
     }
 
     /**
-     * 获取公共配置
+     * 获取公共配置（包含所有前端需要的数据）
      * 
-     * @return 配置数据 DTO
+     * @return 配置数据 DTO 和 AI 平台列表
      */
     @GetMapping("/get")
     public ResponseEntity<Map<String, Object>> getCommonConfig() {
@@ -232,6 +232,8 @@ public class CommonConfigController {
                 response.put("success", true);
                 response.put("message", "暂无配置数据");
                 response.put("data", null);
+                // 即使没有配置数据，也返回 AI 平台列表
+                response.put("aiPlatforms", getAiPlatformsList());
                 return ResponseEntity.ok(response);
             }
 
@@ -241,6 +243,8 @@ public class CommonConfigController {
             response.put("success", true);
             response.put("message", "获取配置成功");
             response.put("data", dto);
+            // 添加 AI 平台列表
+            response.put("aiPlatforms", getAiPlatformsList());
             response.put("timestamp", LocalDateTime.now());
 
             return ResponseEntity.ok(response);
@@ -253,24 +257,18 @@ public class CommonConfigController {
     }
 
     /**
-     * 获取支持的AI平台列表
+     * 获取支持的AI平台列表（保留用于向后兼容）
      * 
      * @return AI平台枚举列表
+     * @deprecated 建议使用 /api/common/config/get 接口获取所有配置数据
      */
     @GetMapping("/ai-platforms")
+    @Deprecated
     public ResponseEntity<Map<String, Object>> getAiPlatforms() {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            // 从 AiPlatform 枚举获取所有平台
-            List<Map<String, String>> platforms = Arrays.stream(AiPlatform.values())
-                    .map(platform -> {
-                        Map<String, String> platformInfo = new HashMap<>();
-                        platformInfo.put("value", platform.name().toLowerCase());
-                        platformInfo.put("label", getPlatformLabel(platform));
-                        return platformInfo;
-                    })
-                    .collect(Collectors.toList());
+            List<Map<String, String>> platforms = getAiPlatformsList();
 
             response.put("success", true);
             response.put("message", "获取AI平台列表成功");
@@ -284,6 +282,22 @@ public class CommonConfigController {
             response.put("message", "获取AI平台列表失败: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
+    }
+
+    /**
+     * 获取AI平台列表（内部方法）
+     * 
+     * @return AI平台列表
+     */
+    private List<Map<String, String>> getAiPlatformsList() {
+        return Arrays.stream(AiPlatform.values())
+                .map(platform -> {
+                    Map<String, String> platformInfo = new HashMap<>();
+                    platformInfo.put("value", platform.name().toLowerCase());
+                    platformInfo.put("label", getPlatformLabel(platform));
+                    return platformInfo;
+                })
+                .collect(Collectors.toList());
     }
 
     /**

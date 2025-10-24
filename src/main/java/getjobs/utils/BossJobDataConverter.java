@@ -231,14 +231,6 @@ public class BossJobDataConverter {
         return null;
     }
 
-    private Double getDoubleValue(Map<String, Object> data, String key) {
-        Object value = data.get(key);
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
-        }
-        return null;
-    }
-
     private BigDecimal getBigDecimal(Map<String, Object> data, String key) {
         Object value = data.get(key);
         if (value instanceof Number) {

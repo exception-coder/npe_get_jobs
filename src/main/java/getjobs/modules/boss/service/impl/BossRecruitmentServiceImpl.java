@@ -36,7 +36,6 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import java.io.File;
-import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -44,9 +43,8 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import static getjobs.modules.boss.BossElementLocators.*;
+import static getjobs.common.service.PlaywrightService.isVisibleWithTimeout;
 
 /**
  * Boss直聘招聘服务实现类
@@ -98,8 +96,16 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
         log.info("开始Boss直聘登录检查");
 
         try {
-            // 使用Playwright打开网站
-            page.navigate(HOME_URL);
+            // 使用Playwright打开网站（带重试机制）
+            PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        page.navigate(HOME_URL);
+                        return null;
+                    },
+                    "导航到Boss直聘首页",
+                    2 // 最多重试2次
+            );
 
             // 检查并加载Cookie
             String cookieData = getCookieFromConfig();
@@ -185,7 +191,17 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
             if (isCookieValid(cookieData)) {
                 loadCookiesFromString(cookieData);
             }
-            page.navigate(GEEK_JOB_URL);
+
+            // 导航到推荐岗位页面（带重试机制）
+            PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        page.navigate(GEEK_JOB_URL);
+                        return null;
+                    },
+                    "导航到推荐岗位页面",
+                    2 // 最多重试2次
+            );
 
             // 等待页面加载
             page.waitForLoadState();
@@ -314,7 +330,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
         try {
             TimeUnit.SECONDS.sleep(1);
             Locator dialogElement = page.locator(DIALOG_CON);
-            if (dialogElement.isVisible(new Locator.IsVisibleOptions().setTimeout(2000.0))) {
+            if (isVisibleWithTimeout(dialogElement, 2000.0)) {
                 String text = dialogElement.textContent();
                 boolean isLimit = text.contains("已达上限");
                 if (isLimit) {
@@ -353,7 +369,17 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
         if (isCookieValid(cookieData)) {
             loadCookiesFromString(cookieData);
         }
-        page.navigate(url);
+
+        // 导航到搜索页面（带重试机制）
+        PageHealthChecker.executeWithRetry(
+                page,
+                () -> {
+                    page.navigate(url);
+                    return null;
+                },
+                "导航到岗位搜索页面",
+                2 // 最多重试2次
+        );
 
         if (isJobsPresent()) {
             try {
@@ -504,11 +530,20 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
         Page jobPage = page.context().newPage();
 
         try {
-            jobPage.navigate(jobDTO.getHref());
+            // 导航到岗位详情页（带重试机制）
+            PageHealthChecker.executeWithRetry(
+                    jobPage,
+                    () -> {
+                        jobPage.navigate(jobDTO.getHref());
+                        return null;
+                    },
+                    "导航到岗位详情页",
+                    2 // 最多重试2次
+            );
 
             // 等待聊天按钮出现
             Locator chatButton = jobPage.locator(CHAT_BUTTON);
-            if (!chatButton.nth(0).isVisible(new Locator.IsVisibleOptions().setTimeout(5000.0))) {
+            if (!isVisibleWithTimeout(chatButton.nth(0), 5000.0)) {
                 Locator errorElement = jobPage.locator(ERROR_CONTENT);
                 if (errorElement.isVisible() && errorElement.textContent().contains("异常访问")) {
                     return false;
@@ -592,7 +627,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
                     .setState(WaitForSelectorState.VISIBLE)
                     .setTimeout(10000.0));
 
-            if (input.isVisible(new Locator.IsVisibleOptions().setTimeout(10000.0))) {
+            if (input.isVisible()) {
                 input.click();
 
                 Locator dialogElement = jobPage.locator(DIALOG_CONTAINER).nth(0);
@@ -619,7 +654,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
                 input.fill(greetingMessage);
 
                 Locator sendBtn = jobPage.locator(SEND_BUTTON).nth(0);
-                if (sendBtn.isVisible(new Locator.IsVisibleOptions().setTimeout(5000.0))) {
+                if (isVisibleWithTimeout(sendBtn, 5000.0)) {
                     sendBtn.click();
                     TimeUnit.SECONDS.sleep(3);
 
@@ -652,7 +687,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
                     if (fileInput.isVisible()) {
                         fileInput.setInputFiles(new Path[] { Paths.get(imageFile.getPath()) });
                         Locator imageSendBtn = jobPage.locator(".image-uploader-btn");
-                        if (imageSendBtn.isVisible(new Locator.IsVisibleOptions().setTimeout(2000.0))) {
+                        if (isVisibleWithTimeout(imageSendBtn, 2000.0)) {
                             imageSendBtn.click();
                             return true;
                         }
@@ -735,7 +770,17 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
      * 更新黑名单数据从聊天记录
      */
     private void updateBlacklistFromChat() {
-        page.navigate(GEEK_CHAT_URL);
+        // 导航到聊天页面（带重试机制）
+        PageHealthChecker.executeWithRetry(
+                page,
+                () -> {
+                    page.navigate(GEEK_CHAT_URL);
+                    return null;
+                },
+                "导航到聊天页面",
+                2 // 最多重试2次
+        );
+
         try {
             TimeUnit.SECONDS.sleep(3);
         } catch (InterruptedException e) {
@@ -837,22 +882,6 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
     }
 
     /**
-     * 自定义JSON格式化
-     */
-    private String customJsonFormat(Map<String, Set<String>> data) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{\n");
-        for (Map.Entry<String, Set<String>> entry : data.entrySet()) {
-            sb.append("    \"").append(entry.getKey()).append("\": [\n");
-            sb.append(entry.getValue().stream().map(s -> "        \"" + s + "\"").collect(Collectors.joining(",\n")));
-            sb.append("\n    ],\n");
-        }
-        sb.delete(sb.length() - 2, sb.length());
-        sb.append("\n}");
-        return sb.toString();
-    }
-
-    /**
      * 检查Cookie是否有效
      */
     private boolean isCookieValid(String cookieData) {
@@ -902,7 +931,17 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
      */
     @SneakyThrows
     private boolean scanLogin() {
-        page.navigate(HOME_URL + "/web/user/?ka=header-login");
+        // 导航到登录页面（带重试机制）
+        PageHealthChecker.executeWithRetry(
+                page,
+                () -> {
+                    page.navigate(HOME_URL + "/web/user/?ka=header-login");
+                    return null;
+                },
+                "导航到登录页面",
+                2 // 最多重试2次
+        );
+
         TimeUnit.SECONDS.sleep(5);
 
         try {
@@ -920,16 +959,14 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
 
         while (!login) {
             try {
-                loginSuccess = page.locator(LOGIN_SUCCESS_HEADER)
-                        .isVisible(new Locator.IsVisibleOptions().setTimeout(2000.0));
+                loginSuccess = isVisibleWithTimeout(page.locator(LOGIN_SUCCESS_HEADER), 2000.0);
 
                 if (loginSuccess) {
                     login = true;
                     log.info("登录成功，保存Cookie");
                 }
             } catch (Exception e) {
-                loginSuccess = page.locator(LOGIN_SUCCESS_HEADER)
-                        .isVisible(new Locator.IsVisibleOptions().setTimeout(2000.0));
+                loginSuccess = isVisibleWithTimeout(page.locator(LOGIN_SUCCESS_HEADER), 2000.0);
                 if (loginSuccess) {
                     login = true;
                     log.info("登录成功，保存Cookie");
@@ -939,28 +976,6 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
 
         saveCookieToConfig();
         return true;
-    }
-
-    /**
-     * 等待用户输入或超时
-     */
-    private boolean waitForUserInputOrTimeout(Scanner scanner) {
-        long end = System.currentTimeMillis() + 2000;
-        while (System.currentTimeMillis() < end) {
-            try {
-                if (System.in.available() > 0) {
-                    scanner.nextLine();
-                    return true;
-                }
-                TimeUnit.SECONDS.sleep(1);
-            } catch (IOException e) {
-                // 忽略异常
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return false;
-            }
-        }
-        return false;
     }
 
     /**

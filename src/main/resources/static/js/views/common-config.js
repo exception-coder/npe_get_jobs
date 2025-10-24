@@ -9,8 +9,7 @@
     // API端点
     const API_ENDPOINTS = {
         SAVE_CONFIG: '/api/common/config/save',
-        GET_CONFIG: '/api/common/config/get',
-        GET_AI_PLATFORMS: '/api/common/config/ai-platforms'
+        GET_CONFIG: '/api/common/config/get'
     };
 
     // DOM元素
@@ -25,6 +24,7 @@
     let skillsTagsInput;
     let highlightsTagsInput;
     let dedupeKeywordsTagsInput;
+    let domainExperienceTagsInput;
     
     // 功能开关相关
     let hrStatusTagsInput;
@@ -71,6 +71,12 @@
             dedupeKeywordsTagsInput = new window.TagsInput(dedupeKeywordsInput, dedupeKeywordsTagsWrapper);
         }
         
+        const domainExperienceInput = document.getElementById('profileDomainExperience');
+        const domainExperienceTagsWrapper = document.getElementById('profileDomainExperienceTags');
+        if (domainExperienceInput && domainExperienceTagsWrapper) {
+            domainExperienceTagsInput = new window.TagsInput(domainExperienceInput, domainExperienceTagsWrapper);
+        }
+        
         // 初始化HR状态标签输入组件
         const hrStatusInput = document.getElementById('commonHrStatusKeywords');
         const hrStatusTagsWrapper = document.getElementById('commonHrStatusTags');
@@ -92,13 +98,12 @@
             aiPlatformSelect.addEventListener('change', onAiPlatformChange);
         }
 
-        // 页面加载时获取配置
+        // 页面加载时获取配置（包含AI平台列表）
         loadCommonConfig();
-        loadAiPlatforms();
     }
 
     /**
-     * 加载公共配置
+     * 加载公共配置（包括AI平台列表）
      */
     async function loadCommonConfig() {
         try {
@@ -111,6 +116,12 @@
 
             const result = await response.json();
             const config = result.data; // 从 data 属性中获取实际配置数据
+            const aiPlatforms = result.aiPlatforms; // 获取 AI 平台列表
+            
+            // 先加载AI平台列表（即使没有配置数据也需要加载）
+            if (aiPlatforms && aiPlatforms.length > 0) {
+                populateAiPlatforms(aiPlatforms);
+            }
             
             // 如果没有配置数据，直接返回
             if (!config) {
@@ -223,7 +234,7 @@
             skills: skillsTagsInput ? parseStringToList(skillsTagsInput.getValue()) : [],
             yearsOfExperience: document.getElementById('profileYearsOfExperience')?.value?.trim() || '',
             careerIntent: document.getElementById('profileCareerIntent')?.value?.trim() || '',
-            domainExperience: document.getElementById('profileDomainExperience')?.value?.trim() || '',
+            domainExperience: domainExperienceTagsInput ? parseStringToList(domainExperienceTagsInput.getValue()) : [],
             location: document.getElementById('profileLocation')?.value?.trim() || '',
             tone: document.getElementById('profileTone')?.value?.trim() || '',
             language: document.getElementById('profileLanguage')?.value?.trim() || 'zh_CN',
@@ -511,7 +522,6 @@
         setFieldValue('profileJobTitle', profileData.jobTitle);
         setFieldValue('profileYearsOfExperience', profileData.yearsOfExperience);
         setFieldValue('profileCareerIntent', profileData.careerIntent);
-        setFieldValue('profileDomainExperience', profileData.domainExperience);
         setFieldValue('profileLocation', profileData.location);
         setFieldValue('profileTone', profileData.tone);
         setFieldValue('profileLanguage', profileData.language || 'zh_CN');
@@ -527,6 +537,13 @@
         if (profileData.dedupeKeywords && dedupeKeywordsTagsInput) {
             dedupeKeywordsTagsInput.setTags(Array.isArray(profileData.dedupeKeywords) ? profileData.dedupeKeywords : []);
         }
+        if (profileData.domainExperience && domainExperienceTagsInput) {
+            // 兼容旧数据：如果是字符串，转换为数组
+            const domainExpArray = Array.isArray(profileData.domainExperience) 
+                ? profileData.domainExperience 
+                : (profileData.domainExperience ? [profileData.domainExperience] : []);
+            domainExperienceTagsInput.setTags(domainExpArray);
+        }
         
         // 简历配置字段
         setFieldValue('commonResumeImagePath', profileData.resumeImagePath);
@@ -534,55 +551,41 @@
     }
 
     /**
-     * 加载AI平台选项
+     * 填充AI平台下拉框选项
      */
-    async function loadAiPlatforms() {
-        try {
-            const response = await fetch(API_ENDPOINTS.GET_AI_PLATFORMS);
-            
-            if (!response.ok) {
-                console.warn('获取AI平台列表失败');
-                return;
-            }
-
-            const result = await response.json();
-            const platforms = result.data;
-            
-            if (!platforms || platforms.length === 0) {
-                console.warn('AI平台列表为空');
-                return;
-            }
-            
-            // 获取AI平台下拉框
-            const aiPlatformSelect = document.getElementById('aiPlatform');
-            if (!aiPlatformSelect) {
-                console.warn('找不到AI平台选择框');
-                return;
-            }
-            
-            // 保存当前选中的值
-            const currentValue = aiPlatformSelect.value;
-            
-            // 清空现有选项（保留第一个"请选择"选项）
-            aiPlatformSelect.innerHTML = '<option value="">请选择AI平台</option>';
-            
-            // 动态添加选项
-            platforms.forEach(platform => {
-                const option = document.createElement('option');
-                option.value = platform.value;
-                option.textContent = platform.label;
-                aiPlatformSelect.appendChild(option);
-            });
-            
-            // 恢复之前选中的值
-            if (currentValue) {
-                aiPlatformSelect.value = currentValue;
-            }
-            
-            console.log('AI平台列表加载成功', platforms);
-        } catch (error) {
-            console.error('加载AI平台列表失败:', error);
+    function populateAiPlatforms(platforms) {
+        if (!platforms || platforms.length === 0) {
+            console.warn('AI平台列表为空');
+            return;
         }
+        
+        // 获取AI平台下拉框
+        const aiPlatformSelect = document.getElementById('aiPlatform');
+        if (!aiPlatformSelect) {
+            console.warn('找不到AI平台选择框');
+            return;
+        }
+        
+        // 保存当前选中的值
+        const currentValue = aiPlatformSelect.value;
+        
+        // 清空现有选项（保留第一个"请选择"选项）
+        aiPlatformSelect.innerHTML = '<option value="">请选择AI平台</option>';
+        
+        // 动态添加选项
+        platforms.forEach(platform => {
+            const option = document.createElement('option');
+            option.value = platform.value;
+            option.textContent = platform.label;
+            aiPlatformSelect.appendChild(option);
+        });
+        
+        // 恢复之前选中的值
+        if (currentValue) {
+            aiPlatformSelect.value = currentValue;
+        }
+        
+        console.log('AI平台列表加载成功', platforms);
     }
 
     /**

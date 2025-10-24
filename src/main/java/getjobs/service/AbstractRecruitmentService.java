@@ -118,6 +118,7 @@ public abstract class AbstractRecruitmentService implements RecruitmentService {
                                         entity.getCityCode() != null && !entity.getCityCode().isEmpty()
                                                         ? String.join(",", entity.getCityCode())
                                                         : "");
+
                         dto.setIndustry(
                                         entity.getIndustry() != null && !entity.getIndustry().isEmpty()
                                                         ? String.join(",", entity.getIndustry())

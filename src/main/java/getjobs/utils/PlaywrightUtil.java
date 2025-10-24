@@ -36,7 +36,7 @@ public class PlaywrightUtil {
 
     // 默认等待时间（毫秒）
     private static final int DEFAULT_WAIT_TIME = 10000;
-    
+
     // 随机User-Agent列表
     private static final String[] USER_AGENTS = {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
@@ -47,30 +47,8 @@ public class PlaywrightUtil {
     };
 
     /**
-     * 创建HTTP头部信息
-     * 
-     * @return HTTP头部Map
-     */
-    private static Map<String, String> createHeaders() {
-        Map<String, String> headers = new java.util.HashMap<>();
-        headers.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
-        headers.put("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8");
-        headers.put("Accept-Encoding", "gzip, deflate, br");
-        headers.put("Cache-Control", "no-cache");
-        headers.put("Pragma", "no-cache");
-        headers.put("sec-ch-ua", "\"Chromium\";v=\"135\", \"Not A(Brand\";v=\"99\"");
-        headers.put("sec-ch-ua-mobile", "?0");
-        headers.put("sec-ch-ua-platform", "\"Windows\"");
-        headers.put("sec-fetch-dest", "document");
-        headers.put("sec-fetch-mode", "navigate");
-        headers.put("sec-fetch-site", "none");
-        headers.put("sec-fetch-user", "?1");
-        headers.put("upgrade-insecure-requests", "1");
-        return headers;
-    }
-
-    /**
      * 获取随机User-Agent
+     * 
      * @return 随机User-Agent字符串
      */
     public static String getRandomUserAgent() {
@@ -85,37 +63,22 @@ public class PlaywrightUtil {
         // 启动Playwright
         PLAYWRIGHT = Playwright.create();
 
-        List<String> args = List.of(
-                "--disable-blink-features=AutomationControlled", // 禁用自动化控制特征
-                "--disable-web-security", // 禁用web安全
-                "--disable-features=VizDisplayCompositor", // 禁用一些特征
-                "--disable-dev-shm-usage", // 禁用/dev/shm使用
-                "--no-sandbox", // 禁用沙箱
-                "--disable-extensions", // 禁用扩展
-                "--disable-plugins", // 禁用插件
-                "--disable-default-apps", // 禁用默认应用
-                "--disable-background-timer-throttling", // 禁用后台定时器限制
-                "--disable-renderer-backgrounding", // 禁用渲染器后台处理
-                "--disable-backgrounding-occluded-windows", // 禁用隐藏窗口后台处理
-                "--disable-ipc-flooding-protection" // 禁用IPC洪水保护
-        );
-
         // 创建浏览器实例
         BROWSER = PLAYWRIGHT.chromium().launch(new BrowserType.LaunchOptions()
                 .setHeadless(false) // 非无头模式，可视化调试
                 .setSlowMo(50) // 放慢操作速度，便于调试
                 .setArgs(List.of()));
 
-    // 随机选择User-Agent
-    String randomUserAgent = getRandomUserAgent();
-        
+        // 随机选择User-Agent
+        String randomUserAgent = getRandomUserAgent();
+
         // 创建浏览器上下文，增强伪装设置
         CONTEXT = BROWSER.newContext(new Browser.NewContextOptions()
                 .setUserAgent(randomUserAgent)
                 .setJavaScriptEnabled(true)
                 .setBypassCSP(true)
                 .setPermissions(List.of("geolocation", "notifications")) // 添加一些常见权限
-//                .setExtraHTTPHeaders(createHeaders())
+                // .setExtraHTTPHeaders(createHeaders())
                 .setLocale("zh-CN")
                 .setTimezoneId("Asia/Shanghai"));
 
@@ -124,44 +87,44 @@ public class PlaywrightUtil {
         PAGE.setDefaultTimeout(DEFAULT_TIMEOUT);
 
         // 注入反检测JavaScript代码
-//        PAGE.addInitScript("""
-//            // 移除webdriver属性
-//            Object.defineProperty(navigator, 'webdriver', {
-//                get: () => undefined,
-//            });
-//
-//            // 重写plugins属性
-//            Object.defineProperty(navigator, 'plugins', {
-//                get: () => [1, 2, 3, 4, 5],
-//            });
-//
-//            // 重写languages属性
-//            Object.defineProperty(navigator, 'languages', {
-//                get: () => ['zh-CN', 'zh', 'en'],
-//            });
-//
-//            // 重写permissions查询
-//            const originalQuery = window.navigator.permissions.query;
-//            window.navigator.permissions.query = (parameters) => (
-//                parameters.name === 'notifications' ?
-//                    Promise.resolve({ state: Notification.permission }) :
-//                    originalQuery(parameters)
-//            );
-//
-//            // 隐藏Chrome automation扩展
-//            window.chrome = {
-//                runtime: {},
-//            };
-//
-//            // 重写Object.getOwnPropertyDescriptor
-//            const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
-//            Object.getOwnPropertyDescriptor = function(obj, prop) {
-//                if (prop === 'webdriver') {
-//                    return undefined;
-//                }
-//                return getOwnPropertyDescriptor(obj, prop);
-//            };
-//        """);
+        // PAGE.addInitScript("""
+        // // 移除webdriver属性
+        // Object.defineProperty(navigator, 'webdriver', {
+        // get: () => undefined,
+        // });
+        //
+        // // 重写plugins属性
+        // Object.defineProperty(navigator, 'plugins', {
+        // get: () => [1, 2, 3, 4, 5],
+        // });
+        //
+        // // 重写languages属性
+        // Object.defineProperty(navigator, 'languages', {
+        // get: () => ['zh-CN', 'zh', 'en'],
+        // });
+        //
+        // // 重写permissions查询
+        // const originalQuery = window.navigator.permissions.query;
+        // window.navigator.permissions.query = (parameters) => (
+        // parameters.name === 'notifications' ?
+        // Promise.resolve({ state: Notification.permission }) :
+        // originalQuery(parameters)
+        // );
+        //
+        // // 隐藏Chrome automation扩展
+        // window.chrome = {
+        // runtime: {},
+        // };
+        //
+        // // 重写Object.getOwnPropertyDescriptor
+        // const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
+        // Object.getOwnPropertyDescriptor = function(obj, prop) {
+        // if (prop === 'webdriver') {
+        // return undefined;
+        // }
+        // return getOwnPropertyDescriptor(obj, prop);
+        // };
+        // """);
 
         // 启用JavaScript捕获控制台日志（用于调试）
         PAGE.onConsoleMessage(message -> {
@@ -188,7 +151,6 @@ public class PlaywrightUtil {
 
         log.info("Playwright及浏览器实例已关闭");
     }
-
 
     /**
      * 等待指定时间（秒）
@@ -221,8 +183,6 @@ public class PlaywrightUtil {
             log.error("随机Sleep被中断", e);
         }
     }
-
-
 
     /**
      * 查找元素并等待直到可见
@@ -287,10 +247,10 @@ public class PlaywrightUtil {
     public static void typeHumanLike(String selector, String text, int minDelay, int maxDelay) {
         try {
             Locator locator = PAGE.locator(selector);
-            
+
             // 先模拟鼠标移动到元素
             simulateHumanMouseMove(selector);
-            
+
             locator.click();
 
             Random random = new Random();
@@ -316,19 +276,19 @@ public class PlaywrightUtil {
     public static void simulateHumanMouseMove(String selector) {
         try {
             Locator locator = PAGE.locator(selector);
-            
+
             // 获取元素边界框
             var boundingBox = locator.boundingBox();
             if (boundingBox != null) {
                 Random random = new Random();
-                
+
                 // 在元素范围内随机选择一个点
                 double targetX = boundingBox.x + random.nextDouble() * boundingBox.width;
                 double targetY = boundingBox.y + random.nextDouble() * boundingBox.height;
-                
+
                 // 模拟鼠标移动轨迹
                 PAGE.mouse().move(targetX, targetY);
-                
+
                 // 添加随机短暂停留
                 randomSleep(1, 2);
             }
@@ -346,10 +306,10 @@ public class PlaywrightUtil {
         try {
             // 先模拟鼠标移动
             simulateHumanMouseMove(selector);
-            
+
             // 随机延迟
             randomSleep(1, 3);
-            
+
             // 点击元素
             PAGE.locator(selector).click();
             log.info("已模拟人类点击元素: {}", selector);
@@ -368,13 +328,13 @@ public class PlaywrightUtil {
         try {
             Random random = new Random();
             int stepSize = scrollAmount / steps;
-            
+
             for (int i = 0; i < steps; i++) {
                 // 随机化每步的滚动量
                 int currentStep = stepSize + random.nextInt(20) - 10;
-                
+
                 PAGE.mouse().wheel(0, currentStep);
-                
+
                 // 随机延迟
                 int delay = 100 + random.nextInt(200);
                 try {
@@ -396,28 +356,27 @@ public class PlaywrightUtil {
     public static void simulateRandomBrowsing() {
         try {
             Random random = new Random();
-            
+
             // 随机滚动
             int scrollDirection = random.nextBoolean() ? 1 : -1;
             int scrollAmount = 200 + random.nextInt(300);
             simulateHumanScroll(scrollAmount * scrollDirection, 3 + random.nextInt(5));
-            
+
             // 随机暂停
             randomSleep(2, 5);
-            
+
             // 随机移动鼠标到页面某处
             int pageWidth = 1920; // 假设页面宽度
             int pageHeight = 1080; // 假设页面高度
             double randomX = random.nextDouble() * pageWidth;
             double randomY = random.nextDouble() * pageHeight;
             PAGE.mouse().move(randomX, randomY);
-            
+
             log.info("已模拟随机浏览行为");
         } catch (PlaywrightException e) {
             log.error("模拟随机浏览失败", e);
         }
     }
-
 
     /**
      * 初始化Stealth模式（使浏览器更难被检测为自动化工具）
@@ -447,7 +406,7 @@ public class PlaywrightUtil {
         // 执行stealth.min.js（需要事先准备此文件）
         try {
             String stealthJs = new String(
-                    Files.readAllBytes(Paths.get( "/src/main/resources/stealth.min.js")));
+                    Files.readAllBytes(Paths.get("/src/main/resources/stealth.min.js")));
             PAGE.addInitScript(stealthJs);
             log.info("已启用Stealth模式");
         } catch (IOException e) {
@@ -494,7 +453,7 @@ public class PlaywrightUtil {
      * @param httpOnly 是否仅HTTP（可选）
      */
     public static void setCookie(String name, String value, String domain, String path,
-                                 Double expires, Boolean secure, Boolean httpOnly) {
+            Double expires, Boolean secure, Boolean httpOnly) {
         com.microsoft.playwright.options.Cookie cookie = new com.microsoft.playwright.options.Cookie(name, value);
         cookie.domain = domain;
         cookie.path = path;

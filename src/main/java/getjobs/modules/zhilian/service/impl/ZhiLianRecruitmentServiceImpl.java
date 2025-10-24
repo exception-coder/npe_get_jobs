@@ -13,13 +13,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
-import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -325,27 +323,5 @@ public class ZhiLianRecruitmentServiceImpl extends AbstractRecruitmentService {
             log.error("登录过程中发生错误", e);
             return false;
         }
-    }
-
-    /**
-     * 等待用户输入或超时
-     */
-    private boolean waitForUserInputOrTimeout(Scanner scanner) {
-        long end = System.currentTimeMillis() + 2000;
-        while (System.currentTimeMillis() < end) {
-            try {
-                if (System.in.available() > 0) {
-                    scanner.nextLine();
-                    return true;
-                }
-                TimeUnit.SECONDS.sleep(1);
-            } catch (IOException e) {
-                // 忽略异常
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return false;
-            }
-        }
-        return false;
     }
 }

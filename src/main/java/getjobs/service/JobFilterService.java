@@ -5,6 +5,7 @@ import getjobs.modules.ai.job.dto.JobMatchResult;
 import getjobs.modules.ai.job.service.JobMatchAiService;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.repository.UserProfileRepository;
+import getjobs.repository.entity.UserProfile;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
@@ -85,6 +86,10 @@ public class JobFilterService {
             }
         }
 
+        if(!config.getCityCodeCodes().contains(String.valueOf(job.getCityCode()))){
+            return "城市代码不符合要求-" + job.getCityCode();
+        }
+
         // AI岗位匹配度过滤
         if (config.getEnableAIJobMatchDetection()) {
             String myJd = userProfileRepository.findAll().stream()
@@ -116,10 +121,10 @@ public class JobFilterService {
     private boolean isJobInBlacklist(JobDTO jobDTO) {
         List<String> positionBlacklist = userProfileRepository.findAll().stream()
                 .findFirst()
-                .map(profile -> profile.getPositionBlacklist())
+                .map(UserProfile::getPositionBlacklist)
                 .orElse(Collections.emptyList());
 
-        if (positionBlacklist == null || positionBlacklist.isEmpty()) {
+        if (positionBlacklist.isEmpty()) {
             return false;
         }
 

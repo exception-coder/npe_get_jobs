@@ -4,6 +4,7 @@ import com.microsoft.playwright.Page;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.service.PlaywrightService;
+import getjobs.common.util.PageHealthChecker;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.service.JobFilterService;
 import getjobs.modules.liepin.service.LiepinElementLocators;
@@ -62,7 +63,17 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
     public boolean login() {
         log.info("开始猎聘登录检查");
         try {
-            page.navigate(HOME_URL);
+            // 使用Playwright打开网站（带重试机制）
+            PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        page.navigate(HOME_URL);
+                        return null;
+                    },
+                    "导航到猎聘首页",
+                    2 // 最多重试2次
+            );
+
             // 这里的登录检查逻辑需要根据猎聘的页面元素进行调整
             if (LiepinElementLocators.isLoginRequired(page)) {
                 log.info("需要登录，开始登录流程");
@@ -137,16 +148,49 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
             for (JobDTO jobDTO : jobDTOS) {
                 try {
                     log.info("正在投递岗位: {}", jobDTO.getJobName());
-                    jobPage.navigate(jobDTO.getHref());
-                    jobPage.waitForLoadState();
 
-                    // 等待页面加载完成
-                    jobPage.waitForTimeout(2000);
+                    // 导航到岗位详情页（带重试机制）
+                    PageHealthChecker.executeWithRetry(
+                            jobPage,
+                            () -> {
+                                jobPage.navigate(jobDTO.getHref());
+                                return null;
+                            },
+                            "导航到岗位详情页",
+                            2 // 最多重试2次
+                    );
+
+                    // 等待页面加载完成（带重试机制）
+                    PageHealthChecker.executeWithRetry(
+                            jobPage,
+                            () -> {
+                                jobPage.waitForLoadState();
+                                return null;
+                            },
+                            "等待页面加载完成",
+                            2);
+
+                    // 等待页面加载完成（带重试机制）
+                    PageHealthChecker.executeWithRetry(
+                            jobPage,
+                            () -> {
+                                jobPage.waitForTimeout(2000);
+                                return null;
+                            },
+                            "等待页面完全加载",
+                            2);
 
                     // 1. 点击"聊一聊"按钮
                     if (LiepinElementLocators.clickChatWithRecruiter(jobPage)) {
-                        // 等待聊天窗口打开
-                        jobPage.waitForTimeout(2000);
+                        // 等待聊天窗口打开（带重试机制）
+                        PageHealthChecker.executeWithRetry(
+                                jobPage,
+                                () -> {
+                                    jobPage.waitForTimeout(2000);
+                                    return null;
+                                },
+                                "等待聊天窗口打开",
+                                2);
 
                         // 获取打招呼内容
                         String greetingMessage = config.getSayHi();
@@ -157,8 +201,15 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
 
                         // 2. 输入打招呼内容
                         if (LiepinElementLocators.inputChatMessage(jobPage, greetingMessage)) {
-                            // 等待输入完成
-                            jobPage.waitForTimeout(1000);
+                            // 等待输入完成（带重试机制）
+                            PageHealthChecker.executeWithRetry(
+                                    jobPage,
+                                    () -> {
+                                        jobPage.waitForTimeout(1000);
+                                        return null;
+                                    },
+                                    "等待输入完成",
+                                    2);
 
                             // 3. 点击发送按钮
                             if (LiepinElementLocators.clickSendButton(jobPage)) {
@@ -229,33 +280,76 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
                     break;
                 }
 
-                // 导航到搜索页面，增加超时设置
+                // 导航到搜索页面，增加超时设置（带重试机制）
                 log.info("正在导航到搜索页面 (尝试 {}/{})", retryCount + 1, maxRetries);
-                page.navigate(searchUrl, new Page.NavigateOptions().setTimeout(60000));
+                PageHealthChecker.executeWithRetry(
+                        page,
+                        () -> {
+                            page.navigate(searchUrl, new Page.NavigateOptions().setTimeout(60000));
+                            return null;
+                        },
+                        "导航到猎聘搜索页面",
+                        2 // 最多重试2次
+                );
 
-                // 等待页面加载完成
-                page.waitForLoadState();
+                // 等待页面加载完成（带重试机制）
+                PageHealthChecker.executeWithRetry(
+                        page,
+                        () -> {
+                            page.waitForLoadState();
+                            return null;
+                        },
+                        "等待页面加载完成",
+                        2);
 
-                // 额外等待，确保页面完全加载
-                page.waitForTimeout(2000);
+                // 额外等待，确保页面完全加载（带重试机制）
+                PageHealthChecker.executeWithRetry(
+                        page,
+                        () -> {
+                            page.waitForTimeout(2000);
+                            return null;
+                        },
+                        "等待页面完全加载",
+                        2);
 
                 // 从第1页开始循环点击分页，浏览所有岗位
                 int pageNumber = 1;
-                while (LiepinElementLocators.clickPageNumber(page, pageNumber)) {
-                    log.info("正在采集第 {} 页的职位", pageNumber);
-
-                    // 等待5-10秒，确保API响应被拦截并完成数据入库
+                boolean hasNextPage = true;
+                while (hasNextPage) {
+                    // 使用PageHealthChecker包装点击分页操作
                     try {
-                        int waitSeconds = 5 + new Random().nextInt(6); // 5-10秒
-                        log.info("等待 {} 秒以完成数据采集和入库", waitSeconds);
-                        Thread.sleep(waitSeconds * 1000L);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        log.warn("等待过程被中断: {}", e.getMessage());
-                        break;
-                    }
+                        final int currentPageNumber = pageNumber;
+                        Boolean clickResult = PageHealthChecker.executeWithRetry(
+                                page,
+                                () -> LiepinElementLocators.clickPageNumber(page, currentPageNumber),
+                                "点击第 " + currentPageNumber + " 页",
+                                2 // 最多重试2次
+                        );
 
-                    pageNumber++;
+                        hasNextPage = clickResult != null && clickResult;
+                        if (!hasNextPage) {
+                            log.info("已到达最后一页或无法继续点击下一页");
+                            break;
+                        }
+
+                        log.info("正在采集第 {} 页的职位", pageNumber);
+
+                        // 等待5-10秒，确保API响应被拦截并完成数据入库
+                        try {
+                            int waitSeconds = 5 + new Random().nextInt(6); // 5-10秒
+                            log.info("等待 {} 秒以完成数据采集和入库", waitSeconds);
+                            Thread.sleep(waitSeconds * 1000L);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            log.warn("等待过程被中断: {}", e.getMessage());
+                            break;
+                        }
+
+                        pageNumber++;
+                    } catch (Exception e) {
+                        log.error("点击分页时发生异常，停止分页采集: {}", e.getMessage());
+                        hasNextPage = false;
+                    }
                 }
 
                 log.info("所有分页已遍历完成，共 {} 页", pageNumber - 1);
@@ -341,7 +435,16 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
 
     private boolean performLogin() {
         try {
-            page.navigate(HOME_URL);
+            // 导航到登录页面（带重试机制）
+            PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        page.navigate(HOME_URL);
+                        return null;
+                    },
+                    "导航到猎聘登录页面",
+                    2 // 最多重试2次
+            );
 
             log.info("等待用户手动登录...");
             // 登录逻辑需要根据猎聘的页面元素进行调整

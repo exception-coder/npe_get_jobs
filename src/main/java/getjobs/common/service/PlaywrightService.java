@@ -2,6 +2,7 @@ package getjobs.common.service;
 
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Cookie;
+import com.microsoft.playwright.options.WaitForSelectorState;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.util.PageRecoveryManager;
 import getjobs.repository.entity.ConfigEntity;
@@ -304,5 +305,156 @@ public class PlaywrightService {
 
         log.warn("检测到平台 {} 的Page对象不健康，尝试自动刷新...", platform.getPlatformName());
         return refreshPage(platform);
+    }
+
+    /**
+     * 自动捕获并保存指定平台的Cookie到配置实体
+     * 
+     * 此方法会获取当前Page的所有Cookie，序列化为JSON后保存到数据库
+     * 目的是防止第三方页面变更导致登录判定失败而丢失已登录的Cookie
+     * 
+     * @param platform 平台枚举
+     * @return true-保存成功, false-保存失败
+     */
+    public boolean capturePlatformCookies(RecruitmentPlatformEnum platform) {
+        try {
+            Page page = pageMap.get(platform);
+            if (page == null) {
+                log.warn("平台 {} 的Page对象不存在，无法捕获Cookie", platform.getPlatformName());
+                return false;
+            }
+
+            return savePlatformCookieToConfig(platform, page);
+        } catch (Exception e) {
+            log.error("自动捕获平台 {} 的Cookie失败", platform.getPlatformName(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 保存平台Cookie到配置实体
+     * 
+     * @param platform 平台枚举
+     * @param page     页面对象
+     * @return true-保存成功, false-保存失败
+     */
+    public boolean savePlatformCookieToConfig(RecruitmentPlatformEnum platform, Page page) {
+        try {
+            ConfigEntity config = configService.loadByPlatformType(platform.getPlatformCode());
+            if (config == null) {
+                config = new ConfigEntity();
+            }
+
+            // 获取当前浏览器的Cookie并转换为JSON字符串
+            String cookieJson = getCookiesAsJson(page);
+            config.setCookieData(cookieJson);
+            config.setPlatformType(platform.getPlatformCode());
+
+            configService.save(config);
+
+            // 打印完整的Cookie信息到日志
+            printSavedCookieDetails(platform, cookieJson);
+
+            log.info("✓ 平台 {} 的Cookie已保存到配置实体", platform.getPlatformName());
+            return true;
+        } catch (Exception e) {
+            log.error("保存平台 {} 的Cookie到配置失败", platform.getPlatformName(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 获取页面Cookie并转换为JSON字符串
+     * 
+     * @param page 页面对象
+     * @return Cookie的JSON字符串
+     */
+    public String getCookiesAsJson(Page page) {
+        try {
+            List<Cookie> cookies = page.context().cookies();
+            JSONArray jsonArray = new JSONArray();
+
+            for (Cookie cookie : cookies) {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("name", cookie.name);
+                jsonObject.put("value", cookie.value);
+                jsonObject.put("domain", cookie.domain);
+                jsonObject.put("path", cookie.path);
+                if (cookie.expires != null) {
+                    jsonObject.put("expires", cookie.expires);
+                }
+                jsonObject.put("secure", cookie.secure);
+                jsonObject.put("httpOnly", cookie.httpOnly);
+                jsonArray.put(jsonObject);
+            }
+
+            return jsonArray.toString();
+        } catch (Exception e) {
+            log.error("获取Cookie失败", e);
+            return "[]";
+        }
+    }
+
+    /**
+     * 打印保存的Cookie详细信息
+     * 
+     * @param platform   平台枚举
+     * @param cookieJson Cookie的JSON字符串
+     */
+    private void printSavedCookieDetails(RecruitmentPlatformEnum platform, String cookieJson) {
+        try {
+            JSONArray jsonArray = new JSONArray(cookieJson);
+            int cookieCount = jsonArray.length();
+
+            log.debug("========== {} 保存Cookie详细信息 ==========", platform.getPlatformName());
+            log.debug("Cookie总数: {}", cookieCount);
+
+            for (int i = 0; i < cookieCount; i++) {
+                JSONObject cookie = jsonArray.getJSONObject(i);
+
+                String name = cookie.optString("name", "");
+                String value = cookie.optString("value", "");
+                String domain = cookie.optString("domain", "");
+                String path = cookie.optString("path", "");
+                String expires = cookie.has("expires") ? String.valueOf(cookie.getDouble("expires")) : "无";
+                boolean secure = cookie.optBoolean("secure", false);
+                boolean httpOnly = cookie.optBoolean("httpOnly", false);
+
+                log.debug("Cookie[{}]:", i + 1);
+                log.debug("  - name: {}", name);
+                log.debug("  - value: {}", value.length() > 50 ? value.substring(0, 50) + "..." : value);
+                log.debug("  - domain: {}", domain);
+                log.debug("  - path: {}", path);
+                log.debug("  - expires: {}", expires);
+                log.debug("  - secure: {}", secure);
+                log.debug("  - httpOnly: {}", httpOnly);
+            }
+
+            log.debug("完整Cookie JSON (前500字符): {}",
+                    cookieJson.length() > 500 ? cookieJson.substring(0, 500) + "..." : cookieJson);
+            log.debug("=".repeat(50 + platform.getPlatformName().length()));
+        } catch (Exception e) {
+            log.error("打印 {} 的Cookie详细信息失败", platform.getPlatformName(), e);
+        }
+    }
+
+    /**
+     * 检查元素是否在指定超时时间内可见
+     * 
+     * 替代已废弃的 isVisible(new Locator.IsVisibleOptions().setTimeout())
+     * 
+     * @param locator   元素定位器
+     * @param timeoutMs 超时时间（毫秒）
+     * @return true-元素可见, false-元素不可见或超时
+     */
+    public static boolean isVisibleWithTimeout(Locator locator, double timeoutMs) {
+        try {
+            locator.waitFor(new Locator.WaitForOptions()
+                    .setState(WaitForSelectorState.VISIBLE)
+                    .setTimeout(timeoutMs));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

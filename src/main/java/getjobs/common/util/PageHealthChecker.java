@@ -94,11 +94,24 @@ public class PageHealthChecker {
                 lastException = e;
                 String errorMsg = e.getMessage();
 
-                // 判断是否是"Object doesn't exist"异常
-                if (errorMsg != null && errorMsg.contains("Object doesn't exist")) {
-                    log.warn("{} 执行时遇到Page对象失效异常 (尝试{}/{}): {}",
-                            operationName, attempt + 1, maxRetries + 1, errorMsg);
+                // 判断是否是可重试的异常
+                boolean isRetryableException = false;
+                if (errorMsg != null) {
+                    // "Object doesn't exist"异常
+                    if (errorMsg.contains("Object doesn't exist")) {
+                        isRetryableException = true;
+                        log.warn("{} 执行时遇到Page对象失效异常 (尝试{}/{}): {}",
+                                operationName, attempt + 1, maxRetries + 1, errorMsg);
+                    }
+                    // "Cannot find parent object request" 异常（网络请求/响应对象生命周期问题）
+                    else if (errorMsg.contains("Cannot find parent object")) {
+                        isRetryableException = true;
+                        log.warn("{} 执行时遇到Playwright内部对象管理异常 (尝试{}/{}): {}",
+                                operationName, attempt + 1, maxRetries + 1, errorMsg);
+                    }
+                }
 
+                if (isRetryableException) {
                     // 等待一小段时间再重试
                     if (attempt < maxRetries) {
                         try {
@@ -110,7 +123,7 @@ public class PageHealthChecker {
                     }
                 } else {
                     // 其他类型的异常，直接抛出
-                    log.error("{} 执行失败（非对象失效异常）: {}", operationName, errorMsg);
+                    log.error("{} 执行失败（非可重试异常）: {}", operationName, errorMsg);
                     throw e;
                 }
             }

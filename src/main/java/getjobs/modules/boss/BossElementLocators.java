@@ -186,7 +186,7 @@ public class BossElementLocators {
                                 }
                             },
                             "点击第" + (i + 1) + "个岗位卡片",
-                            1 // 单个卡片点击失败时重试1次
+                            3 // 单个卡片点击失败时重试3次，1次容易失败
                     );
 
                     successCount++;

@@ -19,7 +19,6 @@ import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
@@ -39,15 +38,6 @@ public class BossApiMonitorService {
     private final PlaywrightService playwrightService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 全局接口调用频率限制：记录最后一次调用时间
-    private static volatile long lastCallTime = 0L;
-
-    // 接口调用间隔：10秒
-    private static final long CALL_INTERVAL_MS = 10000L;
-
-    // 全局锁，确保同一时间只有一个请求在执行
-    private static final ReentrantLock globalLock = new ReentrantLock();
-
     /**
      * 初始化监控服务
      * 设置岗位搜索和推荐岗位接口监听器
@@ -63,7 +53,6 @@ public class BossApiMonitorService {
      */
     public void setupJobApiMonitor() {
         try {
-            BrowserContext ctx = playwrightService.getContext(RecruitmentPlatformEnum.BOSS_ZHIPIN);
             Page page = playwrightService.getPage(RecruitmentPlatformEnum.BOSS_ZHIPIN);
 
             // 监听岗位搜索接口
@@ -82,53 +71,6 @@ public class BossApiMonitorService {
     }
 
     /**
-     * 设置岗位搜索接口监控
-     */
-    private void setupJobSearchMonitor(BrowserContext ctx) {
-        ctx.route("**/wapi/zpgeek/search/joblist.json**", route -> {
-
-            try {
-                Request req = route.request();
-                log.info("=== 岗位搜索请求拦截 ===");
-                log.info("请求方法: {}", req.method());
-                log.info("请求URL: {}", req.url());
-                log.info("请求头: {}", req.headers());
-                log.info("请求参数: {}", req.url());
-                log.info("========================");
-            } catch (Exception e) {
-                log.error("route error", e);
-            } finally {
-                // 继续请求
-                route.resume();
-            }
-
-        });
-    }
-
-    /**
-     * 设置推荐岗位接口监控
-     */
-    private void setupRecommendJobMonitor(BrowserContext ctx) {
-        ctx.route("**/wapi/zpgeek/pc/recommend/job/list.json**", route -> {
-            try {
-                Request req = route.request();
-                String url = req.url();
-                log.info("=== 推荐岗位请求拦截 ===");
-                log.info("请求方法: {}", req.method());
-                log.info("请求URL: {}", url);
-                log.info("请求头: {}", req.headers());
-                log.info("请求参数: {}", url);
-                log.info("========================");
-            } catch (Exception e) {
-                log.error("route error", e);
-            } finally {
-                // 继续请求
-                route.resume();
-            }
-        });
-    }
-
-    /**
      * 设置响应监控
      */
     private void setupResponseMonitor(Page page) {
@@ -142,23 +84,22 @@ public class BossApiMonitorService {
             // 监听推荐岗位接口响应
             else if (url.contains("/wapi/zpgeek/pc/recommend/job/list.json")) {
                 handleRecommendJobResponse(res);
-            }
-            else if(url.contains("/wapi/zpgeek/job/detail.json")){
+            } else if (url.contains("/wapi/zpgeek/job/detail.json")) {
                 handleJobDetailResponse(res);
             }
         });
     }
 
     private void handleJobDetailResponse(Response res) {
-        log.info("=== 岗位详情响应拦截 ===");
-        log.info("响应状态: {}", res.status());
-        log.info("响应URL: {}", res.url());
-        log.info("响应头: {}", res.headers());
+        log.debug("=== 岗位详情响应拦截 ===");
+        log.debug("响应状态: {}", res.status());
+        log.debug("响应URL: {}", res.url());
+        log.debug("响应头: {}", res.headers());
 
         try {
             String body = res.text();
-            log.info("响应体长度: {} 字符", body.length());
-            log.info("响应体内容: {}", body);
+            log.debug("响应体长度: {} 字符", body.length());
+            log.debug("响应体内容: {}", body);
 
             JSONObject jsonResponse = new JSONObject(body);
             // 解析并保存职位数据
@@ -167,7 +108,7 @@ public class BossApiMonitorService {
         } catch (PlaywrightException e) {
             log.error("读取响应体失败: {}", e.getMessage());
         }
-        log.info("==========================");
+        log.debug("==========================");
 
     }
 
@@ -175,15 +116,15 @@ public class BossApiMonitorService {
      * 处理岗位搜索响应
      */
     private void handleJobSearchResponse(Response res) {
-        log.info("=== 岗位搜索响应拦截 ===");
-        log.info("响应状态: {}", res.status());
-        log.info("响应URL: {}", res.url());
-        log.info("响应头: {}", res.headers());
+        log.debug("=== 岗位搜索响应拦截 ===");
+        log.debug("响应状态: {}", res.status());
+        log.debug("响应URL: {}", res.url());
+        log.debug("响应头: {}", res.headers());
 
         try {
             String body = res.text();
-            log.info("响应体长度: {} 字符", body.length());
-            log.info("响应体内容: {}", body);
+            log.debug("响应体长度: {} 字符", body.length());
+            log.debug("响应体内容: {}", body);
 
             // 尝试解析JSON并美化输出
             formatJsonResponse(body);
@@ -194,7 +135,7 @@ public class BossApiMonitorService {
         } catch (PlaywrightException e) {
             log.error("读取响应体失败: {}", e.getMessage());
         }
-        log.info("==========================");
+        log.debug("==========================");
     }
 
     /**
@@ -327,7 +268,6 @@ public class BossApiMonitorService {
         }
     }
 
-
     /**
      * 解析职位明细数据并更新到数据库
      *
@@ -345,7 +285,7 @@ public class BossApiMonitorService {
      * 解析职位明细数据并更新到数据库
      * 
      * @param jsonResponse 职位明细JSON响应
-     * @param encryptJobId   加密JobId
+     * @param encryptJobId 加密JobId
      */
     @Transactional
     protected void parseAndUpdateJobDetail(JSONObject jsonResponse, String encryptJobId) {
@@ -599,70 +539,6 @@ public class BossApiMonitorService {
             log.debug("成功更新brandComInfo信息到JobEntity");
         } catch (Exception e) {
             log.error("更新brandComInfo信息失败: {}", e.getMessage(), e);
-        }
-    }
-
-    /**
-     * 通过访问zhipin.com主页来刷新token
-     * 模拟正常用户访问行为，获取新的临时token
-     * 
-     * @return 是否成功刷新token
-     */
-    private boolean refreshTokenByVisitingZhipin() {
-        try {
-            log.info("开始访问zhipin.com刷新token");
-
-            // 获取Playwright上下文
-            BrowserContext context = playwrightService.getContext(RecruitmentPlatformEnum.BOSS_ZHIPIN);
-            if (context == null) {
-                log.error("无法获取Playwright上下文，token刷新失败");
-                return false;
-            }
-
-            // 创建新页面访问zhipin.com
-            Page refreshPage = context.newPage();
-
-            try {
-                // 设置用户代理，模拟真实浏览器访问
-                refreshPage.setExtraHTTPHeaders(Map.of(
-                        "User-Agent",
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                        "Accept",
-                        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-                        "Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8",
-                        "Accept-Encoding", "gzip, deflate, br",
-                        "Cache-Control", "no-cache",
-                        "Pragma", "no-cache"));
-
-                // 访问zhipin.com主页
-                log.info("正在访问 https://www.zhipin.com/");
-                refreshPage.navigate("https://www.zhipin.com/");
-
-                // 等待页面加载完成
-                refreshPage.waitForLoadState();
-                refreshPage.waitForTimeout(3000); // 等待3秒确保页面完全加载
-
-                // 模拟用户行为：滚动页面
-                refreshPage.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)");
-                refreshPage.waitForTimeout(1000);
-
-                // 模拟点击页面（不实际点击任何元素，只是模拟用户活动）
-                refreshPage.hover("body");
-                refreshPage.waitForTimeout(1000);
-
-                log.info("成功访问zhipin.com，token刷新完成");
-                return true;
-
-            } finally {
-                // 关闭页面
-                if (refreshPage != null) {
-                    refreshPage.close();
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("访问zhipin.com刷新token时发生异常: {}", e.getMessage(), e);
-            return false;
         }
     }
 
