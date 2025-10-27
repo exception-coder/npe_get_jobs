@@ -29792,3 +29792,14 @@ liepin:
         "n": "三亚"
       }
     }
+# 异步任务配置
+async:
+  # 核心线程数（默认：4，0表示根据CPU核心数动态计算）
+  core-pool-size: 4
+  # 最大线程数（默认：8，0表示根据CPU核心数动态计算）
+  max-pool-size: 8
+  # 队列容量
+  queue-capacity: 100
+  # 线程空闲时间（秒）
+  keep-alive-seconds: 60
+

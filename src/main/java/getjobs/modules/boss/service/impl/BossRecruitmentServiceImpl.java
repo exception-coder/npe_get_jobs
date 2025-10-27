@@ -350,6 +350,9 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
         log.info("保存Boss直聘黑名单数据: {}", dataPath);
     }
 
+
+
+
     // ==================== 私有辅助方法 ====================
 
     /**
@@ -1162,5 +1165,31 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
         profileDTO.setAvailability(userProfile.getAvailability());
         profileDTO.setLinks(userProfile.getLinks());
         return profileDTO;
+    }
+
+    /**
+     * Boss直聘平台特定的城市过滤逻辑
+     * Boss直聘主要使用城市代码（cityCode）进行严格匹配
+     * 
+     * @param job              职位信息
+     * @param allowedCityCodes 允许的城市代码列表
+     * @return 过滤原因，null表示通过过滤
+     */
+    @Override
+    public String filterByCity(JobDTO job, List<String> allowedCityCodes) {
+        if (allowedCityCodes == null || allowedCityCodes.isEmpty()) {
+            return null; // 如果未配置城市过滤，则默认通过
+        }
+
+        // Boss直聘使用城市代码进行严格匹配
+        if (job.getCityCode() == null) {
+            return null; // 如果职位没有城市代码，默认通过
+        }
+
+        if (!allowedCityCodes.contains(String.valueOf(job.getCityCode()))) {
+            return "Boss直聘-城市代码不符合要求: " + job.getCityCode();
+        }
+
+        return null;
     }
 }

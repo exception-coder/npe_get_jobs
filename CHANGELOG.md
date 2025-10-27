@@ -1,6 +1,205 @@
 # Changelog 💖
 Hello 小可爱们！这里是我们的成长日记，所有酷炫的更新和优化都会在这里记录哦！
 
+## [1.0.33] - 2025-10-26 🎨
+
+### Added
+- **AI建议可视化展示上线！✨ 智能推荐一目了然**
+  - **核心技能AI建议区域 🎯**：在候选人信息配置的"核心技能"板块中新增AI建议技能清单展示
+    - 紫色渐变背景（#667eea → #764ba2），专业感满满
+    - 显示后端返回的 `aiTechStack` 数组，推荐市场主流技术栈
+    - 使用机器人图标 `bi-robot` + "智能推荐"徽章，AI特征鲜明
+  - **领域经验AI建议区域 💼**：在"领域经验"板块中新增两个独立的AI建议区域
+    - **热门行业区域**：粉红渐变背景（#f093fb → #f5576c）
+      - 显示 `aiHotIndustries` 数组，推荐当前最热门的行业方向
+      - 使用星星图标 `bi-stars`，突出"热门"属性
+    - **相关领域区域**：蓝色渐变背景（#4facfe → #00f2fe）
+      - 显示 `aiRelatedDomains` 数组，推荐职业延伸领域
+      - 使用灯泡图标 `bi-lightbulb`，传达"灵感"与"拓展"
+  - **打招呼内容AI建议区域 💬**：在简历配置的"打招呼内容"板块中新增AI生成内容展示
+    - 黄粉渐变背景（#fa709a → #fee140），温暖友好
+    - 显示 `aiGreetingMessage` 字符串，展示AI生成的个性化招呼语
+    - 使用聊天心形图标 `bi-chat-heart` + "智能生成"徽章
+    - 内置"复制"按钮，一键复制AI生成的内容到剪贴板
+    - 复制成功后按钮变绿显示"已复制"，2秒后自动恢复
+  - **设计亮点 🌈**：
+    - 每个AI区域都有独特的渐变背景色和2px边框，视觉层次分明
+    - 使用白色徽章（badge）展示AI建议标签，与背景形成鲜明对比
+    - 专属AI图标（机器人、星星、灯泡、聊天心形），一眼识别AI功能
+    - "智能推荐/智能生成"徽章标识，强化AI属性
+    - 默认隐藏，只有当后端返回数据时才显示，避免空白区域
+  - **交互体验优化 🎁**：
+    - 复制按钮带视觉反馈：复制成功后变绿色并显示"已复制"
+    - 2秒后自动恢复原始状态，给用户明确的操作反馈
+    - 异常处理：复制失败时弹出提示，提示用户手动复制
+
+### Technical Details
+- **修改文件**：
+  - `index.html`：
+    - 在"核心技能"板块后新增 `aiTechStackSection`（AI建议技能区域）
+    - 在"领域经验"板块后新增 `aiDomainSection`（包含热门行业和相关领域两个子区域）
+    - 在"打招呼内容"板块后新增 `aiGreetingSection`（AI建议打招呼内容区域）
+    - 总计新增约50行HTML代码
+  - `common-config.js`：
+    - 新增 `populateAiSuggestions(config)` 函数（约100行）
+    - 在 `loadCommonConfig()` 中调用 `populateAiSuggestions()` 展示AI建议
+    - 实现复制按钮的事件绑定和视觉反馈逻辑
+    - 支持从后端响应的 `data` 属性中提取AI建议字段
+- **数据结构**（后端返回的AI建议字段）：
+  - `aiTechStack` - AI推荐技术栈（数组，如：["Java 17", "Spring Boot", "MySQL", "Redis"]）
+  - `aiHotIndustries` - AI推荐热门行业（数组，如：["互联网", "电商", "金融科技"]）
+  - `aiRelatedDomains` - AI推荐相关领域（数组，如：["医疗信息化", "教育科技", "物流供应链"]）
+  - `aiGreetingMessage` - AI生成的打招呼消息（字符串，50-120字）
+- **视觉设计规范**：
+  - **核心技能AI区域**：`background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)`
+  - **热门行业AI区域**：`background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)`
+  - **相关领域AI区域**：`background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)`
+  - **打招呼AI区域**：`background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)`
+  - 统一样式：`border-radius: 10px`、`padding: 12px`、白色文字、白色徽章标签
+- **JavaScript逻辑**：
+  - `populateAiSuggestions()` 函数负责解析后端数据并动态渲染AI建议区域
+  - 使用 `document.createElement()` 和 `appendChild()` 动态创建徽章标签
+  - 使用 `navigator.clipboard.writeText()` 实现复制功能
+  - 复制按钮使用 `cloneNode(true)` 移除旧事件监听器，避免重复绑定
+  - 所有AI区域默认 `display: none`，有数据时才设置为 `display: block`
+- **兼容性处理**：
+  - 后端未返回AI建议数据时，前端优雅降级，不显示AI区域
+  - 数组为空或未定义时，不渲染对应的AI建议区域
+  - 复制API不支持时，使用 `alert()` 提示用户手动复制
+
+### 收益
+- ✅ AI建议可视化展示，用户可直观查看AI分析结果
+- ✅ 独特的视觉设计，一眼识别AI推荐内容
+- ✅ 一键复制功能，快速应用AI生成的打招呼内容
+- ✅ 渐变色背景和专属图标，提升界面美观度和现代感
+- ✅ 智能显隐逻辑，避免空白区域影响用户体验
+- ✅ 为候选人提供职业发展参考（技能、行业、领域）
+- ✅ 降低填写打招呼内容的门槛，提高沟通效率
+- ✅ 完整的交互反馈，提升用户操作体验
+
+## [1.0.32] - 2025-10-26 🤖
+
+### Added
+- **AI岗位技能分析模块上线！✨ 智能分析技术栈，自动生成打招呼消息**
+  - **全新 job_skill 模块 🎯**：在 `modules/ai/job_skill` 包下构建了完整的岗位技能分析框架
+    - 根据岗位名称和工作年限，AI自动分析市场主流技术栈
+    - 推荐热门行业领域和相关领域，帮你拓宽职业视野
+    - 智能生成岗位匹配打招呼消息（50-120字），专业友好不夸张
+    - 支持个人优势列表输入，AI自动融合优势生成个性化文案
+  - **核心功能实现 🚀**：
+    - **DTO层**：`JobSkillRequest`（请求参数）、`JobSkillResponse`（分析结果）
+    - **Assembler层**：`JobSkillPromptAssembler`（提示词组装器）、`JobSkillPromptVariables`（变量常量）
+    - **Service层**：`JobSkillService`（分析服务，支持模板ID指定）
+    - **Web层**：`JobSkillController`（HTTP接口 `/api/ai/job-skill/analyze`）
+    - **提示词模板**：`prompts/job-skill-prompt.yml`（结构化YAML配置）
+  - **智能推断规则 🧠**：
+    - 未给明确定义的岗位名称自动推断职业方向（如 Java开发 → 后端工程师）
+    - 若未提供年限，默认中级（3-5年）
+    - 个人优势为空时，结合岗位硬性指标和主流技术栈自动补强
+    - 文案强调主流技术栈经验、模块级业务能力、系统稳定性与协作能力
+  - **配置自动保存 💾**：用户保存公共配置时，自动触发AI分析并保存结果到 UserProfile
+    - 分析结果包含：推断的岗位名称、岗位级别、技术栈列表、热门行业、相关领域、打招呼消息
+    - 前端通过 `/api/common/config/get` 接口可获取AI分析结果
+    - 数据持久化到数据库，下次访问无需重新分析
+  - **异步执行优化 ⚡**：
+    - 创建专用异步线程池 `aiAnalysisExecutor`（核心线程2，最大4）
+    - AI分析在后台异步执行，不阻塞配置保存流程
+    - 保存配置立即返回成功，用户体验流畅丝滑
+    - 分析完成后自动更新数据库，前端下次查询即可获取结果
+
+### Technical Details
+- **新增文件**（11个核心文件）：
+  - **job_skill模块**（7个）：
+    - `JobSkillRequest.java` - 分析请求DTO（岗位名称、工作年限、个人优势）
+    - `JobSkillResponse.java` - 分析结果DTO（推断岗位、级别、技术栈、行业、领域、打招呼消息）
+    - `JobSkillPromptAssembler.java` - 提示词组装器
+    - `JobSkillPromptVariables.java` - 提示词变量常量
+    - `JobSkillService.java` - 岗位技能分析服务
+    - `JobSkillController.java` - HTTP接口控制器
+    - `prompts/job-skill-prompt.yml` - 结构化提示词模板（SYSTEM、USER、FEW_SHOTS）
+  - **异步执行模块**（2个）：
+    - `AsyncConfig.java` - 异步任务配置类（通用线程池 + AI专用线程池）
+    - `JobSkillAnalysisAsyncService.java` - 岗位技能分析异步服务
+  - **配置文件**（2个）：
+    - `application.yml` - 新增异步任务配置（core-pool-size、max-pool-size等）
+- **修改文件**（3个）：
+  - `UserProfile.java`：
+    - 新增6个AI分析结果字段：
+      - `aiInferredJobTitle` - 推断的岗位名称（VARCHAR 100）
+      - `aiJobLevel` - 岗位级别（VARCHAR 50）
+      - `aiTechStack` - 技术栈列表（TEXT, JSON）
+      - `aiHotIndustries` - 热门行业领域（TEXT, JSON）
+      - `aiRelatedDomains` - 相关领域（TEXT, JSON）
+      - `aiGreetingMessage` - 打招呼消息（TEXT）
+  - `UserProfileDTO.java`：同步新增6个AI分析结果字段的DTO定义
+  - `CommonConfigController.java`：
+    - 注入 `JobSkillAnalysisAsyncService` 异步服务
+    - 在 `saveCommonConfig()` 中调用 `analyzeJobSkillAsync(saved.getId())`
+    - 在 `convertToDTO()` 中添加AI分析结果字段的映射
+- **异步配置**：
+  - **通用线程池**：核心线程4，最大线程8，队列容量100
+  - **AI专用线程池**：核心线程2，最大线程4，队列容量50，避免大模型调用占用过多资源
+  - 拒绝策略：CallerRunsPolicy（由调用线程处理，保证任务不丢失）
+  - 优雅关闭：等待所有任务结束后再关闭线程池，超时60秒
+- **提示词模板设计**：
+  - **SYSTEM角色**：定义AI身份（资深IT岗位市场分析顾问 + 招聘文案专家）
+  - **USER角色**：提供输入参数（岗位名称、工作年限、个人优势）
+  - **FEW_SHOTS角色**：提供示例输出（Java开发 → Java后端开发工程师）
+  - **输出JSON结构**：7个字段的结构化数据，便于解析和使用
+- **智能文案规则**：
+  - 50~120字中文，语气专业友好，不谄媚不夸张
+  - 围绕岗位需求与能力匹配展开
+  - 有个人优势列表：融合其中1-2点，体现价值
+  - 无个人优势：自动根据市场热门要求补充2点合理优势
+  - 表达稳定交付能力与主流项目实践经验
+  - 避免硬夸技术或与能力不符的超大型项目描述
+- **执行流程**：
+  1. 用户保存公共配置 → 立即返回成功（不阻塞）
+  2. 后台异步线程从数据库重新加载 UserProfile
+  3. 提取岗位名称、工作年限、个人亮点（highlights作为优势）
+  4. 调用 `JobSkillService.analyze()` 执行AI分析（2-5秒）
+  5. 将分析结果保存到 UserProfile（6个字段）
+  6. 设置 `updatedAt` 时间戳
+  7. 前端下次查询配置时自动获取AI分析结果
+- **容错设计**：
+  - 岗位名称缺失时优雅降级，跳过AI分析
+  - 工作年限缺失时优雅降级，跳过AI分析
+  - 支持新旧字段兼容（jobTitle/role、yearsOfExperience/years）
+  - AI分析异常不影响配置保存流程
+  - 详细的日志记录，方便问题排查
+- **API使用示例**：
+  ```bash
+  POST /api/ai/job-skill/analyze
+  Content-Type: application/json
+  
+  {
+    "jobTitle": "Java开发",
+    "experienceYears": "3年",
+    "personalStrengths": ["熟悉MySQL调优", "有支付系统经验"]
+  }
+  
+  # 响应
+  {
+    "inferredJobTitle": "Java后端开发工程师",
+    "jobLevel": "中级",
+    "experienceRange": "3年经验",
+    "techStack": ["Java 17", "Spring Boot", "Spring Cloud", "MyBatis", "MySQL", "Redis", "Kafka", "Docker", "Kubernetes"],
+    "hotIndustries": ["互联网", "电商", "金融科技"],
+    "relatedDomains": ["医疗信息化", "教育科技", "物流供应链"],
+    "greetingMessage": "您好，我目前从事Java后端开发3年，熟悉Spring Cloud微服务与常见数据库缓存组合，能独立负责业务模块迭代与优化，对系统稳定性与性能问题处理较有经验，期待了解贵司岗位需求，看是否能共同推动项目落地。"
+  }
+  ```
+
+### 收益
+- ✅ 智能分析市场主流技术栈，帮助候选人了解岗位技术要求
+- ✅ 推荐热门行业和相关领域，拓宽职业发展视野
+- ✅ 自动生成专业友好的打招呼消息，提升沟通效率
+- ✅ 异步执行不阻塞主流程，用户体验流畅
+- ✅ 数据持久化到数据库，避免重复分析
+- ✅ 完整的模块化设计，便于维护和扩展
+- ✅ 统一的提示词管理架构，支持多版本A/B测试
+- ✅ 为未来AI智能匹配、个性化推荐打下基础
+
 ## [1.0.31] - 2025-10-23 🍪
 
 ### Changed

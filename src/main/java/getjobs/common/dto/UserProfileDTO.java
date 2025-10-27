@@ -176,4 +176,34 @@ public class UserProfileDTO {
      * HR过滤状态关键词列表（全局功能开关）
      */
     private List<String> hrStatusKeywords;
+
+    /**
+     * AI分析结果：推断的岗位名称
+     */
+    private String aiInferredJobTitle;
+
+    /**
+     * AI分析结果：岗位级别
+     */
+    private String aiJobLevel;
+
+    /**
+     * AI分析结果：技术栈列表
+     */
+    private List<String> aiTechStack;
+
+    /**
+     * AI分析结果：热门行业领域
+     */
+    private List<String> aiHotIndustries;
+
+    /**
+     * AI分析结果：相关领域
+     */
+    private List<String> aiRelatedDomains;
+
+    /**
+     * AI分析结果：打招呼消息
+     */
+    private String aiGreetingMessage;
 }

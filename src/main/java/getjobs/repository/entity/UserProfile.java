@@ -223,4 +223,43 @@ public class UserProfile extends BaseEntity {
     @Column(name = "hr_status_keywords", columnDefinition = "TEXT")
     @Convert(converter = JsonListStringConverter.class)
     private List<String> hrStatusKeywords;
+
+    /**
+     * AI分析结果：推断的岗位名称
+     */
+    @Column(name = "ai_inferred_job_title", length = 100)
+    private String aiInferredJobTitle;
+
+    /**
+     * AI分析结果：岗位级别
+     */
+    @Column(name = "ai_job_level", length = 50)
+    private String aiJobLevel;
+
+    /**
+     * AI分析结果：技术栈列表（以JSON格式存储）
+     */
+    @Column(name = "ai_tech_stack", columnDefinition = "TEXT")
+    @Convert(converter = JsonListStringConverter.class)
+    private List<String> aiTechStack;
+
+    /**
+     * AI分析结果：热门行业领域（以JSON格式存储）
+     */
+    @Column(name = "ai_hot_industries", columnDefinition = "TEXT")
+    @Convert(converter = JsonListStringConverter.class)
+    private List<String> aiHotIndustries;
+
+    /**
+     * AI分析结果：相关领域（以JSON格式存储）
+     */
+    @Column(name = "ai_related_domains", columnDefinition = "TEXT")
+    @Convert(converter = JsonListStringConverter.class)
+    private List<String> aiRelatedDomains;
+
+    /**
+     * AI分析结果：打招呼消息
+     */
+    @Column(name = "ai_greeting_message", columnDefinition = "TEXT")
+    private String aiGreetingMessage;
 }

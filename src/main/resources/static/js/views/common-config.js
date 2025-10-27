@@ -121,6 +121,13 @@
             // 先加载AI平台列表（即使没有配置数据也需要加载）
             if (aiPlatforms && aiPlatforms.length > 0) {
                 populateAiPlatforms(aiPlatforms);
+            } else {
+                // 如果没有从后端获取到AI平台列表，也要设置为Deepseek
+                const aiPlatformSelect = document.getElementById('aiPlatform');
+                if (aiPlatformSelect) {
+                    aiPlatformSelect.innerHTML = '<option value="Deepseek" selected>Deepseek</option>';
+                    aiPlatformSelect.disabled = true;
+                }
             }
             
             // 如果没有配置数据，直接返回
@@ -140,6 +147,9 @@
             // 填充候选人信息
             populateProfileForm(config);
             
+            // 填充AI建议内容
+            populateAiSuggestions(config);
+            
             // 填充AI配置（从JSON键值对中提取）
             if (config.aiPlatformConfigs && Object.keys(config.aiPlatformConfigs).length > 0) {
                 // 缓存所有平台配置
@@ -148,15 +158,14 @@
                 const aiPlatformSelect = document.getElementById('aiPlatform');
                 const aiPlatformKeyInput = document.getElementById('aiPlatformKey');
                 
-                // 获取第一个配置的平台和密钥
-                const firstPlatform = Object.keys(config.aiPlatformConfigs)[0];
-                const firstKey = config.aiPlatformConfigs[firstPlatform];
+                // 只使用Deepseek平台配置
+                const deepseekKey = config.aiPlatformConfigs['Deepseek'];
                 
-                if (aiPlatformSelect && firstPlatform) {
-                    aiPlatformSelect.value = firstPlatform;
+                if (aiPlatformSelect) {
+                    aiPlatformSelect.value = 'Deepseek';
                 }
-                if (aiPlatformKeyInput && firstKey) {
-                    aiPlatformKeyInput.value = firstKey;
+                if (aiPlatformKeyInput && deepseekKey) {
+                    aiPlatformKeyInput.value = deepseekKey;
                 }
             }
             
@@ -551,6 +560,115 @@
     }
 
     /**
+     * 填充AI建议内容
+     */
+    function populateAiSuggestions(config) {
+        if (!config) return;
+        
+        // AI建议技能
+        if (config.aiTechStack && Array.isArray(config.aiTechStack) && config.aiTechStack.length > 0) {
+            const aiTechStackSection = document.getElementById('aiTechStackSection');
+            const aiTechStackTags = document.getElementById('aiTechStackTags');
+            
+            if (aiTechStackSection && aiTechStackTags) {
+                // 清空现有内容
+                aiTechStackTags.innerHTML = '';
+                
+                // 添加标签
+                config.aiTechStack.forEach(skill => {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-white text-primary px-3 py-2';
+                    badge.style.fontSize = '13px';
+                    badge.textContent = skill;
+                    aiTechStackTags.appendChild(badge);
+                });
+                
+                // 显示区域
+                aiTechStackSection.style.display = 'block';
+            }
+        }
+        
+        // AI建议热门行业和相关领域
+        const hasHotIndustries = config.aiHotIndustries && Array.isArray(config.aiHotIndustries) && config.aiHotIndustries.length > 0;
+        const hasRelatedDomains = config.aiRelatedDomains && Array.isArray(config.aiRelatedDomains) && config.aiRelatedDomains.length > 0;
+        
+        if (hasHotIndustries || hasRelatedDomains) {
+            const aiDomainSection = document.getElementById('aiDomainSection');
+            
+            if (hasHotIndustries) {
+                const aiHotIndustriesTags = document.getElementById('aiHotIndustriesTags');
+                if (aiHotIndustriesTags) {
+                    aiHotIndustriesTags.innerHTML = '';
+                    config.aiHotIndustries.forEach(industry => {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-white text-danger px-3 py-2';
+                        badge.style.fontSize = '13px';
+                        badge.textContent = industry;
+                        aiHotIndustriesTags.appendChild(badge);
+                    });
+                }
+            }
+            
+            if (hasRelatedDomains) {
+                const aiRelatedDomainsTags = document.getElementById('aiRelatedDomainsTags');
+                if (aiRelatedDomainsTags) {
+                    aiRelatedDomainsTags.innerHTML = '';
+                    config.aiRelatedDomains.forEach(domain => {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-white text-info px-3 py-2';
+                        badge.style.fontSize = '13px';
+                        badge.textContent = domain;
+                        aiRelatedDomainsTags.appendChild(badge);
+                    });
+                }
+            }
+            
+            if (aiDomainSection) {
+                aiDomainSection.style.display = 'block';
+            }
+        }
+        
+        // AI建议打招呼内容
+        if (config.aiGreetingMessage && config.aiGreetingMessage.trim()) {
+            const aiGreetingSection = document.getElementById('aiGreetingSection');
+            const aiGreetingMessage = document.getElementById('aiGreetingMessage');
+            const copyAiGreetingBtn = document.getElementById('copyAiGreetingBtn');
+            
+            if (aiGreetingSection && aiGreetingMessage) {
+                aiGreetingMessage.textContent = config.aiGreetingMessage;
+                aiGreetingSection.style.display = 'block';
+                
+                // 显示复制按钮
+                if (copyAiGreetingBtn) {
+                    copyAiGreetingBtn.style.display = 'inline-block';
+                    
+                    // 绑定复制事件（移除旧的事件监听器避免重复）
+                    const newCopyBtn = copyAiGreetingBtn.cloneNode(true);
+                    copyAiGreetingBtn.parentNode.replaceChild(newCopyBtn, copyAiGreetingBtn);
+                    
+                    newCopyBtn.addEventListener('click', function() {
+                        navigator.clipboard.writeText(config.aiGreetingMessage).then(() => {
+                            const originalHtml = newCopyBtn.innerHTML;
+                            newCopyBtn.innerHTML = '<i class="bi bi-check-circle"></i> 已复制';
+                            newCopyBtn.classList.add('btn-success');
+                            newCopyBtn.classList.remove('btn-light');
+                            
+                            setTimeout(() => {
+                                newCopyBtn.innerHTML = originalHtml;
+                                newCopyBtn.classList.remove('btn-success');
+                                newCopyBtn.classList.add('btn-light');
+                            }, 2000);
+                        }).catch(err => {
+                            console.error('复制失败:', err);
+                            alert('复制失败，请手动复制');
+                        });
+                    });
+                }
+            }
+        }
+    }
+
+    /**
      * 填充AI平台下拉框选项
      */
     function populateAiPlatforms(platforms) {
@@ -566,26 +684,36 @@
             return;
         }
         
-        // 保存当前选中的值
-        const currentValue = aiPlatformSelect.value;
+        // 固定为Deepseek平台，不可更改
+        // 查找Deepseek平台配置
+        const deepseekPlatform = platforms.find(p => p.value === 'Deepseek');
         
-        // 清空现有选项（保留第一个"请选择"选项）
-        aiPlatformSelect.innerHTML = '<option value="">请选择AI平台</option>';
+        // 清空现有选项，只保留Deepseek选项
+        aiPlatformSelect.innerHTML = '';
         
-        // 动态添加选项
-        platforms.forEach(platform => {
+        if (deepseekPlatform) {
             const option = document.createElement('option');
-            option.value = platform.value;
-            option.textContent = platform.label;
+            option.value = deepseekPlatform.value;
+            option.textContent = deepseekPlatform.label;
+            option.selected = true;
             aiPlatformSelect.appendChild(option);
-        });
-        
-        // 恢复之前选中的值
-        if (currentValue) {
-            aiPlatformSelect.value = currentValue;
+        } else {
+            // 如果没有找到Deepseek，创建一个默认选项
+            const option = document.createElement('option');
+            option.value = 'Deepseek';
+            option.textContent = 'Deepseek';
+            option.selected = true;
+            aiPlatformSelect.appendChild(option);
+            console.warn('未找到Deepseek平台配置，使用默认值');
         }
         
-        console.log('AI平台列表加载成功', platforms);
+        // 设置为禁用状态，不允许用户更改
+        aiPlatformSelect.disabled = true;
+        
+        // 触发change事件，加载对应的API Key
+        aiPlatformSelect.dispatchEvent(new Event('change'));
+        
+        console.log('AI平台已固定为Deepseek（不可更改）');
     }
 
     /**

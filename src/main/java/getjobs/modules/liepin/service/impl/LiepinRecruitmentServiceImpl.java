@@ -13,6 +13,10 @@ import getjobs.repository.UserProfileRepository;
 import getjobs.repository.entity.ConfigEntity;
 import getjobs.service.AbstractRecruitmentService;
 import getjobs.service.ConfigService;
+import getjobs.modules.dict.infrastructure.provider.LiepinDictProviderImpl;
+import getjobs.modules.dict.api.DictBundle;
+import getjobs.modules.dict.api.DictGroup;
+import getjobs.modules.dict.api.DictGroupKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +35,7 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
     private final LiePinApiMonitorService liePinApiMonitorService;
     private final PlaywrightService playwrightService;
     private final JobFilterService jobFilterService;
+    private final LiepinDictProviderImpl liepinDictProvider;
 
     private Page page;
 
@@ -38,11 +43,13 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
             UserProfileRepository userProfileRepository,
             LiePinApiMonitorService liePinApiMonitorService,
             PlaywrightService playwrightService,
-            JobFilterService jobFilterService) {
+            JobFilterService jobFilterService,
+            LiepinDictProviderImpl liepinDictProvider) {
         super(configService, userProfileRepository);
         this.liePinApiMonitorService = liePinApiMonitorService;
         this.playwrightService = playwrightService;
         this.jobFilterService = jobFilterService;
+        this.liepinDictProvider = liepinDictProvider;
     }
 
     private static final String HOME_URL = RecruitmentPlatformEnum.LIEPIN.getHomeUrl();
@@ -245,6 +252,25 @@ public class LiepinRecruitmentServiceImpl extends AbstractRecruitmentService {
     @Override
     public boolean isDeliveryLimitReached() {
         return false;
+    }
+
+    @Override
+    public String filterByCity(JobDTO job, List<String> allowedCityCodes) {
+        // 从 LiepinDictProviderImpl 获取城市字典
+        DictBundle dictBundle = liepinDictProvider.fetchAll();
+
+        // 获取城市字典组，将城市编码转换为城市名称集合
+        List<String> allowedCityNames = dictBundle.group(DictGroupKey.CITY.key())
+                .map(DictGroup::items)
+                .orElse(List.of())
+                .stream()
+                .filter(item -> allowedCityCodes.contains(item.code()))
+                .map(item -> item.name())
+                .toList();
+
+        log.debug("允许的城市编码: {}, 对应的城市名称: {}", allowedCityCodes, allowedCityNames);
+
+        return super.filterByCity(job, allowedCityNames);
     }
 
     @Override

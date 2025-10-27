@@ -21,7 +21,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -147,16 +149,41 @@ public class LiepinTaskService {
                 throw new IllegalArgumentException("数据库中未找到职位数据或职位数据为空");
             }
 
-            List<JobDTO> jobDTOS = allJobEntities.stream().map(jobService::convertToDTO).collect(Collectors.toList());
-            List<JobDTO> filteredJobDTOS = liepinService.filterJobs(jobDTOS);
+            // 执行过滤逻辑，获取过滤原因
+            List<JobDTO> filteredJobDTOS = new ArrayList<>();
+            List<String> filteredJobIds = new ArrayList<>();
+            List<String> filterReasons = new ArrayList<>();
 
-            List<String> filteredJobIds = jobDTOS.stream()
-                    .filter(j -> !filteredJobDTOS.contains(j))
-                    .map(JobDTO::getEncryptJobId)
+            List<JobDTO> jobDTOS = allJobEntities.stream()
+                    .map(jobService::convertToDTO)
                     .collect(Collectors.toList());
+            List<JobDTO> filterJobs = liepinService.filterJobs(jobDTOS);
 
+            filterJobs.forEach(job -> {
+                String filterReason = job.getFilterReason();
+                if (filterReason == null) {
+                    // 通过过滤
+                    filteredJobDTOS.add(job);
+                } else {
+                    // 被过滤，记录原因
+                    filteredJobIds.add(job.getEncryptJobId());
+                    filterReasons.add(filterReason);
+                }
+            });
+
+            // 批量更新被过滤的职位状态
             if (!filteredJobIds.isEmpty()) {
-                jobService.updateJobStatus(filteredJobIds, JobStatusEnum.FILTERED.getCode(), "被过滤");
+                // 按过滤原因分组更新
+                Map<String, List<String>> reasonGroups = new HashMap<>();
+                for (int i = 0; i < filteredJobIds.size(); i++) {
+                    String reason = filterReasons.get(i);
+                    String encryptJobId = filteredJobIds.get(i);
+                    reasonGroups.computeIfAbsent(reason, k -> new ArrayList<>()).add(encryptJobId);
+                }
+
+                for (Map.Entry<String, List<String>> entry : reasonGroups.entrySet()) {
+                    jobService.updateJobStatus(entry.getValue(), JobStatusEnum.FILTERED.getCode(), entry.getKey());
+                }
             }
 
             FilterResult result = new FilterResult();

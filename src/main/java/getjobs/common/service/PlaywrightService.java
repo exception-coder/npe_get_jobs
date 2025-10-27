@@ -355,7 +355,7 @@ public class PlaywrightService {
             // 打印完整的Cookie信息到日志
             printSavedCookieDetails(platform, cookieJson);
 
-            log.info("✓ 平台 {} 的Cookie已保存到配置实体", platform.getPlatformName());
+            log.debug("✓ 平台 {} 的Cookie已保存到配置实体", platform.getPlatformName());
             return true;
         } catch (Exception e) {
             log.error("保存平台 {} 的Cookie到配置失败", platform.getPlatformName(), e);

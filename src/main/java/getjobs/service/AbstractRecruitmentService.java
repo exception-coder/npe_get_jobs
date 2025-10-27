@@ -1,10 +1,13 @@
 package getjobs.service;
 
 import getjobs.common.dto.ConfigDTO;
+import getjobs.modules.boss.dto.JobDTO;
 import getjobs.repository.UserProfileRepository;
 import getjobs.repository.entity.ConfigEntity;
 import getjobs.repository.entity.UserProfile;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
 
 /**
  * 招聘服务抽象基类
@@ -207,5 +210,41 @@ public abstract class AbstractRecruitmentService implements RecruitmentService {
                         return null;
                 }
                 return convertConfigEntityToDTO(configEntity);
+        }
+
+        /**
+         * 默认城市过滤实现
+         * 优先使用城市代码（cityCode）进行匹配，如果没有则尝试使用城市名称（workCity）
+         * 子类可以覆盖此方法实现平台特定的城市过滤逻辑
+         * 
+         * @param job              职位信息
+         * @param allowedCityCodes 允许的城市代码列表
+         * @return 过滤原因，null表示通过过滤
+         */
+        @Override
+        public String filterByCity(JobDTO job, List<String> allowedCityCodes) {
+                if (allowedCityCodes == null || allowedCityCodes.isEmpty()) {
+                        return null; // 如果未配置城市过滤，则默认通过
+                }
+
+                // 优先使用城市代码匹配
+                if (job.getCityCode() != null) {
+                        if (!allowedCityCodes.contains(String.valueOf(job.getCityCode()))) {
+                                return getPlatform().getPlatformName() + "-城市代码不符合要求: " + job.getCityCode();
+                        }
+                        return null;
+                }
+
+                // 如果没有城市代码，尝试使用城市名称匹配
+                if (job.getWorkCity() != null && !job.getWorkCity().isEmpty()) {
+                        boolean cityMatched = allowedCityCodes.stream()
+                                        .anyMatch(code -> job.getWorkCity().contains(code)
+                                                        || code.contains(job.getWorkCity()));
+                        if (!cityMatched) {
+                                return getPlatform().getPlatformName() + "-城市名称不符合要求: " + job.getWorkCity();
+                        }
+                }
+
+                return null;
         }
 }

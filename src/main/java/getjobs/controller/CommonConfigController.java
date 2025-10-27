@@ -5,7 +5,9 @@ import getjobs.common.dto.UserProfileDTO;
 import getjobs.modules.ai.common.enums.AiPlatform;
 import getjobs.repository.UserProfileRepository;
 import getjobs.repository.entity.UserProfile;
+import getjobs.modules.ai.job_skill.service.JobSkillAnalysisAsyncService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
  * 公共配置控制器
  * 用于管理系统级别的公共配置
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/common/config")
 @RequiredArgsConstructor
@@ -28,6 +31,7 @@ public class CommonConfigController {
 
     private final UserProfileRepository userProfileRepository;
     private final ObjectMapper objectMapper;
+    private final JobSkillAnalysisAsyncService jobSkillAnalysisAsyncService;
 
     /**
      * 新增或更新公共配置
@@ -198,6 +202,9 @@ public class CommonConfigController {
 
             // 保存到数据库
             UserProfile saved = userProfileRepository.save(userProfile);
+
+            // 异步调用 AI 分析岗位技能（不阻塞主流程）
+            jobSkillAnalysisAsyncService.analyzeJobSkillAsync(saved.getId());
 
             response.put("success", true);
             response.put("message", "公共配置保存成功");
@@ -426,6 +433,14 @@ public class CommonConfigController {
         dto.setFilterDeadHR(userProfile.getFilterDeadHR());
         dto.setHrStatusKeywords(userProfile.getHrStatusKeywords());
 
+        // AI分析结果
+        dto.setAiInferredJobTitle(userProfile.getAiInferredJobTitle());
+        dto.setAiJobLevel(userProfile.getAiJobLevel());
+        dto.setAiTechStack(userProfile.getAiTechStack());
+        dto.setAiHotIndustries(userProfile.getAiHotIndustries());
+        dto.setAiRelatedDomains(userProfile.getAiRelatedDomains());
+        dto.setAiGreetingMessage(userProfile.getAiGreetingMessage());
+
         return dto;
     }
 
@@ -458,4 +473,5 @@ public class CommonConfigController {
 
         return false;
     }
+
 }

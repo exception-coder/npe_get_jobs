@@ -1,6 +1,7 @@
 package getjobs.service;
 
 import getjobs.common.enums.JobStatusEnum;
+import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
@@ -232,7 +233,12 @@ public class JobService {
         if (platform == null || platform.trim().isEmpty()) {
             throw new IllegalArgumentException("platform不能为空");
         }
-
+        // 兼容前端使用平台名称进行查询的情况
+        for (RecruitmentPlatformEnum value : RecruitmentPlatformEnum.values()) {
+            if(value.getPlatformName().equals(platform)){
+                platform = value.getPlatformCode();
+            }
+        }
         List<JobEntity> jobs = jobRepository.findByPlatform(platform);
         if (jobs.isEmpty()) {
             return 0;

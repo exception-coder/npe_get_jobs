@@ -83,4 +83,14 @@ public interface RecruitmentService {
      */
     void saveData(String dataPath);
 
+    /**
+     * 城市过滤功能
+     * 根据平台特定的城市匹配规则进行过滤
+     * 
+     * @param job              职位信息
+     * @param allowedCityCodes 允许的城市代码列表
+     * @return 过滤原因，null表示通过过滤
+     */
+    String filterByCity(JobDTO job, List<String> allowedCityCodes);
+
 }

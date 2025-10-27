@@ -129,18 +129,18 @@
                                 <!-- AI平台选择 -->
                                 <div class="mb-3">
                                     <label for="aiPlatform" class="form-label small">AI平台</label>
-                                    <select class="form-select" id="aiPlatform">
-                                        <option value="">请选择AI平台</option>
-                                        <!-- AI平台选项将通过后端API动态加载 -->
+                                    <select class="form-select" id="aiPlatform" disabled>
+                                        <option value="Deepseek">Deepseek</option>
+                                        <!-- AI平台固定为Deepseek，不可更改 -->
                                     </select>
                                 </div>
                                 
                                 <!-- AI平台KEY -->
                                 <div class="mb-3">
-                                    <label for="aiPlatformKey" class="form-label small">API密钥</label>
+                                    <label for="aiPlatformKey" class="form-label small">Deepseek API密钥</label>
                                     <div class="input-group">
                                         <input type="password" class="form-control" id="aiPlatformKey" 
-                                               placeholder="请输入AI平台的API Key">
+                                               placeholder="请输入Deepseek的API Key">
                                         <button class="btn btn-outline-secondary" type="button" id="toggleAiPlatformKey">
                                             <i class="bi bi-eye" id="aiPlatformKeyIcon"></i>
                                         </button>
@@ -293,6 +293,19 @@
                                         <i class="bi bi-info-circle me-1"></i>
                                         设置与HR打招呼时的自动发送内容，应用于所有平台，建议个性化定制以增加回复率
                                     </small>
+                                    
+                                    <!-- AI建议打招呼内容区域 -->
+                                    <div id="aiGreetingSection" class="mt-3 p-3" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 10px; border: 2px solid #f093fb; display: none;">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bi bi-chat-heart text-white fs-5 me-2"></i>
+                                            <span class="text-white fw-bold">AI 建议打招呼内容</span>
+                                            <span class="badge bg-light text-warning ms-2">智能生成</span>
+                                            <button class="btn btn-sm btn-light ms-auto" id="copyAiGreetingBtn" style="display: none;">
+                                                <i class="bi bi-clipboard"></i> 复制
+                                            </button>
+                                        </div>
+                                        <div id="aiGreetingMessage" class="p-2 bg-white rounded" style="color: #333; font-size: 14px; line-height: 1.6;"></div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -340,6 +353,16 @@
                                        placeholder="输入技能后按回车添加">
                                 <div id="profileSkillsTags" class="tags-wrapper mt-2"></div>
                                 <small class="form-text text-muted">至少添加 1 项技能</small>
+                                
+                                <!-- AI建议技能区域 -->
+                                <div id="aiTechStackSection" class="mt-3 p-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; border: 2px solid #5a67d8; display: none;">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-robot text-white fs-5 me-2"></i>
+                                        <span class="text-white fw-bold">AI 建议技能</span>
+                                        <span class="badge bg-light text-primary ms-2">智能推荐</span>
+                                    </div>
+                                    <div id="aiTechStackTags" class="d-flex flex-wrap gap-2"></div>
+                                </div>
                             </div>
                             
                             <!-- 工作年限 -->
@@ -379,6 +402,29 @@
                                        placeholder="输入领域经验后按回车添加（可选）">
                                 <div id="profileDomainExperienceTags" class="tags-wrapper mt-2"></div>
                                 <small class="form-text text-muted">例如：跨境电商、金融科技、SaaS 等</small>
+                                
+                                <!-- AI建议领域经验区域 -->
+                                <div id="aiDomainSection" class="mt-3" style="display: none;">
+                                    <!-- 热门行业 -->
+                                    <div class="p-3 mb-2" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; border: 2px solid #e84393;">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bi bi-stars text-white fs-5 me-2"></i>
+                                            <span class="text-white fw-bold">AI 建议热门行业</span>
+                                            <span class="badge bg-light text-danger ms-2">智能推荐</span>
+                                        </div>
+                                        <div id="aiHotIndustriesTags" class="d-flex flex-wrap gap-2"></div>
+                                    </div>
+                                    
+                                    <!-- 相关领域 -->
+                                    <div class="p-3" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 10px; border: 2px solid #2193b0;">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bi bi-lightbulb text-white fs-5 me-2"></i>
+                                            <span class="text-white fw-bold">AI 建议相关领域</span>
+                                            <span class="badge bg-light text-info ms-2">智能推荐</span>
+                                        </div>
+                                        <div id="aiRelatedDomainsTags" class="d-flex flex-wrap gap-2"></div>
+                                    </div>
+                                </div>
                             </div>
                             
                             <!-- 期望地点 -->
@@ -406,9 +452,9 @@
                                 <label for="profileTone" class="form-label fw-semibold">
                                     沟通语气
                                 </label>
-                                <select class="form-select" id="profileTone">
+                                <select class="form-select" id="profileTone" disabled>
                                     <option value="">请选择（可选）</option>
-                                    <option value="礼貌亲切">礼貌亲切</option>
+                                    <option value="礼貌亲切" selected>礼貌亲切</option>
                                     <option value="专业克制">专业克制</option>
                                     <option value="自然轻松">自然轻松</option>
                                     <option value="简洁商务">简洁商务</option>
@@ -421,7 +467,7 @@
                                 <label for="profileLanguage" class="form-label fw-semibold">
                                     语言
                                 </label>
-                                <select class="form-select" id="profileLanguage">
+                                <select class="form-select" id="profileLanguage" disabled>
                                     <option value="">请选择（可选）</option>
                                     <option value="zh_CN" selected>中文（简体）</option>
                                     <option value="en_US">English (US)</option>
@@ -434,8 +480,8 @@
                                     最大字符数
                                 </label>
                                 <input type="number" class="form-control" id="profileMaxChars" 
-                                       min="80" max="180" value="120"
-                                       placeholder="范围：80-180，默认 120">
+                                       min="80" max="180" value="180"
+                                       placeholder="范围：80-180，默认 180" disabled>
                                 <small class="form-text text-muted">AI 生成招呼语的最大字符数（80-180）</small>
                             </div>
                             
@@ -445,7 +491,7 @@
                                     去重关键词
                                 </label>
                                 <input type="text" class="form-control" id="profileDedupeKeywords"
-                                       placeholder="输入关键词后按回车添加">
+                                       placeholder="输入关键词后按回车添加" disabled>
                                 <div id="profileDedupeKeywordsTags" class="tags-wrapper mt-2"></div>
                                 <small class="form-text text-muted">用于过滤不感兴趣的内容</small>
                             </div>

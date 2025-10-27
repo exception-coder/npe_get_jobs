@@ -8,6 +8,7 @@ import getjobs.repository.UserProfileRepository;
 import getjobs.repository.entity.UserProfile;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -25,9 +26,14 @@ public class JobFilterService {
 
     private final UserProfileRepository userProfileRepository;
 
-    public JobFilterService(JobMatchAiService jobMatchAiService, UserProfileRepository userProfileRepository) {
+    private final RecruitmentServiceFactory recruitmentServiceFactory;
+
+    public JobFilterService(JobMatchAiService jobMatchAiService,
+            UserProfileRepository userProfileRepository,
+            @Lazy RecruitmentServiceFactory recruitmentServiceFactory) {
         this.jobMatchAiService = jobMatchAiService;
         this.userProfileRepository = userProfileRepository;
+        this.recruitmentServiceFactory = recruitmentServiceFactory;
     }
 
     public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
@@ -86,8 +92,10 @@ public class JobFilterService {
             }
         }
 
-        if(!config.getCityCodeCodes().contains(String.valueOf(job.getCityCode()))){
-            return "城市代码不符合要求-" + job.getCityCode();
+        // 根据不同平台使用不同的城市过滤逻辑
+        String cityFilterReason = filterByCity(job, config);
+        if (cityFilterReason != null) {
+            return cityFilterReason;
         }
 
         // AI岗位匹配度过滤
@@ -303,6 +311,52 @@ public class JobFilterService {
 
     private Integer getMaximumSalary(List<Integer> expectedSalary) {
         return expectedSalary != null && expectedSalary.size() > 1 ? expectedSalary.get(1) : null;
+    }
+
+    /**
+     * 根据不同平台使用不同的城市过滤逻辑
+     * 通过工厂模式获取对应平台的实现，调用平台特定的城市过滤方法
+     *
+     * @param job    职位信息
+     * @param config 配置信息
+     * @return 过滤原因，null表示通过过滤
+     */
+    private String filterByCity(JobDTO job, ConfigDTO config) {
+        List<String> allowedCityCodes = config.getCityCodeCodes();
+        if (allowedCityCodes == null || allowedCityCodes.isEmpty()) {
+            return null; // 如果未配置城市过滤，则默认通过
+        }
+
+        // 获取平台类型
+        String platformType = config.getPlatformType();
+        if (platformType == null || platformType.isEmpty()) {
+            log.warn("平台类型未配置，使用默认城市过滤逻辑");
+            return defaultCityFilter(job, allowedCityCodes);
+        }
+
+        try {
+            // 通过工厂获取对应平台的服务实现
+            RecruitmentService recruitmentService = recruitmentServiceFactory.getService(platformType);
+            // 调用平台特定的城市过滤方法
+            return recruitmentService.filterByCity(job, allowedCityCodes);
+        } catch (Exception e) {
+            log.error("获取平台服务失败: {}, 使用默认城市过滤逻辑", platformType, e);
+            return defaultCityFilter(job, allowedCityCodes);
+        }
+    }
+
+    /**
+     * 默认城市过滤逻辑（作为备用方案）
+     */
+    private String defaultCityFilter(JobDTO job, List<String> allowedCityCodes) {
+        if (job.getCityCode() == null) {
+            return null;
+        }
+
+        if (!allowedCityCodes.contains(String.valueOf(job.getCityCode()))) {
+            return "城市代码不符合要求-" + job.getCityCode();
+        }
+        return null;
     }
 
 }
