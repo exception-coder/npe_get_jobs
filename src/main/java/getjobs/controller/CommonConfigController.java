@@ -200,6 +200,32 @@ public class CommonConfigController {
                 userProfile.setHrStatusKeywords(convertToList(configData.get("hrStatusKeywords")));
             }
 
+            // 薪资期望配置
+            if (configData.containsKey("minSalary")) {
+                Object minSalaryValue = configData.get("minSalary");
+                if (minSalaryValue instanceof Number) {
+                    userProfile.setMinSalary(((Number) minSalaryValue).intValue());
+                } else if (minSalaryValue instanceof String) {
+                    try {
+                        userProfile.setMinSalary(Integer.parseInt((String) minSalaryValue));
+                    } catch (NumberFormatException e) {
+                        // 忽略无效值
+                    }
+                }
+            }
+            if (configData.containsKey("maxSalary")) {
+                Object maxSalaryValue = configData.get("maxSalary");
+                if (maxSalaryValue instanceof Number) {
+                    userProfile.setMaxSalary(((Number) maxSalaryValue).intValue());
+                } else if (maxSalaryValue instanceof String) {
+                    try {
+                        userProfile.setMaxSalary(Integer.parseInt((String) maxSalaryValue));
+                    } catch (NumberFormatException e) {
+                        // 忽略无效值
+                    }
+                }
+            }
+
             // 保存到数据库
             UserProfile saved = userProfileRepository.save(userProfile);
 
@@ -440,6 +466,10 @@ public class CommonConfigController {
         dto.setAiHotIndustries(userProfile.getAiHotIndustries());
         dto.setAiRelatedDomains(userProfile.getAiRelatedDomains());
         dto.setAiGreetingMessage(userProfile.getAiGreetingMessage());
+
+        // 薪资期望配置
+        dto.setMinSalary(userProfile.getMinSalary());
+        dto.setMaxSalary(userProfile.getMaxSalary());
 
         return dto;
     }

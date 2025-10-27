@@ -206,4 +206,14 @@ public class UserProfileDTO {
      * AI分析结果：打招呼消息
      */
     private String aiGreetingMessage;
+
+    /**
+     * 期望最低薪资（单位：K）
+     */
+    private Integer minSalary;
+
+    /**
+     * 期望最高薪资（单位：K）
+     */
+    private Integer maxSalary;
 }

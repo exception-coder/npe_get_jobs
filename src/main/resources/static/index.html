@@ -117,6 +117,33 @@
                                 </small>
                             </div>
 
+                            <!-- 期望薪资 -->
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">
+                                    期望薪资 (K)
+                                    <i class="bi bi-question-circle text-muted ms-1"
+                                       data-bs-toggle="tooltip"
+                                       title="输入期望的薪资范围（单位：K），应用于所有招聘平台"></i>
+                                </label>
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-auto">
+                                        <input type="number" class="form-control" id="commonMinSalaryField"
+                                               placeholder="15" style="width: 100px;" min="0" max="100" step="1" inputmode="numeric">
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="fw-bold text-muted">~</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <input type="number" class="form-control" id="commonMaxSalaryField"
+                                               placeholder="30" style="width: 100px;" min="0" max="100" step="1" inputmode="numeric">
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    设置期望薪资范围，系统将自动过滤不符合薪资范围的岗位，应用于所有平台
+                                </small>
+                            </div>
+
                             <!-- AI配置 -->
                             <div class="mb-4">
                                 <label class="form-label fw-semibold">
@@ -739,29 +766,6 @@
                                                         <option value="d">D轮及以上</option>
                                                         <option value="ipo">已上市</option>
                                                     </select>
-                                                </div>
-                                            </div>
-
-                                            <!-- Expected Salary -->
-                                            <div class="mt-2">
-                                                <label class="form-label fw-semibold small">
-                                                    期望薪资 (K)
-                                                    <i class="bi bi-question-circle text-muted ms-1"
-                                                       data-bs-toggle="tooltip"
-                                                       title="输入期望的薪资范围（单位：K）"></i>
-                                                </label>
-                                                <div class="row g-2 align-items-center">
-                                                    <div class="col-auto">
-                                                        <input type="number" class="form-control form-control-sm" id="minSalaryField"
-                                                               placeholder="15" style="width: 80px;" min="0" max="100" step="1" inputmode="numeric">
-                                                    </div>
-                                                    <div class="col-auto">
-                                                        <span class="fw-bold text-muted small">~</span>
-                                                    </div>
-                                                    <div class="col-auto">
-                                                        <input type="number" class="form-control form-control-sm" id="maxSalaryField"
-                                                               placeholder="30" style="width: 80px;" min="0" max="100" step="1" inputmode="numeric">
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

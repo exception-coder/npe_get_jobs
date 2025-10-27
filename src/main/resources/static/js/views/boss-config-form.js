@@ -72,15 +72,6 @@
                     });
                 }
             });
-            const minSalary = document.getElementById('minSalaryField');
-            const maxSalary = document.getElementById('maxSalaryField');
-            if (minSalary && maxSalary) {
-                [minSalary, maxSalary].forEach(field => {
-                    field.addEventListener('input', () => {
-                        this.validateSalaryRange();
-                    });
-                });
-            }
         }
 
         validateField(field) {
@@ -89,18 +80,6 @@
             this.updateFieldValidation(field, isValid);
             return isValid;
         }
-
-        validateSalaryRange() {
-            const minSalary = document.getElementById('minSalaryField');
-            const maxSalary = document.getElementById('maxSalaryField');
-            const minValue = parseInt(minSalary.value) || 0;
-            const maxValue = parseInt(maxSalary.value) || 0;
-            const isValid = minValue > 0 && maxValue > 0 && minValue <= maxValue;
-            this.updateFieldValidation(minSalary, isValid);
-            this.updateFieldValidation(maxSalary, isValid);
-            return isValid;
-        }
-
 
         updateFieldValidation(field, isValid) {
             if (isValid) {
@@ -163,9 +142,7 @@
                 salary: document.getElementById('salaryComboBox').value,
                 degree: document.getElementById('degreeComboBox').value,
                 scale: document.getElementById('scaleComboBox').value,
-                stage: document.getElementById('stageComboBox').value,
-                minSalary: document.getElementById('minSalaryField').value,
-                maxSalary: document.getElementById('maxSalaryField').value
+                stage: document.getElementById('stageComboBox').value
             };
             localStorage.setItem('bossConfig', JSON.stringify(this.config));
             try {
@@ -354,9 +331,6 @@
             // 特殊处理行业选择器
             this.populateIndustrySelector();
             
-            // 特殊处理期望薪资字段
-            this.populateExpectedSalary();
-            
             // 特殊处理其他下拉框
             this.populateSelectBoxes();
         }
@@ -529,21 +503,6 @@
             });
         }
 
-        // 填充期望薪资字段
-        populateExpectedSalary() {
-            const expectedSalary = this.config.expectedSalary;
-            if (Array.isArray(expectedSalary) && expectedSalary.length >= 2) {
-                const minSalaryField = document.getElementById('minSalaryField');
-                const maxSalaryField = document.getElementById('maxSalaryField');
-                
-                if (minSalaryField && maxSalaryField) {
-                    minSalaryField.value = expectedSalary[0] || '';
-                    maxSalaryField.value = expectedSalary[1] || '';
-                    console.log(`BossConfigForm: 期望薪资回填: ${expectedSalary[0]} ~ ${expectedSalary[1]}`);
-                }
-            }
-        }
-
         // 填充其他下拉框
         populateSelectBoxes() {
             const selectFields = [
@@ -659,8 +618,6 @@
                 degree: 'degreeComboBox',
                 scale: 'scaleComboBox',
                 stage: 'stageComboBox',
-                minSalary: 'minSalaryField',
-                maxSalary: 'maxSalaryField',
                 waitTime: 'waitTimeField'
             };
             return fieldMap[key] || key;
@@ -707,7 +664,7 @@
                 }
             });
 
-            return isValid && this.validateSalaryRange();
+            return isValid;
         }
 
         // 获取当前配置
@@ -727,11 +684,7 @@
                 salary: document.getElementById('salaryComboBox')?.value || '',
                 degree: document.getElementById('degreeComboBox')?.value || '',
                 scale: document.getElementById('scaleComboBox')?.value || '',
-                stage: document.getElementById('stageComboBox')?.value || '',
-                expectedSalary: [
-                    document.getElementById('minSalaryField')?.value || '0',
-                    document.getElementById('maxSalaryField')?.value || '0'
-                ]
+                stage: document.getElementById('stageComboBox')?.value || ''
             };
         }
 

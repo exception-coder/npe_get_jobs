@@ -262,4 +262,16 @@ public class UserProfile extends BaseEntity {
      */
     @Column(name = "ai_greeting_message", columnDefinition = "TEXT")
     private String aiGreetingMessage;
+
+    /**
+     * 期望最低薪资（单位：K）
+     */
+    @Column(name = "min_salary")
+    private Integer minSalary;
+
+    /**
+     * 期望最高薪资（单位：K）
+     */
+    @Column(name = "max_salary")
+    private Integer maxSalary;
 }

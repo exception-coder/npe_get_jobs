@@ -252,7 +252,10 @@
             dedupeKeywords: dedupeKeywordsTagsInput ? parseStringToList(dedupeKeywordsTagsInput.getValue()) : [],
             // 简历配置
             resumeImagePath: document.getElementById('commonResumeImagePath')?.value?.trim() || '',
-            sayHiContent: document.getElementById('commonSayHiContent')?.value?.trim() || ''
+            sayHiContent: document.getElementById('commonSayHiContent')?.value?.trim() || '',
+            // 期望薪资
+            minSalary: document.getElementById('commonMinSalaryField')?.value?.trim() || '',
+            maxSalary: document.getElementById('commonMaxSalaryField')?.value?.trim() || ''
         };
     }
 
@@ -339,7 +342,7 @@
             const recommendJobs = document.getElementById('commonRecommendJobs')?.checked || false;
             const hrStatusKeywords = hrStatusTagsInput ? hrStatusTagsInput.getValue() : '';
 
-            // 构建完整配置对象（包括黑名单、候选人信息、简历配置、AI配置、AI功能开关和功能开关）
+            // 构建完整配置对象（包括黑名单、候选人信息、简历配置、期望薪资、AI配置、AI功能开关和功能开关）
             const config = {
                 jobBlacklistKeywords: jobKeywords,
                 companyBlacklistKeywords: companyKeywords,
@@ -358,6 +361,9 @@
                 // 简历配置
                 resumeImagePath: profileData.resumeImagePath,
                 sayHiContent: profileData.sayHiContent,
+                // 期望薪资
+                minSalary: profileData.minSalary,
+                maxSalary: profileData.maxSalary,
                 // AI配置（JSON键值对）
                 aiPlatformConfigs: aiPlatformConfigs,
                 // AI智能功能开关
@@ -454,6 +460,16 @@
             if (skillsTagsInput) skillsTagsInput.clear();
             if (highlightsTagsInput) highlightsTagsInput.clear();
             if (dedupeKeywordsTagsInput) dedupeKeywordsTagsInput.clear();
+            
+            // 重置期望薪资
+            const minSalaryField = document.getElementById('commonMinSalaryField');
+            if (minSalaryField) {
+                minSalaryField.value = '';
+            }
+            const maxSalaryField = document.getElementById('commonMaxSalaryField');
+            if (maxSalaryField) {
+                maxSalaryField.value = '';
+            }
             
             // 重置AI配置
             const aiPlatformSelect = document.getElementById('aiPlatform');
@@ -557,6 +573,10 @@
         // 简历配置字段
         setFieldValue('commonResumeImagePath', profileData.resumeImagePath);
         setFieldValue('commonSayHiContent', profileData.sayHiContent);
+        
+        // 期望薪资字段
+        setFieldValue('commonMinSalaryField', profileData.minSalary);
+        setFieldValue('commonMaxSalaryField', profileData.maxSalary);
     }
 
     /**

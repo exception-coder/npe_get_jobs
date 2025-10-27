@@ -11,8 +11,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,12 +26,16 @@ public class JobFilterService {
 
     private final RecruitmentServiceFactory recruitmentServiceFactory;
 
+    private final SalaryFilterService salaryFilterService;
+
     public JobFilterService(JobMatchAiService jobMatchAiService,
             UserProfileRepository userProfileRepository,
-            @Lazy RecruitmentServiceFactory recruitmentServiceFactory) {
+            @Lazy RecruitmentServiceFactory recruitmentServiceFactory,
+            SalaryFilterService salaryFilterService) {
         this.jobMatchAiService = jobMatchAiService;
         this.userProfileRepository = userProfileRepository;
         this.recruitmentServiceFactory = recruitmentServiceFactory;
+        this.salaryFilterService = salaryFilterService;
     }
 
     public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
@@ -80,7 +82,7 @@ public class JobFilterService {
 
         if (salaryExpected) {
             // 检查薪资
-            if (!isSalaryExpected(job, config)) {
+            if (!salaryFilterService.isSalaryExpected(job, config)) {
                 return "薪资不符合预期范围";
             }
         }
@@ -164,153 +166,6 @@ public class JobFilterService {
         return blackRecruiters.stream()
                 .anyMatch(blackRecruiter -> jobDTO.getRecruiter() != null
                         && jobDTO.getRecruiter().contains(blackRecruiter));
-    }
-
-    /**
-     * 检查薪资是否符合预期
-     */
-    private boolean isSalaryExpected(JobDTO jobDTO, ConfigDTO config) {
-        if (jobDTO.getSalary() == null || jobDTO.getSalary().isEmpty()) {
-            return true; // 没有薪资信息时默认通过
-        }
-
-        try {
-            List<Integer> expectedSalary = config.getExpectedSalary();
-            if (expectedSalary == null || expectedSalary.isEmpty()) {
-                return true; // 没有期望薪资时默认通过
-            }
-
-            return !isSalaryNotExpected(jobDTO.getSalary(), expectedSalary);
-        } catch (Exception e) {
-            log.debug("薪资验证失败: {}", e.getMessage());
-            return true; // 验证失败时默认通过
-        }
-    }
-
-    /**
-     * 检查薪资是否不符合预期
-     */
-    private boolean isSalaryNotExpected(String salary, List<Integer> expectedSalary) {
-        try {
-            // 清理薪资文本
-            salary = removeYearBonusText(salary);
-
-            if (!isSalaryInExpectedFormat(salary)) {
-                return true;
-            }
-
-            salary = cleanSalaryText(salary);
-            String jobType = detectJobType(salary);
-            salary = removeDayUnitIfNeeded(salary);
-
-            Integer[] jobSalaryRange = parseSalaryRange(salary);
-            return isSalaryOutOfRange(jobSalaryRange,
-                    getMinimumSalary(expectedSalary),
-                    getMaximumSalary(expectedSalary),
-                    jobType);
-        } catch (Exception e) {
-            log.error("薪资解析出错", e);
-            return true;
-        }
-    }
-
-    /**
-     * 去掉年终奖信息
-     */
-    private String removeYearBonusText(String salary) {
-        if (salary.contains("薪")) {
-            return salary.replaceAll("·\\d+薪", "");
-        }
-        return salary;
-    }
-
-    /**
-     * 判断薪资格式是否符合预期
-     */
-    private boolean isSalaryInExpectedFormat(String salaryText) {
-        return salaryText.contains("K") || salaryText.contains("k") || salaryText.contains("元/天");
-    }
-
-    /**
-     * 清理薪资文本
-     */
-    private String cleanSalaryText(String salaryText) {
-        salaryText = salaryText.replace("K", "").replace("k", "");
-        int dotIndex = salaryText.indexOf('·');
-        if (dotIndex != -1) {
-            salaryText = salaryText.substring(0, dotIndex);
-        }
-        return salaryText;
-    }
-
-    /**
-     * 判断是否是按天计薪
-     */
-    private String detectJobType(String salary) {
-        if (salary.contains("元/天")) {
-            return "day";
-        }
-        return "month";
-    }
-
-    /**
-     * 如果是日薪，则去除"元/天"
-     */
-    private String removeDayUnitIfNeeded(String salary) {
-        if (salary.contains("元/天")) {
-            return salary.replaceAll("元/天", "");
-        }
-        return salary;
-    }
-
-    /**
-     * 解析薪资范围
-     */
-    private Integer[] parseSalaryRange(String salaryText) {
-        try {
-            return Arrays.stream(salaryText.split("-"))
-                    .map(s -> s.replaceAll("[^0-9]", ""))
-                    .map(Integer::parseInt)
-                    .toArray(Integer[]::new);
-        } catch (Exception e) {
-            log.debug("薪资解析失败: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 检查薪资是否超出范围
-     */
-    private boolean isSalaryOutOfRange(Integer[] jobSalary, Integer miniSalary, Integer maxSalary, String jobType) {
-        if (jobSalary == null) {
-            return true;
-        }
-        if (miniSalary == null) {
-            return false;
-        }
-
-        if (Objects.equals("day", jobType)) {
-            // 期望薪资转为平均每日的工资
-            maxSalary = BigDecimal.valueOf(maxSalary).multiply(BigDecimal.valueOf(1000))
-                    .divide(BigDecimal.valueOf(21.75), 0, RoundingMode.HALF_UP).intValue();
-            miniSalary = BigDecimal.valueOf(miniSalary).multiply(BigDecimal.valueOf(1000))
-                    .divide(BigDecimal.valueOf(21.75), 0, RoundingMode.HALF_UP).intValue();
-        }
-
-        // 如果职位薪资下限低于期望的最低薪资，返回不符合
-        if (jobSalary[1] < miniSalary) {
-            return true;
-        }
-        // 如果职位薪资上限高于期望的最高薪资，返回不符合
-        return maxSalary != null && jobSalary[0] > maxSalary;
-    }
-
-    private Integer getMinimumSalary(List<Integer> expectedSalary) {
-        return expectedSalary != null && !expectedSalary.isEmpty() ? expectedSalary.get(0) : null;
-    }
-
-    private Integer getMaximumSalary(List<Integer> expectedSalary) {
-        return expectedSalary != null && expectedSalary.size() > 1 ? expectedSalary.get(1) : null;
     }
 
     /**
