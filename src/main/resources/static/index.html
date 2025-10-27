@@ -2841,11 +2841,11 @@
     </div>
 </div>
 
-<!-- 必填项提示功能 -->
+<!-- 必填项提示功能和样式更新 -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 检查必填项是否已填写
-        function checkRequiredFields() {
+        // 检查必填项是否已填写并更新样式
+        function checkAndUpdateRequiredFields() {
             const profileJobTitle = document.getElementById('profileJobTitle');
             const profileSkills = document.getElementById('profileSkillsTags');
             const profileYearsOfExperience = document.getElementById('profileYearsOfExperience');
@@ -2857,9 +2857,30 @@
             const isYearsEmpty = !profileYearsOfExperience || !profileYearsOfExperience.value;
             const isCareerEmpty = !profileCareerIntent || !profileCareerIntent.value.trim();
             
+            // 更新每个必填项的样式
+            updateFieldStyle(profileJobTitle, isJobTitleEmpty);
+            updateFieldStyle(profileYearsOfExperience, isYearsEmpty);
+            updateFieldStyle(profileCareerIntent, isCareerEmpty);
+            
             // 如果任何一个必填项为空，显示提示
             if (isJobTitleEmpty || isSkillsEmpty || isYearsEmpty || isCareerEmpty) {
                 showRequiredFieldsAlert();
+            }
+        }
+        
+        // 更新单个字段的样式
+        function updateFieldStyle(element, isEmpty) {
+            if (!element) return;
+            
+            if (isEmpty) {
+                // 空值：显示为红色边框
+                element.classList.add('border-danger', 'border-2');
+                element.style.boxShadow = '0 0 0 0.2rem rgba(220, 53, 69, 0.15)';
+            } else {
+                // 已填写：移除红色边框，使用成功样式
+                element.classList.remove('border-danger', 'border-2');
+                element.classList.add('border-success');
+                element.style.boxShadow = '0 0 0 0.2rem rgba(25, 135, 84, 0.15)';
             }
         }
         
@@ -2902,8 +2923,31 @@
             }
         }
         
+        // 监听必填项的变化，实时更新样式
+        const profileJobTitle = document.getElementById('profileJobTitle');
+        const profileYearsOfExperience = document.getElementById('profileYearsOfExperience');
+        const profileCareerIntent = document.getElementById('profileCareerIntent');
+        
+        if (profileJobTitle) {
+            profileJobTitle.addEventListener('input', function() {
+                updateFieldStyle(this, !this.value.trim());
+            });
+        }
+        
+        if (profileYearsOfExperience) {
+            profileYearsOfExperience.addEventListener('change', function() {
+                updateFieldStyle(this, !this.value);
+            });
+        }
+        
+        if (profileCareerIntent) {
+            profileCareerIntent.addEventListener('input', function() {
+                updateFieldStyle(this, !this.value.trim());
+            });
+        }
+        
         // 页面加载后延迟2秒检查必填项
-        setTimeout(checkRequiredFields, 2000);
+        setTimeout(checkAndUpdateRequiredFields, 2000);
     });
 </script>
 

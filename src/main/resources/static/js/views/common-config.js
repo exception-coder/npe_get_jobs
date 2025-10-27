@@ -572,7 +572,8 @@
         
         // 简历配置字段
         setFieldValue('commonResumeImagePath', profileData.resumeImagePath);
-        setFieldValue('commonSayHiContent', profileData.sayHiContent);
+        // 兼容后端返回的 sayHi 和 sayHiContent 两种字段名
+        setFieldValue('commonSayHiContent', profileData.sayHiContent || profileData.sayHi);
         
         // 期望薪资字段
         setFieldValue('commonMinSalaryField', profileData.minSalary);
