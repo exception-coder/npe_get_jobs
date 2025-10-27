@@ -33,14 +33,14 @@
         </div>
         <ul class="nav nav-pills" id="platformTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="common-config-tab" data-bs-toggle="tab" data-bs-target="#common-config-pane"
-                        type="button" role="tab" aria-controls="common-config-pane" aria-selected="false">
+                <button class="nav-link active" id="common-config-tab" data-bs-toggle="tab" data-bs-target="#common-config-pane"
+                        type="button" role="tab" aria-controls="common-config-pane" aria-selected="true">
                     <i class="bi bi-sliders"></i>公共配置
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="boss-tab" data-bs-toggle="tab" data-bs-target="#boss-pane"
-                        type="button" role="tab" aria-controls="boss-pane" aria-selected="true">
+                <button class="nav-link" id="boss-tab" data-bs-toggle="tab" data-bs-target="#boss-pane"
+                        type="button" role="tab" aria-controls="boss-pane" aria-selected="false">
                     <i class="bi bi-person-workspace"></i>Boss直聘
                 </button>
             </li>
@@ -70,7 +70,7 @@
         <div class="container-fluid">
     <div class="tab-content" id="platformTabsContent">
         <!-- 公共配置 -->
-        <div class="tab-pane fade" id="common-config-pane" role="tabpanel" aria-labelledby="common-config-tab">
+        <div class="tab-pane fade show active" id="common-config-pane" role="tabpanel" aria-labelledby="common-config-tab">
             <div class="row g-3" style="height: calc(100vh - 200px);">
                 <!-- 左侧：公共配置 -->
                 <div class="col-lg-6">
@@ -336,23 +336,25 @@
                         </div>
                         <div class="card-body p-4" style="overflow-y: auto;">
                             <!-- 职位名称 -->
-                            <div class="mb-3">
+                            <div class="mb-3 required-field">
                                 <label for="profileJobTitle" class="form-label fw-semibold">
-                                    职位名称 <span class="text-danger">*</span>
+                                    职位名称 <span class="text-danger fs-5">*</span>
+                                    <span class="badge bg-danger ms-2">必填</span>
                                 </label>
-                                <input type="text" class="form-control" id="profileJobTitle" required
-                                       placeholder="如：Java开发工程师">
+                                <input type="text" class="form-control border-danger border-2" id="profileJobTitle" required
+                                       placeholder="如：Java开发工程师" style="box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);">
                             </div>
                             
                             <!-- 核心技能 -->
-                            <div class="mb-3">
+                            <div class="mb-3 required-field">
                                 <label for="profileSkills" class="form-label fw-semibold">
-                                    核心技能 <span class="text-danger">*</span>
+                                    核心技能 <span class="text-danger fs-5">*</span>
+                                    <span class="badge bg-danger ms-2">必填</span>
                                 </label>
-                                <input type="text" class="form-control" id="profileSkills" required
-                                       placeholder="输入技能后按回车添加">
+                                <input type="text" class="form-control border-danger border-2" id="profileSkills" required
+                                       placeholder="输入技能后按回车添加" style="box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);">
                                 <div id="profileSkillsTags" class="tags-wrapper mt-2"></div>
-                                <small class="form-text text-muted">至少添加 1 项技能</small>
+                                <small class="form-text text-danger fw-semibold">至少添加 1 项技能</small>
                                 
                                 <!-- AI建议技能区域 -->
                                 <div id="aiTechStackSection" class="mt-3 p-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; border: 2px solid #5a67d8; display: none;">
@@ -366,11 +368,13 @@
                             </div>
                             
                             <!-- 工作年限 -->
-                            <div class="mb-3">
+                            <div class="mb-3 required-field">
                                 <label for="profileYearsOfExperience" class="form-label fw-semibold">
-                                    工作年限 <span class="text-danger">*</span>
+                                    工作年限 <span class="text-danger fs-5">*</span>
+                                    <span class="badge bg-danger ms-2">必填</span>
                                 </label>
-                                <select class="form-select" id="profileYearsOfExperience" required>
+                                <select class="form-select border-danger border-2" id="profileYearsOfExperience" required
+                                        style="box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);">
                                     <option value="">请选择</option>
                                     <option value="1年以下">1年以下</option>
                                     <option value="1-3年">1-3年</option>
@@ -384,13 +388,15 @@
                             </div>
                             
                             <!-- 职业意向 -->
-                            <div class="mb-3">
+                            <div class="mb-3 required-field">
                                 <label for="profileCareerIntent" class="form-label fw-semibold">
-                                    职业意向 <span class="text-danger">*</span>
+                                    职业意向 <span class="text-danger fs-5">*</span>
+                                    <span class="badge bg-danger ms-2">必填</span>
                                 </label>
-                                <textarea class="form-control" id="profileCareerIntent" rows="3" required
-                                          placeholder="简要描述你的职业规划和求职目标（建议 10-40 字）"></textarea>
-                                <small class="form-text text-muted">建议 10-40 字</small>
+                                <textarea class="form-control border-danger border-2" id="profileCareerIntent" rows="3" required
+                                          placeholder="简要描述你的职业规划和求职目标（建议 10-40 字）"
+                                          style="box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);"></textarea>
+                                <small class="form-text text-danger fw-semibold">建议 10-40 字</small>
                             </div>
                             
                             <!-- 领域经验 -->
@@ -522,7 +528,7 @@
         </div>
 
         <!-- Boss直聘 -->
-        <div class="tab-pane fade show active" id="boss-pane" role="tabpanel" aria-labelledby="boss-tab">
+        <div class="tab-pane fade" id="boss-pane" role="tabpanel" aria-labelledby="boss-tab">
             <ul class="nav nav-pills mb-2" id="boss-subtabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="boss-config-tab" data-bs-toggle="tab"
@@ -2830,6 +2836,72 @@
         </div>
     </div>
 </div>
+
+<!-- 必填项提示功能 -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 检查必填项是否已填写
+        function checkRequiredFields() {
+            const profileJobTitle = document.getElementById('profileJobTitle');
+            const profileSkills = document.getElementById('profileSkillsTags');
+            const profileYearsOfExperience = document.getElementById('profileYearsOfExperience');
+            const profileCareerIntent = document.getElementById('profileCareerIntent');
+            
+            // 检查是否所有必填项都为空
+            const isJobTitleEmpty = !profileJobTitle || !profileJobTitle.value.trim();
+            const isSkillsEmpty = !profileSkills || profileSkills.children.length === 0;
+            const isYearsEmpty = !profileYearsOfExperience || !profileYearsOfExperience.value;
+            const isCareerEmpty = !profileCareerIntent || !profileCareerIntent.value.trim();
+            
+            // 如果任何一个必填项为空，显示提示
+            if (isJobTitleEmpty || isSkillsEmpty || isYearsEmpty || isCareerEmpty) {
+                showRequiredFieldsAlert();
+            }
+        }
+        
+        // 显示必填项提示弹框
+        function showRequiredFieldsAlert() {
+            const alertModalEl = document.getElementById('alertModal');
+            const alertModalBody = document.getElementById('alertModalBody');
+            const alertModalLabel = document.getElementById('alertModalLabel');
+            
+            if (alertModalEl && alertModalBody && alertModalLabel) {
+                alertModalLabel.textContent = '⚠️ 完善个人信息';
+                alertModalBody.innerHTML = `
+                    <div class="alert alert-warning mb-3" role="alert">
+                        <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>请先完善以下必填信息</h5>
+                        <hr>
+                        <p class="mb-2">为了更好地为您推荐职位，请填写以下信息：</p>
+                        <ul class="mb-0">
+                            <li><strong>职位名称</strong> - 您期望的职位</li>
+                            <li><strong>核心技能</strong> - 至少添加1项技能</li>
+                            <li><strong>工作年限</strong> - 您的工作经验</li>
+                            <li><strong>职业意向</strong> - 您的职业规划和求职目标</li>
+                        </ul>
+                    </div>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        填写完成后，请点击页面底部的 <strong>"保存所有配置"</strong> 按钮保存信息。
+                    </p>
+                `;
+                
+                const alertModal = new bootstrap.Modal(alertModalEl);
+                alertModal.show();
+                
+                // 自动滚动到候选人信息配置区域
+                alertModalEl.addEventListener('hidden.bs.modal', function () {
+                    const profileSection = document.querySelector('#common-config-pane .col-lg-6:nth-child(2)');
+                    if (profileSection) {
+                        profileSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, { once: true });
+            }
+        }
+        
+        // 页面加载后延迟2秒检查必填项
+        setTimeout(checkRequiredFields, 2000);
+    });
+</script>
 
 <!-- 密码显示切换功能 -->
 <script>
