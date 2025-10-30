@@ -29,9 +29,8 @@ public class LiepinDictProviderImpl implements DictProvider {
             "140", "260", "210", "190", "160", "060", "070", "080", "090", "200",
             "250", "150", "170", "180", "010", "050", "020", "110", "130", "280",
             "030", "120", "310", "270", "040", "100", "240", "290", "230", "300",
-            "220", "330", "340", "320"
-    );
-  
+            "220", "330", "340", "320");
+
     private final ObjectMapper objectMapper;
     private final LiepinDictConfig liepinDictConfig;
 
@@ -118,13 +117,13 @@ public class LiepinDictProviderImpl implements DictProvider {
                     // 添加子行业（带parentCode）
                     if (industry.getChildren() != null) {
                         for (var child : industry.getChildren()) {
-                            industryItems.add(new DictItem(child.getCode(), child.getName(), null, null, industry.getCode()));
+                            industryItems.add(
+                                    new DictItem(child.getCode(), child.getName(), null, null, industry.getCode()));
                         }
                     }
                 }
                 groups.add(new DictGroup(DictGroupKey.INDUSTRY.key(), industryItems));
             }
-
 
             // 处理工作性质字典
             if (data.getJobKinds() != null) {
@@ -155,15 +154,20 @@ public class LiepinDictProviderImpl implements DictProvider {
             if (dictCityJsonStr != null && !dictCityJsonStr.trim().isEmpty()) {
                 try {
                     Map<String, Map<String, Object>> cityMap = objectMapper.readValue(
-                            dictCityJsonStr, 
-                            new TypeReference<Map<String, Map<String, Object>>>() {}
-                    );
-                    
+                            dictCityJsonStr,
+                            new TypeReference<Map<String, Map<String, Object>>>() {
+                            });
+
                     List<DictItem> cityItems = cityMap.entrySet().stream()
                             .filter(entry -> {
+                                String cityCode = entry.getKey();
                                 Map<String, Object> cityInfo = entry.getValue();
                                 String provinceCode = (String) cityInfo.get("p");
-                                return provinceCode != null && PROVINCE_CODES.contains(provinceCode);
+                                // 包含两种情况：
+                                // 1. 省份代码在PROVINCE_CODES中的普通城市
+                                // 2. 城市代码本身在PROVINCE_CODES中的直辖市（北京010、上海020、天津030、重庆040）
+                                return (provinceCode != null && PROVINCE_CODES.contains(provinceCode))
+                                        || PROVINCE_CODES.contains(cityCode);
                             })
                             .map(entry -> {
                                 String cityCode = entry.getKey();
@@ -172,7 +176,7 @@ public class LiepinDictProviderImpl implements DictProvider {
                                 return new DictItem(cityCode, cityName);
                             })
                             .collect(Collectors.toList());
-                    
+
                     if (!cityItems.isEmpty()) {
                         groups.add(new DictGroup(DictGroupKey.CITY.key(), cityItems));
                         log.info("成功加载{}个城市字典项", cityItems.size());
@@ -182,7 +186,6 @@ public class LiepinDictProviderImpl implements DictProvider {
                 }
             }
 
-            
             log.info("成功从配置中解析出{}个猎聘字典组", groups.size());
 
         } catch (Exception e) {
