@@ -145,8 +145,8 @@ public abstract class AbstractRecruitmentService implements RecruitmentService {
 
                         // 期望薪资处理 - Integer类型可以保持null（业务上可能需要区分"未设置"和"0"）
                         if (entity.getExpectedSalary() != null && entity.getExpectedSalary().size() >= 2) {
-                                dto.setMinSalary(entity.getExpectedSalary().get(0));
-                                dto.setMaxSalary(entity.getExpectedSalary().get(1));
+                                dto.setMinSalary(userProfile.getMinSalary());
+                                dto.setMaxSalary(userProfile.getMaxSalary());
                         }
 
                         // 其他字段
