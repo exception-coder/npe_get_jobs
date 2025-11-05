@@ -13,3 +13,22 @@ management:
       enabled: true
       show-details: always
 
+# AI 模型聚合健康检查配置（自动扫描所有模型）
+health:
+  ai-models:
+    enabled: true                    # 是否启用健康检查
+    check-type: PING                 # 检查类型：PING, API_CALL, MODEL_INFO
+    connection-timeout: 5000         # 连接超时（毫秒）
+    response-timeout: 10000          # 响应超时（毫秒）
+    slow-response-threshold: 3000    # 慢响应阈值（毫秒）
+    overall-timeout: 30000           # 整体检查超时（毫秒）
+    test-message: "hello"            # API_CALL 检查时的测试消息
+    
+    # 包含的模型列表（为空则检查所有模型）
+    included-models: []
+    # - chatgptAiChatModel           # OpenAI 模型
+    # - deepseekChatModel            # Deepseek 模型
+    
+    # 排除的模型列表
+    excluded-models: []
+    # - someModelToExclude

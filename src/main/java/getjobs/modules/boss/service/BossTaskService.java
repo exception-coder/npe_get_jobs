@@ -190,7 +190,7 @@ public class BossTaskService {
                     .getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
 
             // 直接从数据库查询所有职位实体
-            List<JobEntity> allJobEntities = jobService.findAllJobEntitiesByPlatform("BOSS直聘");
+            List<JobEntity> allJobEntities = jobService.findAllJobEntitiesByPlatform(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
             if (allJobEntities == null || allJobEntities.isEmpty()) {
                 throw new IllegalArgumentException("数据库中未找到职位数据或职位数据为空");
             }
@@ -276,7 +276,7 @@ public class BossTaskService {
             // 从数据库获取待处理状态的BOSS直聘平台岗位记录
             List<JobEntity> jobEntities = jobRepository.findByStatusAndPlatform(
                     JobStatusEnum.PENDING.getCode(),
-                    "BOSS直聘");
+                    RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
             if (jobEntities == null || jobEntities.isEmpty()) {
                 throw new IllegalArgumentException("未找到可投递的BOSS直聘岗位记录，数据库中没有待处理状态的BOSS直聘岗位");
             }

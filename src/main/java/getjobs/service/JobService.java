@@ -235,7 +235,7 @@ public class JobService {
         }
         // 兼容前端使用平台名称进行查询的情况
         for (RecruitmentPlatformEnum value : RecruitmentPlatformEnum.values()) {
-            if(value.getPlatformName().equals(platform)){
+            if (value.getPlatformName().equals(platform)) {
                 platform = value.getPlatformCode();
             }
         }
@@ -267,9 +267,9 @@ public class JobService {
     /**
      * 批量更新职位状态和过滤原因
      * 
-     * @param encryptJobIds       加密职位ID列表
-     * @param status       新状态
-     * @param filterReason 过滤原因
+     * @param encryptJobIds 加密职位ID列表
+     * @param status        新状态
+     * @param filterReason  过滤原因
      * @return 更新的职位数量
      */
     @Transactional
@@ -313,6 +313,33 @@ public class JobService {
         } catch (Exception e) {
             log.error("查询职位实体失败", e);
             throw new RuntimeException("查询职位实体失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 查询指定平台待处理状态的职位并转换为JobDTO列表
+     * 
+     * @param platform 平台代码（platformCode）
+     * @return 待处理状态的JobDTO列表
+     */
+    public List<JobDTO> findPendingJobsAsDTO(String platform) {
+        try {
+            if (platform == null || platform.trim().isEmpty()) {
+                throw new IllegalArgumentException("平台参数不能为空");
+            }
+
+            // 查询指定平台的所有职位
+            List<JobEntity> jobEntities = jobRepository.findByPlatform(platform);
+
+            // 过滤出待处理状态的职位并转换为DTO
+            return jobEntities.stream()
+                    .filter(job -> JobStatusEnum.PENDING.getCode() == job.getStatus())
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("查询平台 {} 的待处理职位失败", platform, e);
+            throw new RuntimeException("查询待处理职位失败: " + e.getMessage(), e);
         }
     }
 }

@@ -27,7 +27,7 @@ public class JobPromptAssembler {
     private final PromptRenderer renderer;
 
     /**
-     * 组装职位匹配的提示词消息列表
+     * 组装职位匹配的提示词消息列表（基于完整职位描述）
      *
      * @param templateId 模板 ID（例如 "job-match-v1"）
      * @param myJd       候选人期望从事的工作内容
@@ -38,6 +38,34 @@ public class JobPromptAssembler {
         Map<String, Object> variables = new HashMap<>();
         variables.put(JobPromptVariables.MY_JD, myJd);
         variables.put(JobPromptVariables.JD, jd);
+
+        PromptTemplate template = templateRepository.get(templateId);
+        List<LlmMessage> messages = new ArrayList<>();
+
+        for (PromptTemplate.Segment segment : template.getSegments()) {
+            String content = renderer.render(segment.getContent(), variables);
+            switch (segment.getType()) {
+                case SYSTEM -> messages.add(LlmMessage.system(content));
+                case GUIDELINES -> messages.add(LlmMessage.system(content));
+                case USER -> messages.add(LlmMessage.user(content));
+                case FEW_SHOTS -> messages.add(LlmMessage.user(content));
+            }
+        }
+        return messages;
+    }
+
+    /**
+     * 组装职位匹配的提示词消息列表（基于职位名称）
+     *
+     * @param templateId 模板 ID（例如 "job-match-by-title-v1"）
+     * @param myJd       候选人期望从事的工作内容
+     * @param jobTitle   职位名称
+     * @return LLM 消息列表
+     */
+    public List<LlmMessage> assembleByTitle(String templateId, String myJd, String jobTitle) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put(JobPromptVariables.MY_JD, myJd);
+        variables.put(JobPromptVariables.JOB_TITLE, jobTitle);
 
         PromptTemplate template = templateRepository.get(templateId);
         List<LlmMessage> messages = new ArrayList<>();

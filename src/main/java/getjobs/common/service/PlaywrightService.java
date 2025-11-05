@@ -10,7 +10,6 @@ import getjobs.service.ConfigService;
 import lombok.extern.slf4j.Slf4j;
 import com.github.openjson.JSONArray;
 import com.github.openjson.JSONObject;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -21,12 +20,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Playwright服务，统一管理Playwright实例、浏览器、上下文和页面。
  * 为每个招聘平台提供独立的BrowserContext和Page。
- * 
- * 依赖于 dataRestoreInitializer，确保在数据库数据恢复完成后再初始化
  */
 @Slf4j
 @Service
-@DependsOn("dataRestoreInitializer")
 public class PlaywrightService {
 
     private final ConfigService configService;

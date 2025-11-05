@@ -8,6 +8,8 @@ import getjobs.common.infrastructure.task.enums.TaskStatusEnum;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -54,6 +56,27 @@ public class TaskExecutor {
             });
 
     /**
+     * 正在运行的任务映射
+     * Key: executionId, Value: TaskContext(包含Task和Future)
+     */
+    private final Map<String, TaskContext> runningTasks = new ConcurrentHashMap<>();
+
+    /**
+     * 任务上下文，包含任务实例和Future对象
+     */
+    private static class TaskContext {
+        final Task task;
+        final Future<Task> future;
+        final Thread executingThread;
+
+        TaskContext(Task task, Future<Task> future, Thread executingThread) {
+            this.task = task;
+            this.future = future;
+            this.executingThread = executingThread;
+        }
+    }
+
+    /**
      * 同步执行任务
      * 
      * @param scheduledTask 要执行的任务
@@ -69,6 +92,19 @@ public class TaskExecutor {
                 .config(config)
                 .status(TaskStatusEnum.PENDING)
                 .build();
+
+        return executeSyncInternal(task, scheduledTask);
+    }
+
+    /**
+     * 内部同步执行任务的方法
+     * 
+     * @param task          任务实例
+     * @param scheduledTask 要执行的任务
+     * @return 任务实例
+     */
+    private Task executeSyncInternal(Task task, ScheduledTask scheduledTask) {
+        TaskConfig config = task.getConfig();
 
         // 如果是全局唯一任务，检查是否可以执行
         if (config.getGlobalUnique() && !uniqueTaskManager.tryStartUniqueTask(task)) {
@@ -97,7 +133,38 @@ public class TaskExecutor {
      * @return Future对象，可以用来获取任务执行结果
      */
     public Future<Task> executeAsync(ScheduledTask scheduledTask) {
-        return executorService.submit(() -> executeSync(scheduledTask));
+        // 先创建任务实例以获取executionId
+        TaskConfig config = scheduledTask.getTaskConfig();
+        config.validate();
+
+        Task task = Task.builder()
+                .executionId(generateExecutionId())
+                .config(config)
+                .status(TaskStatusEnum.PENDING)
+                .build();
+
+        // 提交异步任务
+        Future<Task> future = executorService.submit(() -> {
+            // 记录执行线程
+            Thread currentThread = Thread.currentThread();
+            TaskContext context = new TaskContext(task, null, currentThread);
+            runningTasks.put(task.getExecutionId(), context);
+
+            try {
+                return executeSyncInternal(task, scheduledTask);
+            } finally {
+                // 任务完成后从映射中移除
+                runningTasks.remove(task.getExecutionId());
+            }
+        });
+
+        // 更新TaskContext以包含Future
+        TaskContext context = runningTasks.get(task.getExecutionId());
+        if (context != null) {
+            runningTasks.put(task.getExecutionId(), new TaskContext(task, future, context.executingThread));
+        }
+
+        return future;
     }
 
     /**
@@ -198,10 +265,92 @@ public class TaskExecutor {
     }
 
     /**
+     * 取消任务
+     * 
+     * @param executionId 任务执行ID
+     * @return true表示成功取消，false表示任务未找到或已完成
+     */
+    public boolean cancelTask(String executionId) {
+        TaskContext context = runningTasks.get(executionId);
+        if (context == null) {
+            log.warn("未找到正在运行的任务: {}", executionId);
+            return false;
+        }
+
+        Task task = context.task;
+        if (task.isCompleted()) {
+            log.warn("任务已完成，无法取消: {}", executionId);
+            return false;
+        }
+
+        log.info("正在取消任务: {} - {}", task.getConfig().getTaskName(), executionId);
+
+        // 中断线程
+        if (context.executingThread != null) {
+            context.executingThread.interrupt();
+        }
+
+        // 取消Future
+        if (context.future != null) {
+            context.future.cancel(true);
+        }
+
+        // 更新任务状态
+        task.cancel();
+
+        // 通知监听器
+        notifyListeners(listener -> listener.onTaskFailed(task.toNotification("任务已被取消")));
+
+        // 从映射中移除
+        runningTasks.remove(executionId);
+
+        return true;
+    }
+
+    /**
+     * 根据执行ID查询任务
+     * 
+     * @param executionId 任务执行ID
+     * @return 任务实例（如果存在）
+     */
+    public Optional<Task> getTask(String executionId) {
+        TaskContext context = runningTasks.get(executionId);
+        return Optional.ofNullable(context != null ? context.task : null);
+    }
+
+    /**
+     * 获取所有正在运行的任务
+     * 
+     * @return 正在运行的任务列表
+     */
+    public List<Task> getRunningTasks() {
+        return runningTasks.values().stream()
+                .map(context -> context.task)
+                .filter(Task::isRunning)
+                .toList();
+    }
+
+    /**
+     * 获取正在运行的任务数量
+     * 
+     * @return 任务数量
+     */
+    public int getRunningTaskCount() {
+        return (int) runningTasks.values().stream()
+                .map(context -> context.task)
+                .filter(Task::isRunning)
+                .count();
+    }
+
+    /**
      * 关闭执行器
      */
     public void shutdown() {
         log.info("正在关闭任务执行器...");
+
+        // 取消所有正在运行的任务
+        runningTasks.keySet().forEach(this::cancelTask);
+
         executorService.shutdown();
         try {
             if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {

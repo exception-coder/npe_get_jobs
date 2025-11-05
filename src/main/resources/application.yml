@@ -7,29 +7,28 @@ spring:
   application:
     name: npe-get-jobs
   datasource:
-    url: 'jdbc:sqlite:file:memdb1?mode=memory&cache=shared'
+    url: 'jdbc:sqlite:${user.home}/getjobs/npe_get_jobs.db?journal_mode=WAL&synchronous=NORMAL&cache_size=-64000&foreign_keys=ON&busy_timeout=30000'
     driver-class-name: org.sqlite.JDBC
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-      idle-timeout: 0           # 不回收
-      max-lifetime: 0           # 不重建
+      maximum-pool-size: 5      # WAL 模式支持并发读，5个连接适合中等并发查询场景
+      minimum-idle: 2           # 保持 2 个连接常驻，应对突发查询
+      connection-timeout: 30000 # 连接超时 30 秒
+      idle-timeout: 600000      # 空闲连接 10 分钟后回收
+      max-lifetime: 1800000     # 连接最大存活时间 30 分钟
     username:
     password:
   sql:
     init:
-      mode: always 
+      mode: never               # 数据库已持久化，无需每次启动执行 SQL 脚本
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update          # 保留表结构和数据，仅更新 schema 变更
     show-sql: false
     properties:
       hibernate:
         format_sql: true
-        dialect: 
-        hbm2ddl:
-          auto: create-drop
-    database-platform: 
+        dialect: org.hibernate.community.dialect.SQLiteDialect
+    database-platform: org.hibernate.community.dialect.SQLiteDialect 
 
 logging:
   level:

@@ -32,4 +32,24 @@ public class JobMatchResult {
      */
     @JsonProperty("reason")
     private String reason;
+
+    /**
+     * 置信度标识（可选）
+     * <p>
+     * 用于标识匹配结果的置信度：
+     * - "high": 基于完整职位描述的高置信度匹配
+     * - "low": 基于职位名称推断的低置信度匹配
+     * </p>
+     */
+    @JsonProperty("confidence")
+    private String confidence;
+
+    /**
+     * 构造函数（用于向后兼容，不包含 confidence）
+     */
+    public JobMatchResult(boolean matched, String reason) {
+        this.matched = matched;
+        this.reason = reason;
+        this.confidence = "high"; // 默认高置信度
+    }
 }

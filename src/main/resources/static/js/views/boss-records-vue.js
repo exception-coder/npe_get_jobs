@@ -60,7 +60,7 @@
                         
                         try {
                             const params = new URLSearchParams();
-                            params.set('platform', 'BOSS直聘');
+                            params.set('platform', 'boss');
                             if (this.searchKeyword.trim()) {
                                 params.set('keyword', this.searchKeyword.trim());
                             }

@@ -16,7 +16,17 @@ public class JobMatchRequest {
     private String myJd;
 
     /**
-     * 职位描述
+     * 职位描述（可选）
      */
     private String jobDescription;
+
+    /**
+     * 职位名称（当职位描述缺失时使用）
+     */
+    private String jobTitle;
+
+    /**
+     * 提示词模板 ID（可选，会根据是否有职位描述自动选择）
+     */
+    private String templateId;
 }

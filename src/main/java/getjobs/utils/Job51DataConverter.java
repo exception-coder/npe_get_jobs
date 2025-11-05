@@ -2,6 +2,7 @@ package getjobs.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.modules.job51.dto.Job51ApiResponse;
 import getjobs.repository.entity.JobEntity;
 import lombok.extern.slf4j.Slf4j;
@@ -98,7 +99,7 @@ public class Job51DataConverter {
             jobEntity.setHrActiveTime(jobItem.getHrActiveStatusGreen());
 
             // 系统信息
-            jobEntity.setPlatform("51job");
+            jobEntity.setPlatform(RecruitmentPlatformEnum.JOB_51.getPlatformCode());
             jobEntity.setEncryptJobId(jobItem.getJobId());
             jobEntity.setEncryptHrId(jobItem.getHrUid());
             jobEntity.setEncryptCompanyId(jobItem.getEncCoId());

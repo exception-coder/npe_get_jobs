@@ -21,4 +21,9 @@ public final class JobPromptVariables {
      * 职位描述
      */
     public static final String JD = "jd";
+
+    /**
+     * 职位名称
+     */
+    public static final String JOB_TITLE = "job_title";
 }

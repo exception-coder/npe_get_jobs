@@ -8,6 +8,7 @@ import getjobs.modules.ai.infrastructure.llm.LlmMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Locale;
@@ -29,6 +30,12 @@ public class JobMatchAiService {
 
     private static final Pattern BOOLEAN_PATTERN = Pattern.compile("\\b(true|false)\\b", Pattern.CASE_INSENSITIVE);
     private static final String DEFAULT_TEMPLATE_ID = "job-match-v1";
+    private static final String DEFAULT_TITLE_TEMPLATE_ID = "job-match-by-title-v1";
+    /**
+     * 职位描述的最小有效长度阈值（字符数）
+     * 低于此长度将视为无效，使用职位名称进行推断匹配
+     */
+    private static final int MIN_JD_LENGTH = 50;
 
     private final JobPromptAssembler assembler;
     private final LlmClient llmClient;
@@ -62,6 +69,91 @@ public class JobMatchAiService {
                 templateId, result.isMatched(), result.getReason());
         log.debug("Raw AI response: {}", rawResponse);
         return result;
+    }
+
+    /**
+     * 基于职位名称进行推断性匹配（返回详细结果）
+     * <p>
+     * 当职位描述缺失或过短时，使用职位名称进行推断性匹配。
+     * 匹配结果会标记为低置信度（confidence="low"）。
+     * </p>
+     *
+     * @param myJd     候选人的简历或个人简介文本
+     * @param jobTitle 职位名称
+     * @return 匹配结果，包含是否匹配、判定原因和置信度
+     */
+    public JobMatchResult matchByTitle(String myJd, String jobTitle) {
+        return matchByTitle(myJd, jobTitle, DEFAULT_TITLE_TEMPLATE_ID);
+    }
+
+    /**
+     * 基于职位名称进行推断性匹配（返回详细结果，可指定模板 ID）
+     *
+     * @param myJd       候选人的简历或个人简介文本
+     * @param jobTitle   职位名称
+     * @param templateId 提示词模板 ID（例如 "job-match-by-title-v1"）
+     * @return 匹配结果，包含是否匹配、判定原因和置信度
+     */
+    public JobMatchResult matchByTitle(String myJd, String jobTitle, String templateId) {
+        List<LlmMessage> messages = assembler.assembleByTitle(templateId, myJd, jobTitle);
+        String rawResponse = llmClient.chat(messages).trim();
+
+        JobMatchResult result = parseJobMatchResult(rawResponse);
+        log.info("Job match by title evaluation - template={}, matched={}, confidence={}, reason={}",
+                templateId, result.isMatched(), result.getConfidence(), result.getReason());
+        log.debug("Raw AI response: {}", rawResponse);
+        return result;
+    }
+
+    /**
+     * 智能匹配：根据是否有职位描述自动选择匹配策略
+     * <p>
+     * 策略：
+     * 1. 如果职位描述存在且长度 >= MIN_JD_LENGTH，使用完整描述匹配（高置信度）
+     * 2. 如果职位描述缺失或过短，但职位名称存在，使用职位名称推断匹配（低置信度）
+     * 3. 如果两者都缺失，抛出异常
+     * </p>
+     *
+     * @param myJd           候选人的简历或个人简介文本
+     * @param jobDescription 职位描述（可为空）
+     * @param jobTitle       职位名称（可为空）
+     * @return 匹配结果，包含是否匹配、判定原因和置信度
+     * @throws IllegalArgumentException 如果职位描述和职位名称都为空
+     */
+    public JobMatchResult smartMatch(String myJd, String jobDescription, String jobTitle) {
+        return smartMatch(myJd, jobDescription, jobTitle, DEFAULT_TEMPLATE_ID, DEFAULT_TITLE_TEMPLATE_ID);
+    }
+
+    /**
+     * 智能匹配：根据是否有职位描述自动选择匹配策略（可指定模板 ID）
+     *
+     * @param myJd                 候选人的简历或个人简介文本
+     * @param jobDescription       职位描述（可为空）
+     * @param jobTitle             职位名称（可为空）
+     * @param fullMatchTemplateId  完整匹配模板 ID
+     * @param titleMatchTemplateId 职位名称匹配模板 ID
+     * @return 匹配结果，包含是否匹配、判定原因和置信度
+     * @throws IllegalArgumentException 如果职位描述和职位名称都为空
+     */
+    public JobMatchResult smartMatch(String myJd, String jobDescription, String jobTitle,
+            String fullMatchTemplateId, String titleMatchTemplateId) {
+        // 判断是否有有效的职位描述
+        boolean hasValidJd = StringUtils.hasText(jobDescription)
+                && jobDescription.trim().length() >= MIN_JD_LENGTH;
+
+        if (hasValidJd) {
+            // 使用完整职位描述匹配
+            log.debug("Using full job description match - JD length: {}", jobDescription.length());
+            return matchWithReason(myJd, jobDescription, fullMatchTemplateId);
+        } else if (StringUtils.hasText(jobTitle)) {
+            // 使用职位名称推断匹配
+            log.debug("Using job title inference match - JD length: {}, title: {}",
+                    jobDescription != null ? jobDescription.length() : 0, jobTitle);
+            return matchByTitle(myJd, jobTitle, titleMatchTemplateId);
+        } else {
+            throw new IllegalArgumentException(
+                    "Both jobDescription and jobTitle are empty. At least one must be provided.");
+        }
     }
 
     /**
@@ -111,7 +203,12 @@ public class JobMatchAiService {
 
         // 尝试解析 JSON 格式（新格式）
         try {
-            return objectMapper.readValue(normalized, JobMatchResult.class);
+            JobMatchResult result = objectMapper.readValue(normalized, JobMatchResult.class);
+            // 如果解析出的结果没有 confidence 字段，默认设置为 "high"
+            if (result.getConfidence() == null) {
+                result.setConfidence("high");
+            }
+            return result;
         } catch (Exception e) {
             log.debug("Failed to parse as JSON, trying legacy boolean format. Error: {}", e.getMessage());
         }
@@ -120,7 +217,7 @@ public class JobMatchAiService {
         Matcher matcher = BOOLEAN_PATTERN.matcher(normalized);
         if (matcher.find()) {
             boolean matched = Boolean.parseBoolean(matcher.group(1).toLowerCase(Locale.ROOT));
-            return new JobMatchResult(matched, "使用旧格式返回，无详细原因");
+            return new JobMatchResult(matched, "使用旧格式返回，无详细原因", "high");
         }
 
         throw new IllegalStateException("Unable to parse job match result from AI response: " + content);
