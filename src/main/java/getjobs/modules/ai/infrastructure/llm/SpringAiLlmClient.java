@@ -28,7 +28,6 @@ public class SpringAiLlmClient implements LlmClient {
             case "assistant" -> new AssistantMessage(m.content());
             default -> new UserMessage(m.content());
         }).toList();
-
         var resp = chatModel.call(new Prompt(springMsgs));
         return resp.getResult().getOutput().getText();
     }

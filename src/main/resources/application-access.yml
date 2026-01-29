@@ -1,0 +1,46 @@
+# Access 日志配置
+# 用于记录和分析 HTTP 请求，按秒级聚合同一 IP 的请求
+access:
+  log:
+    # 是否启用 Access 日志（默认 true）
+    enabled: true
+    # 需要记录的路径（Ant 路径模式）
+    # 拦截器会记录这些路径的请求信息（IP、方法、路径）
+    include-patterns:
+      - /**                    # 记录所有路径（默认）
+    # 排除的路径（Ant 路径模式）
+    # 这些路径不会被记录，减少日志噪音
+    exclude-patterns:
+      - /actuator/**           # Spring Boot Actuator 监控端点
+      - /error                # 错误处理端点
+      - /favicon.ico          # 网站图标
+      - /static/**            # 静态资源（CSS、JS、图片等）
+      - /assets/**            # 前端资源文件
+      - /*.js                 # JavaScript 文件
+      - /*.css                # 样式文件
+      - /*.png                # 图片文件
+      - /*.jpg                # 图片文件
+      - /*.jpeg               # 图片文件
+      - /*.gif                # 图片文件
+      - /*.svg                # SVG 图片
+      - /*.ico                # 图标文件
+      - /*.woff               # 字体文件
+      - /*.woff2              # 字体文件
+      - /*.ttf                # 字体文件
+      - /*.eot                # 字体文件
+    # 日志级别（默认 INFO）
+    # 可选值：TRACE, DEBUG, INFO, WARN, ERROR
+    log-level: INFO
+
+# 日志输出格式说明：
+# ACCESS_LOG - IP: {IP地址} | Timestamp: {秒级时间戳} | Count: {请求次数} | Requests: {请求方法+路径集合}
+#
+# 示例：
+# ACCESS_LOG - IP: 192.168.1.1 | Timestamp: 1704067200 | Count: 5 | Requests: {GET:/api/users, POST:/api/auth/login, GET:/api/products}
+#
+# 说明：
+# - 同一秒内同一 IP 的请求会被合并为一个记录
+# - Requests 字段包含该秒内所有不同的请求方法+路径组合（格式：METHOD:path）
+# - Count 字段表示该秒内的总请求次数
+# - 日志输出频率为每秒一次，输出上一秒的日志记录
+

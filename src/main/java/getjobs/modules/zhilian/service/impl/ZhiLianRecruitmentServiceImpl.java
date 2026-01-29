@@ -4,6 +4,7 @@ import com.microsoft.playwright.Page;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.service.PlaywrightService;
+import getjobs.common.util.PageHealthChecker;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.modules.zhilian.service.ZhiLianElementLocators;
 import getjobs.repository.UserProfileRepository;
@@ -61,8 +62,16 @@ public class ZhiLianRecruitmentServiceImpl extends AbstractRecruitmentService {
         log.info("开始智联招聘登录检查");
 
         try {
-            // 使用Playwright打开网站
-            page.navigate(HOME_URL);
+            // 使用Playwright打开网站（带重试机制）
+            PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        page.navigate(HOME_URL);
+                        return null;
+                    },
+                    "导航到智联招聘首页",
+                    2 // 最多重试2次
+            );
 
             // 检查是否需要登录
             if (ZhiLianElementLocators.isLoginRequired(page)) {
@@ -129,7 +138,18 @@ public class ZhiLianRecruitmentServiceImpl extends AbstractRecruitmentService {
             for (JobDTO jobDTO : jobDTOS) {
                 try {
                     log.info("正在投递岗位: {}", jobDTO.getJobName());
-                    jobPage.navigate(jobDTO.getHref());
+
+                    // 导航到岗位详情页（带重试机制）
+                    PageHealthChecker.executeWithRetry(
+                            jobPage,
+                            () -> {
+                                jobPage.navigate(jobDTO.getHref());
+                                return null;
+                            },
+                            "导航到智联招聘岗位详情页",
+                            2 // 最多重试2次
+                    );
+
                     jobPage.waitForLoadState(); // 等待页面加载
 
                     // 投递完成会打开新页签，需要关闭新页签
@@ -200,7 +220,17 @@ public class ZhiLianRecruitmentServiceImpl extends AbstractRecruitmentService {
         List<JobDTO> jobDTOS = new ArrayList<>();
 
         try {
-            page.navigate(searchUrl);
+            // 导航到搜索页面（带重试机制）
+            PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        page.navigate(searchUrl);
+                        return null;
+                    },
+                    "导航到智联招聘搜索页面",
+                    2 // 最多重试2次
+            );
+
             // 等待页面加载
             page.waitForLoadState();
             int pageNumber = 1;
@@ -294,8 +324,17 @@ public class ZhiLianRecruitmentServiceImpl extends AbstractRecruitmentService {
      */
     private boolean performLogin() {
         try {
-            // 直接首页登录即可，不需要单独使用登录页
-            page.navigate(HOME_URL);
+            // 直接首页登录即可，不需要单独使用登录页（带重试机制）
+            PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        page.navigate(HOME_URL);
+                        return null;
+                    },
+                    "导航到智联招聘登录页面",
+                    2 // 最多重试2次
+            );
+
             TimeUnit.SECONDS.sleep(3);
 
             log.info("等待用户手动登录...");

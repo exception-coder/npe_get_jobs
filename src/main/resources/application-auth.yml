@@ -1,0 +1,53 @@
+security:
+  jwt:
+    # JWT 签名密钥（务必在本地配置中改成强随机字符串）
+    secret: "AdminJwtSecret202511170148"
+    # 签发方标识
+    issuer: "npe_get_jobs"
+    # Access Token 过期时间（秒，建议设置为较短时间，如 15分钟-1小时）
+    expiration-seconds: 3600
+    # Refresh Token 过期时间（秒，建议设置为较长时间，如 7-30天）
+    refresh-expiration-seconds: 604800  # 默认7天
+    # 初始化管理员用户配置（应用启动时自动创建，如已存在则跳过）
+    admin-user:
+      # 登录用户名（必填）
+      username: "admin"
+      # 登录密码（必填，明文，仅用于本地开发/演示环境）
+      password: "adminP@ssw0Rd20251117"
+      # 显示名称
+      display-name: "系统管理员"
+      # 邮箱（可选）
+      email: "admin@npe-get-jobs.com"
+      # 手机号（可选）
+      mobile: "13800138000"
+      # 是否为超级管理员（拥有所有权限，不受角色权限限制）
+      super-admin: true
+      # 是否启用
+      enabled: true
+
+# 认证拦截器配置
+auth:
+  interceptor:
+    # 是否启用认证拦截器（默认 true）
+    enabled: true
+    # 是否启用自动刷新 Token（混合方案的后端兜底，默认 true）
+    # 当 Access Token 过期时，如果前端未刷新，后端会自动尝试刷新
+    # 主要刷新逻辑应该在前端实现，后端作为兜底方案
+    auto-refresh-enabled: true
+    # 需要拦截的路径（Ant 路径模式）
+    # 拦截器会验证这些路径的 JWT Token，并将认证信息存储到 RequestContextHolder
+    include-patterns:
+      - /api/sasl/**      # SASL 模块接口需要认证
+    # 排除的路径（Ant 路径模式）
+    # 这些路径不会被拦截器处理，可以直接访问
+    exclude-patterns:
+      - /api/auth/**      # 认证相关接口（登录、注册、token检查等），由接口内部处理认证逻辑
+      - /actuator/**      # Spring Boot Actuator 监控端点
+      - /error            # 错误处理端点
+      - /favicon.ico       # 网站图标
+    # Cookie 中的 Token 名称（默认 token）
+    # 拦截器会从以下位置按优先级获取 Token：
+    # 1. Authorization: Bearer {token} 请求头
+    # 2. X-Auth-Token: {token} 请求头
+    # 3. Cookie: {token-cookie-name}={token}
+    token-cookie-name: token

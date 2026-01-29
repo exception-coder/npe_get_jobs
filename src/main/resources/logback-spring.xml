@@ -40,7 +40,7 @@
         </layout>
     </appender>
 
-    <springProfile name="dev,prod">
+    <springProfile name="dev">
         <springProperty name="ACCESS_LOG_FILE"
                         source="logging.access_log_file" />
         <!-- 控制台输出 -->
@@ -126,6 +126,12 @@
             <appender-ref ref="FILE" />
         </logger>
 
+        <!-- NonHttpProbeValve 日志配置 -->
+        <logger name="getjobs.common.infrastructure.tomcat" additivity="false" level="${logging.level.getjobs.common.infrastructure.tomcat:-DEBUG}">
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="FILE" />
+        </logger>
+
         <root level="${logging.level.root:-INFO}">
             <appender-ref ref="STDOUT"/>
             <appender-ref ref="FILE"/>
@@ -135,8 +141,17 @@
     </springProfile>
 
 
-    <!-- 应用运行环境为 dev 时候使用的日志 -->
+    <!-- 应用运行环境为 prod 时候使用的日志 -->
     <springProfile name="prod">
+        <springProperty name="ACCESS_LOG_FILE"
+                        source="logging.access_log_file" />
+        <!-- 控制台输出 -->
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            </encoder>
+        </appender>
+        
         <!-- 按照每天生成日志文件 -->
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <!--<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">

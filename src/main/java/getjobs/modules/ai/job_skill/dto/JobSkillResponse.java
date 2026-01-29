@@ -55,4 +55,39 @@ public class JobSkillResponse {
      */
     @JsonProperty("greeting_message")
     private String greetingMessage;
+
+    /**
+     * 核心个人优势
+     */
+    @JsonProperty("essential_strengths")
+    private List<String> essentialStrengths;
+
+    /**
+     * 通用项目经历
+     */
+    @JsonProperty("project_experience")
+    private List<ProjectExperience> projectExperience;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ProjectExperience {
+        /**
+         * 项目名称
+         */
+        @JsonProperty("project_name")
+        private String projectName;
+
+        /**
+         * 项目描述
+         */
+        @JsonProperty("project_description")
+        private String projectDescription;
+
+        /**
+         * 项目业绩
+         */
+        @JsonProperty("project_achievements")
+        private List<String> projectAchievements;
+    }
 }

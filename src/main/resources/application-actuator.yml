@@ -5,11 +5,82 @@ management:
     web:
       exposure:
         # 暴露 refresh 端点，用于触发配置刷新
-        include: refresh,health,info
+        # loggers 端点用于动态配置日志级别
+        include: refresh,health,info,loggers
+      # Actuator 端点的基础路径（可选，默认 /actuator）
+      base-path: /actuator
   endpoint:
     refresh:
       enabled: true
     health:
       enabled: true
       show-details: always
+    loggers:
+      enabled: true  # 启用 loggers 端点，支持动态配置日志级别
 
+# Spring Boot Admin Server 配置
+# 方式一：相同端口 + 不同路径（推荐，当前使用此方式）
+# 访问地址：http://localhost:8081/admin
+spring:
+  boot:
+    admin:
+      # Admin Server 的上下文路径（Spring Boot Admin 3.1.8 使用 context-path）
+      context-path: /admin
+      # Admin Server 登录用户名（默认：admin）
+      username: ${ADMIN_USERNAME:admin}
+      # Admin Server 登录密码（默认：admin，生产环境请修改！）
+      password: ${ADMIN_PASSWORD:adminP@ssw0Rd}
+      # 配置 Admin Server 的标题
+      ui:
+        title: "NPE Get Jobs 监控中心"
+        brand: "🔧 应用监控"
+        # 配置公共 URL（用于反向代理场景）
+        public-url: http://localhost:8081/admin
+        # 禁用实时更新（Server-Sent Events），避免异步支持问题
+        # 如果启用，需要确保所有过滤器都支持异步
+        # enable-realtime: false  # 注意：这个配置项可能不存在，Spring Boot Admin 3.1.8 可能不支持
+      # 将当前应用注册为 Admin Client（自己监控自己）
+      client:
+        url: http://localhost:8081/admin  # 指定 Admin Server 的完整 URL（包含 context-path）
+        instance:
+          name: ${spring.application.name}
+          service-url: http://localhost:8081
+          management-url: http://localhost:8081/actuator
+          health-url: http://localhost:8081/actuator/health
+
+# 方式二：不同端口（如果需要，取消下面的注释并注释掉上面的配置）
+# 注意：这种方式需要配置独立的服务器端口，实现较复杂
+# 如果需要使用不同端口，建议使用独立的 Admin Server 应用
+# spring:
+#   boot:
+#     admin:
+#       context-path: /
+#       client:
+#         url: http://localhost:9090  # Admin Server 端口
+#         instance:
+#           name: ${spring.application.name}
+#           service-url: http://localhost:8081  # 应用端口
+#           management-url: http://localhost:8081/actuator
+#           health-url: http://localhost:8081/actuator/health
+# server:
+#   port: 9090  # Admin Server 独立端口
+
+# AI 模型聚合健康检查配置（自动扫描所有模型）
+health:
+  ai-models:
+    enabled: true        # 是否启用健康检查
+    check-type: API_CALL                 # 检查类型：PING, API_CALL, MODEL_INFO
+    connection-timeout: 5000         # 连接超时（毫秒）
+    response-timeout: 10000          # 响应超时（毫秒）
+    slow-response-threshold: 3000    # 慢响应阈值（毫秒）
+    overall-timeout: 30000           # 整体检查超时（毫秒）
+    test-message: "hello"            # API_CALL 检查时的测试消息
+    
+    # 包含的模型列表（为空则检查所有模型）
+    included-models: []
+    # - chatgptAiChatModel           # OpenAI 模型
+    # - deepseekChatModel            # Deepseek 模型
+    
+    # 排除的模型列表
+    excluded-models: []
+    # - someModelToExclude

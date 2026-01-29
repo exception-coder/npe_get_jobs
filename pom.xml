@@ -32,6 +32,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
         <!-- Web 支持（MVC、Jackson、Tomcat 等） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -67,6 +71,11 @@
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-community-dialects</artifactId>
+        </dependency>
+        <!-- MySQL 数据库支持 -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
         <!-- ========================= -->
@@ -114,6 +123,15 @@
             <version>4.12.0</version>
         </dependency>
 
+        <!-- ================= -->
+        <!-- 文档/Excel 解析   -->
+        <!-- ================= -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+
         <!-- ===================== -->
         <!-- AI/大模型 接入能力 -->
         <!-- ===================== -->
@@ -135,6 +153,26 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        
+        <!-- Spring Boot Admin Server（提供可视化监控界面） -->
+        <dependency>
+            <groupId>de.codecentric</groupId>
+            <artifactId>spring-boot-admin-starter-server</artifactId>
+            <version>3.1.8</version>
+        </dependency>
+        
+        <!-- Spring Boot Admin Client（将当前应用注册到 Admin Server） -->
+        <dependency>
+            <groupId>de.codecentric</groupId>
+            <artifactId>spring-boot-admin-starter-client</artifactId>
+            <version>3.1.8</version>
+        </dependency>
+        
+        <!-- Spring Security（用于保护 Admin Server） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
         <!-- ============ -->
@@ -168,6 +206,12 @@
             <groupId>com.microsoft.playwright</groupId>
             <artifactId>playwright</artifactId>
             <version>1.51.0</version>
+        </dependency>
+        <!-- JWT 鉴权 -->
+        <dependency>
+            <groupId>com.auth0</groupId>
+            <artifactId>java-jwt</artifactId>
+            <version>4.4.0</version>
         </dependency>
         <!--<dependency>
             <groupId>org.springframework</groupId>
@@ -206,24 +250,150 @@
                 </configuration>
             </plugin>
 
+            <!--
+                依赖分离：将项目依赖复制到 lib 目录，实现依赖与源码分离部署
+                这样部署时只需要上传源码包，依赖可以单独部署到服务器共享目录
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <!-- 依赖输出目录：target/lib -->
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            <!-- 排除 scope 为 provided/test 的依赖（如 lombok） -->
+                            <includeScope>runtime</includeScope>
+                            <!-- 保留版本号，便于依赖管理 -->
+                            <stripVersion>false</stripVersion>
+                            <!-- 排除传递依赖中已包含的依赖，避免重复 -->
+                            <excludeTransitive>false</excludeTransitive>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Spring Boot 打包插件：配置为 ZIP layout 实现依赖分离
+                打包后的 jar 不包含依赖，依赖通过 loader.path 外部加载
+            -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>3.2.12</version>
                 <configuration>
                     <mainClass>getjobs.GetJobsApplication</mainClass>
+                    <!-- 使用 ZIP layout：jar 包不包含依赖，依赖从外部 lib 目录加载 -->
+                    <layout>ZIP</layout>
+                    <!-- 排除编译期依赖（如 lombok） -->
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                    <!-- 包含前端构建产物和配置文件 -->
+                    <includes>
+                        <include>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                        </include>
+                    </includes>
                 </configuration>
                 <executions>
                     <execution>
                         <goals>
                             <goal>repackage</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+                前端构建流程：使用 frontend-maven-plugin 在 Maven 生命周期中自动完成 Node 环境安装、依赖安装与生产构建。
+                该插件会在 generate-resources 阶段执行 npm 命令，确保后续资源复制阶段可以拿到最新的 dist 目录。
+            -->
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.13.4</version>
+                <configuration>
+                    <!-- 指定 Vue 前端工程所在目录 -->
+                    <workingDirectory>${project.basedir}/frontend</workingDirectory>
+                    <!-- Node/NPM 安装的本地缓存目录，避免污染全局环境 -->
+                    <installDirectory>${project.build.directory}/.frontend</installDirectory>
+                    <!-- 自动下载并使用的 Node.js 版本，需与前端 package.json 支持的版本保持一致 -->
+                    <nodeVersion>v20.14.0</nodeVersion>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <!-- 在资源生成阶段安装 Node 环境，确保后续 npm 命令可用 -->
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <!-- 下载并安装指定版本的 Node & npm -->
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>npm-install</id>
+                        <!-- generate-resources 阶段执行 npm install，安装依赖 -->
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <!-- 调用 npm 命令 -->
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <!-- npm 安装命令 -->
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-build</id>
+                        <!-- generate-resources 阶段执行生产构建，生成 dist -->
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <!-- 执行 npm run build，产出位于 frontend/dist -->
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+                将前端构建产物复制到后端资源目录。复制目标为 target/classes/dist，
+                从而在 Spring Boot 打包时自然包含最新的前端静态文件。
+            -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-frontend-dist</id>
+                        <!-- 在 process-resources 阶段复制前端静态资源 -->
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <!-- 复制目标路径：target/classes/dist -->
+                            <outputDirectory>${project.build.outputDirectory}/dist</outputDirectory>
+                            <!-- 覆盖已有文件，保证每次构建都是最新结果 -->
+                            <overwrite>true</overwrite>
+                            <resources>
+                                <resource>
+                                    <!-- 前端构建产物目录 -->
+                                    <directory>${project.basedir}/frontend/dist</directory>
+                                    <!-- 不对静态资源做过滤，否则会破坏打包文件 -->
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

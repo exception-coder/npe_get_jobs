@@ -1,7 +1,7 @@
 ﻿spring:
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY:xxx}
+      api-key: ${OPENAI_API_KEY}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
       chat:
         # 启用OpenAI聊天模型
@@ -14,7 +14,7 @@
           # 默认最大token数
           max-tokens: 2000
     deepseek:
-      api-key: ${DEEPSEEK_API_KEY:sk-0720b1480e3247e8bfcab361a679e7cb}
+      api-key: ${DEEPSEEK_API_KEY}
       base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
       chat:
         # 启用OpenAI聊天模型
@@ -25,4 +25,5 @@
           # 默认温度参数 (1.0.0-M6版本使用Double类型)
           temperature: 0.7
           # 默认最大token数
-          max-tokens: 5000
+#          org.springframework.ai.retry.NonTransientAiException: 400 - {"error":{"message":"Invalid max_tokens value, the valid range of max_tokens is [1, 8192]","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+          max-tokens: 8192

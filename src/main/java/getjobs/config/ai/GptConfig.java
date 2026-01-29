@@ -8,15 +8,11 @@ import org.springframework.ai.chat.model.StreamingChatModel;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.netty.http.client.HttpClient;
-import reactor.netty.transport.ProxyProvider;
-
-import java.time.Duration;
 
 /**
  * GPT配置类
@@ -46,18 +42,11 @@ public class GptConfig {
     @Value("${proxy.port:0}")
     private int proxyPort;
 
-    @Value("${spring.ai.openai.connect-timeout:60000}")
-    private int connectTimeout;
-
-    @Value("${spring.ai.openai.response-timeout:120000}")
-    private int responseTimeout;
-
     @PostConstruct
     public void init() {
         log.info("OpenAI配置信息:");
         log.info("API基础URL: {}", baseUrl);
         log.info("默认模型: {}", model);
-        log.info("连接超时: {}ms, 响应超时: {}ms", connectTimeout, responseTimeout);
 
         if (proxyHost != null && !proxyHost.isEmpty() && proxyPort > 0) {
             log.info("代理已配置 - 主机: {}, 端口: {}", proxyHost, proxyPort);
@@ -81,46 +70,26 @@ public class GptConfig {
 
     /**
      * 配置OpenAiApi
+     * <p>
+     * 使用基础设施层的 WebClient.Builder，继承全局配置（代理、SSL、超时等）。
+     * </p>
+     *
+     * @param webClientBuilder 基础设施层的 WebClient.Builder
+     * @return OpenAiApi 实例
      */
     @Bean
-    public OpenAiApi openAiApi() {
-        WebClient.Builder webClientBuilder = WebClient.builder();
-
-        if (proxyHost != null && !proxyHost.isEmpty() && proxyPort > 0) {
-            if (isProxyAvailable(proxyHost, proxyPort)) {
-                log.info("使用代理创建WebClient - 主机: {}, 端口: {}", proxyHost, proxyPort);
-                HttpClient httpClient = HttpClient.create()
-                        .proxy(proxy -> proxy
-                                .type(ProxyProvider.Proxy.HTTP)
-                                .host(proxyHost)
-                                .port(proxyPort))
-                        .responseTimeout(Duration.ofMillis(responseTimeout))
-                        .option(io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout)
-                        .option(io.netty.channel.ChannelOption.SO_KEEPALIVE, true);
-
-                webClientBuilder = webClientBuilder.clone()
-                        .clientConnector(new ReactorClientHttpConnector(httpClient));
-            } else {
-                log.warn("无法连接到代理 - 主机: {}, 端口: {}，将直接连接OpenAI API", proxyHost, proxyPort);
-            }
-        } else {
-            log.warn("创建WebClient时未使用代理，这可能导致在中国大陆无法连接到OpenAI API");
-        }
-
-        // 即使不使用代理，也添加超时配置
-        HttpClient httpClient = HttpClient.create()
-                .responseTimeout(Duration.ofMillis(responseTimeout))
-                .option(io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout)
-                .option(io.netty.channel.ChannelOption.SO_KEEPALIVE, true);
-
-        webClientBuilder = webClientBuilder.clone()
-                .clientConnector(new ReactorClientHttpConnector(httpClient));
+    public OpenAiApi openAiApi(@Qualifier("webClientBuilderDefault") WebClient.Builder webClientBuilder) {
+        // 使用基础设施层的 WebClient.Builder，继承全局配置
+        // 注意：使用 clone() 避免污染全局配置
+        WebClient.Builder builder = webClientBuilder.clone();
 
         log.info("创建OpenAiApi，基础URL: {}", baseUrl);
+        log.info("使用基础设施层的 WebClient.Builder（已包含代理、SSL、超时等配置）");
+
         return OpenAiApi.builder()
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
-                .webClientBuilder(webClientBuilder)
+                .webClientBuilder(builder)
                 .build();
     }
 

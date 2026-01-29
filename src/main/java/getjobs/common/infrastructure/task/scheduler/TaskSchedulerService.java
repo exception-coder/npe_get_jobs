@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -84,5 +86,44 @@ public class TaskSchedulerService {
                 timeout);
 
         return taskExecutor.executeAsyncWithTimeout(scheduledTask, timeout, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * 取消任务
+     * 
+     * @param executionId 任务执行ID
+     * @return true表示成功取消，false表示任务未找到或已完成
+     */
+    public boolean cancelTask(String executionId) {
+        log.info("请求取消任务: {}", executionId);
+        return taskExecutor.cancelTask(executionId);
+    }
+
+    /**
+     * 根据执行ID查询任务
+     * 
+     * @param executionId 任务执行ID
+     * @return 任务实例（如果存在）
+     */
+    public Optional<Task> getTask(String executionId) {
+        return taskExecutor.getTask(executionId);
+    }
+
+    /**
+     * 获取所有正在运行的任务
+     * 
+     * @return 正在运行的任务列表
+     */
+    public List<Task> getRunningTasks() {
+        return taskExecutor.getRunningTasks();
+    }
+
+    /**
+     * 获取正在运行的任务数量
+     * 
+     * @return 任务数量
+     */
+    public int getRunningTaskCount() {
+        return taskExecutor.getRunningTaskCount();
     }
 }

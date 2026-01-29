@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class JobSkillService {
 
-    private static final String DEFAULT_TEMPLATE_ID = "job-skill-prompt";
+    private static final String DEFAULT_TEMPLATE_ID = "job-skill-prompt-v1";
 
     private final JobSkillPromptAssembler assembler;
     private final LlmClient llmClient;

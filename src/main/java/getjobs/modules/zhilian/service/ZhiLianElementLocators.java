@@ -2,6 +2,8 @@ package getjobs.modules.zhilian.service;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
+import getjobs.common.util.PageHealthChecker;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -13,37 +15,38 @@ import java.util.Random;
  * 用于定位智联招聘网站上的各种元素和解析职位信息
  * 
  * @author loks666
- * 项目链接: <a href="https://github.com/loks666/get_jobs">https://github.com/loks666/get_jobs</a>
+ *         项目链接: <a href=
+ *         "https://github.com/loks666/get_jobs">https://github.com/loks666/get_jobs</a>
  */
 @Slf4j
 public class ZhiLianElementLocators {
 
     // ==================== 页面元素定位器 ====================
-    
+
     /** 登录按钮 */
     public static final String LOGIN_BUTTON = "a[href*='login']";
-    
+
     /** 登录/注册按钮 */
     public static final String LOGIN_REGISTER_BUTTON = "a.home-header__c-no-login";
-    
+
     /** 我要招人按钮（已登录状态） */
     public static final String RECRUITER_BUTTON = "a.home-header__b-login";
-    
+
     /** 用户信息区域 */
     public static final String USER_INFO_AREA = "div.user-info";
-    
+
     /** 页面头部右侧区域 */
     public static final String HEADER_RIGHT_AREA = "div.home-header__right";
-    
+
     /** 投递按钮 */
     public static final String APPLY_BUTTON = "button.apply-btn, a.apply-btn";
-    
+
     /** 已投递标记 */
     public static final String APPLIED_MARK = "span.applied-mark";
-    
+
     /** 用户登录后的用户名元素 */
     public static final String USER_WELCOME_USERNAME = "div.zp-welcome__username";
-    
+
     /** 退出按钮 */
     public static final String LOGOUT_BUTTON = "a#logout";
 
@@ -61,120 +64,94 @@ public class ZhiLianElementLocators {
      * @return true表示点击成功，false表示未找到对应页码或点击失败
      */
     public static boolean clickPageNumber(Page page, int pageNumber) {
-        // 添加重试机制，最多重试2次
-        int maxRetries = 2;
-        Exception lastException = null;
-        
-        for (int retry = 0; retry <= maxRetries; retry++) {
-            try {
-                if (retry > 0) {
-                    log.info("重试点击页码 {} (第 {}/{} 次)", pageNumber, retry, maxRetries);
-                    // 重试前等待一下，让页面状态稳定
-                    page.waitForTimeout(2000);
-                }
-                
-                // 检查 Page 对象是否已关闭
-                if (page.isClosed()) {
-                    log.error("Page 对象已关闭，无法点击页码 {}", pageNumber);
-                    return false;
-                }
-                
-                // 首先等待分页元素出现
-                try {
-                    page.waitForSelector("div.soupager", new Page.WaitForSelectorOptions().setTimeout(8000));
-                } catch (Exception e) {
-                    log.error("等待分页元素出现超时: {}", e.getMessage());
-                    // 如果是超时，不进行重试
-                    return false;
-                }
-            
-                // 查找class="soupager"的div元素
-                Locator pagerElement = page.locator("div.soupager");
-                
-                if (pagerElement.count() == 0) {
-                    log.error("未找到分页元素 div.soupager");
-                    return false;
-                }
-
-                // 查找包含指定页码文本的a元素，使用精确匹配避免误匹配
-                Locator pageElement = pagerElement.locator("a.soupager__index").
-                        getByText(String.valueOf(pageNumber), new Locator.GetByTextOptions().setExact(true));
-
-                if (pageElement.count() == 0) {
-                    log.info("未找到页码为 {} 的分页元素，可能已到达最后一页", pageNumber);
-                    return false;
-                }
-
-                // 检查元素是否已经是当前激活状态
-                Locator activePageElement = pagerElement.locator("a.soupager__index--active");
-                if (activePageElement.count() > 0) {
-                    String activePageText = activePageElement.textContent().trim();
-                    if (String.valueOf(pageNumber).equals(activePageText)) {
-                        log.info("页码 {} 已经是当前激活状态，无需点击", pageNumber);
-                        return true;
-                    }
-                }
-
-                // 确保元素可见且可点击
-                pageElement.scrollIntoViewIfNeeded();
-                
-                // 在点击之前添加随机延迟3-5秒，模拟真实用户行为
-                Random random = new Random();
-                int delay = 3000 + random.nextInt(2001); // 3000-5000毫秒之间的随机延迟
-                log.info("准备点击页码 {}，随机延迟 {} 毫秒", pageNumber, delay);
-                page.waitForTimeout(delay);
-                
-                // 再次检查 Page 对象是否仍然有效
-                if (page.isClosed()) {
-                    log.error("Page 对象在延迟等待期间被关闭，无法点击页码 {}", pageNumber);
-                    return false;
-                }
-                
-                // 点击页码元素
-                pageElement.click();
-                
-                // 等待页面状态变化，确保点击生效
-                try {
-                    // 等待当前页码变为激活状态
-                    page.waitForSelector("div.soupager a.soupager__index--active:has-text('" + pageNumber + "')", 
-                        new Page.WaitForSelectorOptions().setTimeout(5000));
-                    log.info("成功点击页码: {}，页面已切换", pageNumber);
-                } catch (Exception e) {
-                    log.warn("等待页码 {} 激活状态超时，但点击操作已执行: {}", pageNumber, e.getMessage());
-                }
-                
-                return true;
-
-            } catch (com.microsoft.playwright.PlaywrightException e) {
-                lastException = e;
-                String errorMsg = e.getMessage();
-                
-                // 检查是否是资源清理相关的异常
-                if (errorMsg != null && (errorMsg.contains("Cannot find parent object") || 
-                                        errorMsg.contains("Object doesn't exist"))) {
-                    log.warn("检测到 Playwright 资源异常 (尝试 {}/{}): {}", retry + 1, maxRetries + 1, errorMsg);
-                    
-                    // 如果还有重试机会，继续重试
-                    if (retry < maxRetries) {
-                        log.info("页面状态可能不稳定，等待后重试...");
-                        continue;
-                    }
-                }
-                
-                // 其他异常直接抛出
-                log.error("点击页码 {} 时发生 Playwright 异常: {}", pageNumber, errorMsg);
-                return false;
-                
-            } catch (Exception e) {
-                log.error("点击页码 {} 时发生未预期的错误: {}", pageNumber, e.getMessage(), e);
-                return false;
-            }
+        // 检查Page对象健康状态
+        if (!PageHealthChecker.isPageHealthy(page)) {
+            log.error("Page对象不健康，无法点击页码 {}", pageNumber);
+            return false;
         }
-        
-        // 所有重试都失败了
-        log.error("点击页码 {} 失败，已重试 {} 次。最后异常: {}", 
-                 pageNumber, maxRetries, lastException != null ? lastException.getMessage() : "未知");
-        return false;
+
+        try {
+            // 使用健康检查包装器执行点击操作（带重试机制）
+            return PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        // 首先等待分页元素出现
+                        try {
+                            page.waitForSelector("div.soupager", new Page.WaitForSelectorOptions().setTimeout(8000));
+                        } catch (Exception e) {
+                            log.error("等待分页元素出现超时: {}", e.getMessage());
+                            return false;
+                        }
+
+                        // 查找class="soupager"的div元素
+                        Locator pagerElement = page.locator("div.soupager");
+
+                        if (pagerElement.count() == 0) {
+                            log.error("未找到分页元素 div.soupager");
+                            return false;
+                        }
+
+                        // 查找包含指定页码文本的a元素，使用精确匹配避免误匹配
+                        Locator pageElement = pagerElement.locator("a.soupager__index")
+                                .getByText(String.valueOf(pageNumber), new Locator.GetByTextOptions().setExact(true));
+
+                        if (pageElement.count() == 0) {
+                            log.info("未找到页码为 {} 的分页元素，可能已到达最后一页", pageNumber);
+                            return false;
+                        }
+
+                        // 检查元素是否已经是当前激活状态
+                        Locator activePageElement = pagerElement.locator("a.soupager__index--active");
+                        if (activePageElement.count() > 0) {
+                            String activePageText = activePageElement.textContent().trim();
+                            if (String.valueOf(pageNumber).equals(activePageText)) {
+                                log.info("页码 {} 已经是当前激活状态，无需点击", pageNumber);
+                                return true;
+                            }
+                        }
+
+                        // 确保元素可见且可点击
+                        pageElement.scrollIntoViewIfNeeded();
+
+                        // 在点击之前添加随机延迟3-5秒，模拟真实用户行为
+                        Random random = new Random();
+                        int delay = 3000 + random.nextInt(2001); // 3000-5000毫秒之间的随机延迟
+                        log.info("准备点击页码 {}，随机延迟 {} 毫秒", pageNumber, delay);
+                        page.waitForTimeout(delay);
+
+                        // 点击页码元素
+                        pageElement.click();
+
+                        // 等待页面状态变化，确保点击生效
+                        try {
+                            // 等待当前页码变为激活状态
+                            page.waitForSelector(
+                                    "div.soupager a.soupager__index--active:has-text('" + pageNumber + "')",
+                                    new Page.WaitForSelectorOptions().setTimeout(5000));
+                            log.info("成功点击页码: {}，页面已切换", pageNumber);
+                        } catch (Exception e) {
+                            log.warn("等待页码 {} 激活状态超时，但点击操作已执行: {}", pageNumber, e.getMessage());
+                        }
+
+                        return true;
+                    },
+                    "点击智联招聘分页页码" + pageNumber,
+                    2 // 最多重试2次
+            );
+
+        } catch (PlaywrightException e) {
+            // 处理Page对象失效异常
+            if (e.getMessage() != null && (e.getMessage().contains("Object doesn't exist") ||
+                    e.getMessage().contains("Cannot find parent object"))) {
+                log.error("Page对象失效，无法点击页码 {}: {}", pageNumber, e.getMessage());
+            } else {
+                log.error("点击页码 {} 时发生Playwright异常: {}", pageNumber, e.getMessage(), e);
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("点击页码 {} 时发生未预期的错误: {}", pageNumber, e.getMessage(), e);
+            return false;
+        }
     }
 
     /**
@@ -185,35 +162,49 @@ public class ZhiLianElementLocators {
      * @return 当前激活的页码，如果未找到则返回-1
      */
     public static int getCurrentPageNumber(Page page) {
-        try {
-            // 查找class="soupager"的div元素
-            Locator pagerElement = page.locator("div.soupager");
-            
-            if (pagerElement.count() == 0) {
-                log.error("未找到分页元素 div.soupager");
-                return -1;
-            }
-
-            // 查找当前激活的页码元素
-            Locator activePageElement = pagerElement.locator("a.soupager__index--active");
-            
-            if (activePageElement.count() > 0) {
-                String pageText = activePageElement.textContent().trim();
-                try {
-                    int currentPage = Integer.parseInt(pageText);
-                    log.info("当前激活页码: {}", currentPage);
-                    return currentPage;
-                } catch (NumberFormatException e) {
-                    log.error("解析当前页码失败: {}", pageText);
-                    return -1;
-                }
-            }
-
-            log.error("未找到当前激活的页码元素");
+        // 检查Page对象健康状态
+        if (!PageHealthChecker.isPageHealthy(page)) {
+            log.error("Page对象不健康，无法获取当前页码");
             return -1;
+        }
+
+        try {
+            // 使用健康检查包装器执行查询操作（带重试机制）
+            return PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        // 查找class="soupager"的div元素
+                        Locator pagerElement = page.locator("div.soupager");
+
+                        if (pagerElement.count() == 0) {
+                            log.error("未找到分页元素 div.soupager");
+                            return -1;
+                        }
+
+                        // 查找当前激活的页码元素
+                        Locator activePageElement = pagerElement.locator("a.soupager__index--active");
+
+                        if (activePageElement.count() > 0) {
+                            String pageText = activePageElement.textContent().trim();
+                            try {
+                                int currentPage = Integer.parseInt(pageText);
+                                log.info("当前激活页码: {}", currentPage);
+                                return currentPage;
+                            } catch (NumberFormatException e) {
+                                log.error("解析当前页码失败: {}", pageText);
+                                return -1;
+                            }
+                        }
+
+                        log.error("未找到当前激活的页码元素");
+                        return -1;
+                    },
+                    "获取智联招聘当前页码",
+                    2 // 最多重试2次
+            );
 
         } catch (Exception e) {
-            log.error("获取当前页码时发生错误: {}", e.getMessage());
+            log.error("获取当前页码时发生错误: {}", e.getMessage(), e);
             return -1;
         }
     }
@@ -226,40 +217,54 @@ public class ZhiLianElementLocators {
      * @return 所有可见页码的列表，如果出错则返回空列表
      */
     public static List<Integer> getVisiblePageNumbers(Page page) {
-        List<Integer> pageNumbers = new ArrayList<>();
-        
-        try {
-            // 查找class="soupager"的div元素
-            Locator pagerElement = page.locator("div.soupager");
-            
-            if (pagerElement.count() == 0) {
-                log.error("未找到分页元素 div.soupager");
-                return pageNumbers;
-            }
+        // 检查Page对象健康状态
+        if (!PageHealthChecker.isPageHealthy(page)) {
+            log.error("Page对象不健康，无法获取可见页码列表");
+            return new ArrayList<>();
+        }
 
-            // 获取所有页码元素
-            Locator pageElements = pagerElement.locator("a.soupager__index");
-            int elementCount = pageElements.count();
-            
-            for (int i = 0; i < elementCount; i++) {
-                Locator pageElement = pageElements.nth(i);
-                String pageText = pageElement.textContent().trim();
-                
-                try {
-                    int pageNumber = Integer.parseInt(pageText);
-                    pageNumbers.add(pageNumber);
-                } catch (NumberFormatException e) {
-                    log.warn("跳过非数字页码: {}", pageText);
-                }
-            }
-            
-            log.info("获取到可见页码列表: {}", pageNumbers);
+        try {
+            // 使用健康检查包装器执行查询操作（带重试机制）
+            return PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        List<Integer> pageNumbers = new ArrayList<>();
+
+                        // 查找class="soupager"的div元素
+                        Locator pagerElement = page.locator("div.soupager");
+
+                        if (pagerElement.count() == 0) {
+                            log.error("未找到分页元素 div.soupager");
+                            return pageNumbers;
+                        }
+
+                        // 获取所有页码元素
+                        Locator pageElements = pagerElement.locator("a.soupager__index");
+                        int elementCount = pageElements.count();
+
+                        for (int i = 0; i < elementCount; i++) {
+                            Locator pageElement = pageElements.nth(i);
+                            String pageText = pageElement.textContent().trim();
+
+                            try {
+                                int pageNumber = Integer.parseInt(pageText);
+                                pageNumbers.add(pageNumber);
+                            } catch (NumberFormatException e) {
+                                log.warn("跳过非数字页码: {}", pageText);
+                            }
+                        }
+
+                        log.info("获取到可见页码列表: {}", pageNumbers);
+                        return pageNumbers;
+                    },
+                    "获取智联招聘可见页码列表",
+                    2 // 最多重试2次
+            );
 
         } catch (Exception e) {
-            log.error("获取可见页码列表时发生错误: {}", e.getMessage());
+            log.error("获取可见页码列表时发生错误: {}", e.getMessage(), e);
+            return new ArrayList<>();
         }
-        
-        return pageNumbers;
     }
 
     /**
@@ -269,75 +274,89 @@ public class ZhiLianElementLocators {
      * @return true表示需要登录，false表示已登录
      */
     public static boolean isLoginRequired(Page page) {
+        // 检查Page对象健康状态
+        if (!PageHealthChecker.isPageHealthy(page)) {
+            log.error("Page对象不健康，无法检查登录状态");
+            return true; // 出错时默认需要登录
+        }
+
         try {
-            // 等待页面加载完成
-            log.debug("等待页面加载完成...");
-            page.waitForLoadState();
-            
-            // 等待DOM稳定，确保所有元素都已加载
-            page.waitForTimeout(2000);
-            
-            // 首先尝试等待页面头部右侧区域加载
-            try {
-                page.waitForSelector(HEADER_RIGHT_AREA, new Page.WaitForSelectorOptions().setTimeout(5000));
-                log.debug("页面头部右侧区域已加载");
-            } catch (Exception e) {
-                log.debug("页面头部右侧区域未在5秒内加载完成，继续检查");
-            }
-            
-            // 检查页面头部右侧区域是否存在
-            Locator headerRightArea = page.locator(HEADER_RIGHT_AREA);
-            if (!headerRightArea.isVisible()) {
-                log.debug("未找到页面头部右侧区域，尝试其他检查方法");
-                // 如果头部区域不存在，使用原有的检查方法
-                Locator loginButton = page.locator(LOGIN_BUTTON);
-                if (loginButton.isVisible()) {
-                    log.debug("找到传统登录按钮，需要登录");
-                    return true;
-                }
-                
-                Locator userInfo = page.locator(USER_INFO_AREA);
-                boolean isLoggedIn = userInfo.isVisible();
-                log.debug("用户信息区域可见性: {}", isLoggedIn);
-                return !isLoggedIn;
-            }
-            
-            // 等待一下确保头部区域内的元素加载完成
-            page.waitForTimeout(1000);
-            
-            // 检查是否存在"登录/注册"按钮
-            Locator loginRegisterButton = page.locator(LOGIN_REGISTER_BUTTON);
-            if (loginRegisterButton.isVisible()) {
-                log.debug("找到'登录/注册'按钮，需要登录");
-                return true;
-            }
-            
-            // 检查是否存在"我要招人"按钮（已登录状态的标识）
-            Locator recruiterButton = page.locator(RECRUITER_BUTTON);
-            if (recruiterButton.isVisible()) {
-                log.debug("找到'我要招人'按钮，已登录状态");
-                return false;
-            }
-            
-            // 如果以上都没有找到，可能页面结构发生变化，使用备用检查方法
-            log.debug("页面结构可能发生变化，使用备用检查方法");
-            
-            // 等待一下再进行备用检查
-            page.waitForTimeout(1000);
-            
-            // 检查是否存在传统的登录按钮
-            Locator loginButton = page.locator(LOGIN_BUTTON);
-            if (loginButton.isVisible()) {
-                log.debug("找到传统登录按钮，需要登录");
-                return true;
-            }
-            
-            // 检查是否存在用户信息区域
-            Locator userInfo = page.locator(USER_INFO_AREA);
-            boolean isLoggedIn = userInfo.isVisible();
-            log.debug("备用检查 - 用户信息区域可见性: {}", isLoggedIn);
-            return !isLoggedIn;
-            
+            // 使用健康检查包装器执行检查操作（带重试机制）
+            return PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        // 等待页面加载完成
+                        log.debug("等待页面加载完成...");
+                        page.waitForLoadState();
+
+                        // 等待DOM稳定，确保所有元素都已加载
+                        page.waitForTimeout(2000);
+
+                        // 首先尝试等待页面头部右侧区域加载
+                        try {
+                            page.waitForSelector(HEADER_RIGHT_AREA, new Page.WaitForSelectorOptions().setTimeout(5000));
+                            log.debug("页面头部右侧区域已加载");
+                        } catch (Exception e) {
+                            log.debug("页面头部右侧区域未在5秒内加载完成，继续检查");
+                        }
+
+                        // 检查页面头部右侧区域是否存在
+                        Locator headerRightArea = page.locator(HEADER_RIGHT_AREA);
+                        if (!headerRightArea.isVisible()) {
+                            log.debug("未找到页面头部右侧区域，尝试其他检查方法");
+                            // 如果头部区域不存在，使用原有的检查方法
+                            Locator loginButton = page.locator(LOGIN_BUTTON);
+                            if (loginButton.isVisible()) {
+                                log.debug("找到传统登录按钮，需要登录");
+                                return true;
+                            }
+
+                            Locator userInfo = page.locator(USER_INFO_AREA);
+                            boolean isLoggedIn = userInfo.isVisible();
+                            log.debug("用户信息区域可见性: {}", isLoggedIn);
+                            return !isLoggedIn;
+                        }
+
+                        // 等待一下确保头部区域内的元素加载完成
+                        page.waitForTimeout(1000);
+
+                        // 检查是否存在"登录/注册"按钮
+                        Locator loginRegisterButton = page.locator(LOGIN_REGISTER_BUTTON);
+                        if (loginRegisterButton.isVisible()) {
+                            log.debug("找到'登录/注册'按钮，需要登录");
+                            return true;
+                        }
+
+                        // 检查是否存在"我要招人"按钮（已登录状态的标识）
+                        Locator recruiterButton = page.locator(RECRUITER_BUTTON);
+                        if (recruiterButton.isVisible()) {
+                            log.debug("找到'我要招人'按钮，已登录状态");
+                            return false;
+                        }
+
+                        // 如果以上都没有找到，可能页面结构发生变化，使用备用检查方法
+                        log.debug("页面结构可能发生变化，使用备用检查方法");
+
+                        // 等待一下再进行备用检查
+                        page.waitForTimeout(1000);
+
+                        // 检查是否存在传统的登录按钮
+                        Locator loginButton = page.locator(LOGIN_BUTTON);
+                        if (loginButton.isVisible()) {
+                            log.debug("找到传统登录按钮，需要登录");
+                            return true;
+                        }
+
+                        // 检查是否存在用户信息区域
+                        Locator userInfo = page.locator(USER_INFO_AREA);
+                        boolean isLoggedIn = userInfo.isVisible();
+                        log.debug("备用检查 - 用户信息区域可见性: {}", isLoggedIn);
+                        return !isLoggedIn;
+                    },
+                    "检查智联招聘登录状态",
+                    2 // 最多重试2次
+            );
+
         } catch (Exception e) {
             log.error("检查登录状态失败", e);
             return true; // 出错时默认需要登录
@@ -358,7 +377,7 @@ public class ZhiLianElementLocators {
                 log.info("该职位已投递过");
                 return false;
             }
-            
+
             // 点击投递按钮
             Locator applyButton = page.locator(APPLY_BUTTON);
             if (applyButton.isVisible()) {
@@ -370,7 +389,7 @@ public class ZhiLianElementLocators {
                 log.warn("未找到投递按钮");
                 return false;
             }
-            
+
         } catch (Exception e) {
             log.error("投递失败", e);
             return false;
@@ -378,47 +397,71 @@ public class ZhiLianElementLocators {
     }
 
     /**
-     * 点击详情页的“立即投递”按钮
+     * 点击详情页的"立即投递"按钮
      *
      * @param page Playwright页面对象
      * @return true表示点击成功，false表示失败
      */
     public static boolean clickSummaryApplyButton(Page page) {
+        // 检查Page对象健康状态
+        if (!PageHealthChecker.isPageHealthy(page)) {
+            log.error("Page对象不健康，无法点击立即投递按钮");
+            return false;
+        }
+
         try {
-            // 等待按钮出现
-            try {
-                page.waitForSelector(SUMMARY_APPLY_BUTTON, new Page.WaitForSelectorOptions().setTimeout(5000));
-            } catch (Exception e) {
-                log.warn("等待“立即投递”按钮超时(5秒)，按钮可能不存在: {}", e.getMessage());
-                return false;
+            // 使用健康检查包装器执行点击操作（带重试机制）
+            return PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        // 等待按钮出现
+                        try {
+                            page.waitForSelector(SUMMARY_APPLY_BUTTON,
+                                    new Page.WaitForSelectorOptions().setTimeout(5000));
+                        } catch (Exception e) {
+                            log.warn("等待立即投递按钮超时(5秒)，按钮可能不存在: {}", e.getMessage());
+                            return false;
+                        }
+
+                        Locator applyButton = page.locator(SUMMARY_APPLY_BUTTON)
+                                .filter(new Locator.FilterOptions().setHasText("立即投递"));
+
+                        if (applyButton.count() == 0) {
+                            log.error("未找到立即投递按钮");
+                            return false;
+                        }
+
+                        // 确保元素可见
+                        applyButton.scrollIntoViewIfNeeded();
+
+                        // 点击按钮
+                        applyButton.click();
+
+                        log.info("成功点击立即投递按钮");
+
+                        // 等待一小段时间
+                        page.waitForTimeout(1000);
+
+                        return true;
+                    },
+                    "点击智联招聘立即投递按钮",
+                    2 // 最多重试2次
+            );
+
+        } catch (PlaywrightException e) {
+            // 处理Page对象失效异常
+            if (e.getMessage() != null && (e.getMessage().contains("Object doesn't exist") ||
+                    e.getMessage().contains("Cannot find parent object"))) {
+                log.error("Page对象失效，无法点击立即投递按钮: {}", e.getMessage());
+            } else {
+                log.error("点击立即投递按钮时发生Playwright异常: {}", e.getMessage(), e);
             }
-
-            Locator applyButton = page.locator(SUMMARY_APPLY_BUTTON).filter(new Locator.FilterOptions().setHasText("立即投递"));
-
-            if (applyButton.count() == 0) {
-                log.error("未找到“立即投递”按钮");
-                return false;
-            }
-
-            // 确保元素可见
-            applyButton.scrollIntoViewIfNeeded();
-
-            // 点击按钮
-            applyButton.click();
-
-            log.info("成功点击“立即投递”按钮");
-
-            // 等待一小段时间
-            page.waitForTimeout(1000);
-
-            return true;
-
+            return false;
         } catch (Exception e) {
-            log.error("点击“立即投递”按钮时发生错误: {}", e.getMessage());
+            log.error("点击立即投递按钮时发生错误: {}", e.getMessage(), e);
             return false;
         }
     }
-
 
     /**
      * 判断用户是否已成功完成登录
@@ -429,27 +472,41 @@ public class ZhiLianElementLocators {
      * @return true表示已登录，false表示未登录
      */
     public static boolean isUserLoggedIn(Page page) {
+        // 检查Page对象健康状态
+        if (!PageHealthChecker.isPageHealthy(page)) {
+            log.error("Page对象不健康，无法检查用户登录状态");
+            return false; // 出错时默认未登录
+        }
+
         try {
-            // 等待页面加载完成
-            page.waitForLoadState();
-            
-            // 等待DOM稳定，确保所有元素都已加载
-            page.waitForTimeout(2000);
-            
-            log.debug("检查用户登录状态...");
-            
-            // 检查是否存在"登录/注册"按钮
-            // 如果存在该按钮，说明用户未登录；不存在则说明用户已登录
-            Locator loginRegisterButton = page.locator(LOGIN_REGISTER_BUTTON);
-            
-            if (loginRegisterButton.isVisible()) {
-                log.debug("找到'登录/注册'按钮，用户未登录");
-                return false;
-            }
-            
-            log.debug("未找到'登录/注册'按钮，用户已登录");
-            return true;
-            
+            // 使用健康检查包装器执行检查操作（带重试机制）
+            return PageHealthChecker.executeWithRetry(
+                    page,
+                    () -> {
+                        // 等待页面加载完成
+                        page.waitForLoadState();
+
+                        // 等待DOM稳定，确保所有元素都已加载
+                        page.waitForTimeout(2000);
+
+                        log.debug("检查用户登录状态...");
+
+                        // 检查是否存在"登录/注册"按钮
+                        // 如果存在该按钮，说明用户未登录；不存在则说明用户已登录
+                        Locator loginRegisterButton = page.locator(LOGIN_REGISTER_BUTTON);
+
+                        if (loginRegisterButton.isVisible()) {
+                            log.debug("找到'登录/注册'按钮，用户未登录");
+                            return false;
+                        }
+
+                        log.debug("未找到'登录/注册'按钮，用户已登录");
+                        return true;
+                    },
+                    "检查智联招聘用户登录状态",
+                    2 // 最多重试2次
+            );
+
         } catch (Exception e) {
             log.error("检查用户登录状态失败", e);
             return false; // 出错时默认未登录

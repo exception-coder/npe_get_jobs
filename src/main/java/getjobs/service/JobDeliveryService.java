@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -38,6 +39,7 @@ public class JobDeliveryService {
     private final Job51RecruitmentServiceImpl job51RecruitmentService;
     private final LiepinRecruitmentServiceImpl liepinRecruitmentService;
     private final ConfigService configService;
+    private final JobService jobService;
 
     /**
      * 执行指定平台的一键投递
@@ -97,22 +99,22 @@ public class JobDeliveryService {
             }
             log.info("✓ {}登录成功", platform.getPlatformName());
 
-            // 步骤2: 采集岗位
-            log.info("步骤2: 开始采集{}岗位", platform.getPlatformName());
-            List<JobDTO> collectedJobs = new ArrayList<>();
+            // 步骤2: 触发岗位采集（异步入库）
+            log.info("步骤2: 触发{}岗位采集（异步入库）", platform.getPlatformName());
 
-            // 采集搜索岗位
-            List<JobDTO> searchJobs = recruitmentService.collectJobs();
-            if (searchJobs != null && !searchJobs.isEmpty()) {
-                collectedJobs.addAll(searchJobs);
+            // 触发采集搜索岗位（异步入库，不依赖返回值）
+            recruitmentService.collectJobs();
+
+            // 触发采集推荐岗位（如果配置了需要推荐职位）
+            if (config.getRecommendJobs() != null && config.getRecommendJobs()) {
+                recruitmentService.collectRecommendJobs();
             }
 
-            // 采集推荐岗位（如果配置了需要推荐职位）
-            if (config.getRecommendJobs() != null && config.getRecommendJobs()) {
-                List<JobDTO> recommendJobs = recruitmentService.collectRecommendJobs();
-                if (recommendJobs != null && !recommendJobs.isEmpty()) {
-                    collectedJobs.addAll(recommendJobs);
-                }
+            // 从数据库获取已入库的待处理岗位数据
+            log.info("从数据库获取{}平台待处理状态的岗位", platform.getPlatformName());
+            List<JobDTO> collectedJobs = jobService.findPendingJobsAsDTO(platform.getPlatformCode());
+            if (collectedJobs == null) {
+                collectedJobs = new ArrayList<>();
             }
 
             int totalScanned = collectedJobs.size();
@@ -160,7 +162,7 @@ public class JobDeliveryService {
 
             // 构建投递结果
             LocalDateTime endTime = LocalDateTime.now();
-            long executionTimeMillis = java.time.Duration.between(startTime, endTime).toMillis();
+            long executionTimeMillis = Duration.between(startTime, endTime).toMillis();
 
             QuickDeliveryResult result = resultBuilder
                     .success(true)

@@ -58,7 +58,7 @@ import static getjobs.common.service.PlaywrightService.isVisibleWithTimeout;
 public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
 
     private static final String HOME_URL = RecruitmentPlatformEnum.BOSS_ZHIPIN.getHomeUrl();
-    private static final String GEEK_JOB_URL = HOME_URL + "/web/geek/job?";
+    private static final String GEEK_JOB_URL = HOME_URL + "/web/geek/jobs?";
     private static final String GEEK_CHAT_URL = HOME_URL + "/web/geek/chat";
 
     private final BossApiMonitorService bossApiMonitorService;
@@ -147,7 +147,13 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
         try {
             // 按城市和关键词搜索岗位
             for (String cityCode : config.getCityCodeCodes()) {
+                // 检查任务是否被取消
+                checkInterrupted();
+
                 for (String keyword : config.getKeywordsList()) {
+                    // 检查任务是否被取消
+                    checkInterrupted();
+
                     collectJobsByCity(cityCode, keyword, config);
                     // 不再依赖返回的空集合，岗位数据由监控服务自动入库
                 }
@@ -158,6 +164,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
                 Thread.sleep(3000); // 等待3秒
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                throw e; // 重新抛出，让外层捕获
             }
 
             // 统计采集期间新增的岗位数量
@@ -168,6 +175,10 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
             log.info("Boss直聘岗位采集完成，共采集{}个岗位", collectedJobCount);
 
             // 返回空集合，实际岗位数据已通过监控服务入库
+            return allJobDTOS;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Boss直聘岗位采集被取消");
             return allJobDTOS;
         } catch (Exception e) {
             log.error("Boss直聘岗位采集失败", e);
@@ -270,33 +281,49 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
             return 0;
         }
 
-        for (JobDTO jobDTO : jobDTOS) {
-            try {
-                if (isDeliveryLimitReached()) {
-                    log.warn("达到投递上限，停止投递");
-                    break;
-                }
-
-                boolean delivered = deliverSingleJob(jobDTO, config);
-                if (delivered) {
-                    successCount++;
-                    log.info("投递成功: {} - {}", jobDTO.getCompanyName(), jobDTO.getJobName());
-                    updateJobStatus(jobDTO, JobStatusEnum.DELIVERED_SUCCESS.getCode(), null);
-                } else {
-                    log.warn("投递失败: {} - {}", jobDTO.getCompanyName(), jobDTO.getJobName());
-                    updateJobStatus(jobDTO, JobStatusEnum.DELIVERED_FAILED.getCode(), "自动投递失败");
-                }
-
-                // 投递间隔
-                TimeUnit.SECONDS.sleep(15);
-
-            } catch (Exception e) {
-                log.error("投递岗位失败: {} - {}", jobDTO.getCompanyName(), jobDTO.getJobName(), e);
+        try {
+            for (JobDTO jobDTO : jobDTOS) {
                 try {
-                    updateJobStatus(jobDTO, JobStatusEnum.DELIVERED_FAILED.getCode(), "异常投递失败");
-                } catch (Exception ignore) {
+                    // 检查任务是否被取消
+                    checkInterrupted();
+
+                    if (isDeliveryLimitReached()) {
+                        log.warn("达到投递上限，停止投递");
+                        break;
+                    }
+
+                    boolean delivered = deliverSingleJob(jobDTO, config);
+                    if (delivered) {
+                        successCount++;
+                        log.info("投递成功: {} - {}", jobDTO.getCompanyName(), jobDTO.getJobName());
+                        updateJobStatus(jobDTO, JobStatusEnum.DELIVERED_SUCCESS.getCode(), null);
+                    } else {
+                        log.warn("投递失败: {} - {}", jobDTO.getCompanyName(), jobDTO.getJobName());
+                        updateJobStatus(jobDTO, JobStatusEnum.DELIVERED_FAILED.getCode(), "自动投递失败");
+                    }
+
+                    // 投递间隔（可中断的等待）
+                    try {
+                        TimeUnit.SECONDS.sleep(15);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw e; // 重新抛出，让外层捕获
+                    }
+
+                } catch (InterruptedException e) {
+                    // 任务被取消，向外传播
+                    throw e;
+                } catch (Exception e) {
+                    log.error("投递岗位失败: {} - {}", jobDTO.getCompanyName(), jobDTO.getJobName(), e);
+                    try {
+                        updateJobStatus(jobDTO, JobStatusEnum.DELIVERED_FAILED.getCode(), "异常投递失败");
+                    } catch (Exception ignore) {
+                    }
                 }
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Boss直聘岗位投递被取消，已成功投递: {}", successCount);
         }
 
         log.info("Boss直聘岗位投递完成，成功投递: {}", successCount);
@@ -350,15 +377,23 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
         log.info("保存Boss直聘黑名单数据: {}", dataPath);
     }
 
-
-
-
     // ==================== 私有辅助方法 ====================
+
+    /**
+     * 检查线程是否被中断，如果被中断则抛出异常
+     * 用于支持任务取消功能
+     */
+    private void checkInterrupted() throws InterruptedException {
+        if (Thread.currentThread().isInterrupted()) {
+            log.info("检测到任务取消信号，准备停止执行");
+            throw new InterruptedException("任务已被取消");
+        }
+    }
 
     /**
      * 按城市采集岗位
      */
-    private void collectJobsByCity(String cityCode, String keyword, ConfigDTO config) {
+    private void collectJobsByCity(String cityCode, String keyword, ConfigDTO config) throws InterruptedException {
         String searchUrl = getSearchUrl(cityCode, config);
         String encodedKeyword = URLEncoder.encode(keyword, StandardCharsets.UTF_8);
         String url = searchUrl + "&query=" + encodedKeyword;
@@ -381,7 +416,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
                     return null;
                 },
                 "导航到岗位搜索页面",
-                2 // 最多重试2次
+                5 // 最多重试2次
         );
 
         if (isJobsPresent()) {
@@ -453,13 +488,15 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
     /**
      * 滚动加载岗位数据（带Page健康检查和重试机制）
      */
-    private int loadJobsWithScroll(Page page, String jobType) {
+    private int loadJobsWithScroll(Page page, String jobType) throws InterruptedException {
         int previousJobCount = 0;
         int currentJobCount = 0;
         int unchangedCount = 0;
 
         while (unchangedCount < 2) {
             try {
+                // 检查任务是否被取消
+                checkInterrupted();
                 // 使用健康检查包装器执行查询操作
                 List<ElementHandle> jobCards = PageHealthChecker.executeWithRetry(
                         page,
@@ -494,6 +531,9 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
                 } else {
                     unchangedCount++;
                     if (unchangedCount < 2) {
+                        // 检查任务是否被取消
+                        checkInterrupted();
+
                         log.debug("{}下拉后岗位数量未增加，再次尝试...", jobType);
 
                         // 使用健康检查包装器执行滚动操作
@@ -513,6 +553,10 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
                                 2);
                     }
                 }
+            } catch (InterruptedException e) {
+                // 任务被取消，向外传播
+                log.info("滚动加载被取消: {}", jobType);
+                throw e;
             } catch (PlaywrightException e) {
                 log.error("滚动加载岗位时Page对象失效，停止滚动加载: {}", e.getMessage());
                 // Page失效时，返回当前已加载的数量
@@ -788,6 +832,8 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
             TimeUnit.SECONDS.sleep(3);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            log.info("黑名单更新被取消");
+            return;
         }
 
         boolean shouldBreak = false;
@@ -796,6 +842,11 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
 
         while (!shouldBreak) {
             try {
+                // 检查任务是否被取消
+                if (Thread.currentThread().isInterrupted()) {
+                    log.info("检测到任务取消信号，停止黑名单更新");
+                    break;
+                }
                 Locator bottomElement = page.locator(FINISHED_TEXT);
                 if (bottomElement.isVisible() && "没有更多了".equals(bottomElement.textContent())) {
                     shouldBreak = true;
@@ -807,6 +858,13 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
             int itemCount = items.count();
 
             for (int i = 0; i < itemCount; i++) {
+                // 检查任务是否被取消
+                if (Thread.currentThread().isInterrupted()) {
+                    log.info("检测到任务取消信号，停止黑名单更新");
+                    shouldBreak = true;
+                    break;
+                }
+
                 processedItems++;
                 try {
                     Locator companyElements = page.locator(COMPANY_NAME_IN_CHAT);
@@ -873,7 +931,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.debug("聊天记录滚动加载完成");
+                log.info("聊天记录滚动加载被取消");
                 break;
             } catch (Exception e) {
                 log.debug("聊天记录滚动加载完成");

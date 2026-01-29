@@ -2,6 +2,7 @@ package getjobs.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.repository.entity.JobEntity;
 import lombok.extern.slf4j.Slf4j;
@@ -70,7 +71,7 @@ public class BossJobDataConverter {
             jobEntity.setHrCertLevel(getIntegerValue(jobData, "bossCert"));
 
             // 系统信息
-            jobEntity.setPlatform("BOSS直聘");
+            jobEntity.setPlatform(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
             jobEntity.setEncryptJobId(getStringValue(jobData, "encryptJobId"));
             jobEntity.setEncryptHrId(getStringValue(jobData, "encryptBossId"));
             jobEntity.setEncryptCompanyId(getStringValue(jobData, "encryptBrandId"));

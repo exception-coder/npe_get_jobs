@@ -1,0 +1,42 @@
+# WebClient 基础设施配置示例
+# 将此配置添加到 application.yml 或 application-{profile}.yml 中
+
+# 代理配置（可选）
+# 如果不需要代理，可以不配置或留空
+proxy:
+  host: 127.0.0.1  # 代理主机地址
+  port: 7890        # 代理端口
+
+# WebClient 基础配置
+webclient:
+  # 响应超时时间（毫秒）
+  # 从发送请求到接收到完整响应的最大等待时间
+  # 默认值: 30000 (30秒)
+  response-timeout: 30000
+
+  # 连接超时时间（毫秒）
+  # 建立TCP连接的最大等待时间
+  # 默认值: 2000 (2秒)
+  connect-timeout: 2000
+
+  # 读取超时时间（秒）
+  # 从连接建立后，等待服务器发送数据的最大时间
+  # 默认值: 30
+  read-timeout: 30
+
+  # 写入超时时间（秒）
+  # 向服务器发送数据的最大时间
+  # 默认值: 30
+  write-timeout: 30
+
+  # 是否跟随HTTP重定向（3xx状态码）
+  # true: 自动跟随重定向（最多5次）
+  # false: 不跟随重定向，直接返回重定向响应
+  # 默认值: true
+  follow-redirect: true
+
+  # 是否启用HTTP压缩（gzip/deflate）
+  # true: 启用压缩，减少网络传输
+  # false: 不启用压缩
+  # 默认值: true
+  compress: true

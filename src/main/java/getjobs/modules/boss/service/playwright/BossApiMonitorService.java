@@ -324,7 +324,7 @@ public class BossApiMonitorService {
 
             // 保存更新后的实体
             jobRepository.save(jobEntity);
-            log.info("成功更新职位明细信息，encryptJobId: {}, 职位: {}", encryptJobId, jobEntity.getJobTitle());
+            log.debug("成功更新职位明细信息，encryptJobId: {}, 职位: {}", encryptJobId, jobEntity.getJobTitle());
 
         } catch (Exception e) {
             log.error("解析并更新职位明细数据失败，encryptJobId: {}", encryptJobId, e);

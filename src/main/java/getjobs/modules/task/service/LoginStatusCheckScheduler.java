@@ -14,6 +14,7 @@ import getjobs.modules.task.event.TaskUpdateEvent;
 import getjobs.modules.zhilian.service.ZhiLianElementLocators;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,9 @@ public class LoginStatusCheckScheduler {
     private final PlaywrightService playwrightService;
     private final ApplicationEventPublisher eventPublisher;
 
+    @Value("${playwright.enabled:true}")
+    private boolean playwrightEnabled;
+
     /**
      * 存储各平台的登录状态
      */
@@ -49,6 +53,12 @@ public class LoginStatusCheckScheduler {
      */
     @Scheduled(fixedRate = 15000) // 15秒
     public void checkLoginStatus() {
+        // 如果 Playwright 服务未启用，则跳过登录状态检查
+        if (!playwrightEnabled) {
+            log.debug("Playwright 服务已禁用（playwright.enabled=false），跳过登录状态检查");
+            return;
+        }
+
         log.debug("========== 开始定时检查各平台登录状态 ==========");
 
         try {

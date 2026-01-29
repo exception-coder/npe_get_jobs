@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    # MySQL 数据源配置
+    mysql:
+      #      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://170.106.186.65:13306/npe_get_jobs?useSSL=false&serverTimezone=UTC&characterEncoding=utf8
+      username: root
+      password: mysqlP@ssw0RD2020
+      driver-class-name: com.mysql.jdbc.Driver
+      hikari:
+        maximum-pool-size: 10      # MySQL 连接池最大连接数
+        minimum-idle: 5           # 最小空闲连接数
+        connection-timeout: 30000 # 连接超时 30 秒
+        idle-timeout: 600000      # 空闲连接 10 分钟后回收
+        max-lifetime: 1800000     # 连接最大存活时间 30 分钟
+
+repository:
+  datasource:
+    modules:
+      auth: mysql # 切换到MySQL
+      sasl: mysql  # 切换到MySQL
+
