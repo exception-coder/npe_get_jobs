@@ -21,10 +21,46 @@ public abstract class AbstractRecruitmentService implements RecruitmentService {
         protected final ConfigService configService;
         protected final UserProfileRepository userProfileRepository;
 
+        /**
+         * 任务执行管理器，用于检查任务是否请求终止
+         */
+        protected TaskExecutionManager taskExecutionManager;
+
         protected AbstractRecruitmentService(ConfigService configService,
                         UserProfileRepository userProfileRepository) {
                 this.configService = configService;
                 this.userProfileRepository = userProfileRepository;
+        }
+
+        /**
+         * 设置任务执行管理器
+         */
+        @Override
+        public void setTaskExecutionManager(TaskExecutionManager taskExecutionManager) {
+                this.taskExecutionManager = taskExecutionManager;
+        }
+
+        /**
+         * 检查任务是否请求终止
+         * 在循环中调用此方法，如果返回true则应该中断循环
+         */
+        @Override
+        public boolean isTerminateRequested() {
+                if (taskExecutionManager == null) {
+                        return false;
+                }
+                return taskExecutionManager.isTerminateRequested(getPlatform());
+        }
+
+        /**
+         * 检查任务是否请求终止，如果是则抛出InterruptedException
+         * 用于替代原有的checkInterrupted()方法
+         */
+        protected void checkTerminateRequested() throws InterruptedException {
+                if (isTerminateRequested()) {
+                        log.warn("{}任务收到终止请求，中断执行", getPlatform().getPlatformName());
+                        throw new InterruptedException("任务被用户终止");
+                }
         }
 
         /**

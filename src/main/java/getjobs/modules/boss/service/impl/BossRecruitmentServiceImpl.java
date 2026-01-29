@@ -104,14 +104,19 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
                         return null;
                     },
                     "导航到Boss直聘首页",
-                    2 // 最多重试2次
+                    3 // 最多重试3次
+                    , 20000, false
+
             );
 
             // 检查并加载Cookie
             String cookieData = getCookieFromConfig();
             if (isCookieValid(cookieData)) {
                 loadCookiesFromString(cookieData);
-                page.reload();
+                // 使用 navigate 替代 reload，避免触发 "Object doesn't exist" 异常
+                // 原因：reload() 会导致之前注册的 onResponse 监听器尝试访问已销毁的 request 对象
+                // 使用 navigate 可以确保页面完全重新加载，避免对象引用失效问题
+                page.navigate(HOME_URL);
                 TimeUnit.SECONDS.sleep(2);
             }
 
@@ -383,9 +388,20 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
      * 检查线程是否被中断，如果被中断则抛出异常
      * 用于支持任务取消功能
      */
+    /**
+     * 检查任务是否请求终止
+     * 使用TaskExecutionManager的终止标记替代Thread.interrupt()机制
+     * 
+     * @throws InterruptedException 如果任务被请求终止
+     */
     private void checkInterrupted() throws InterruptedException {
+        // 优先使用TaskExecutionManager的终止标记
+        // checkTerminateRequested()会直接抛出InterruptedException
+        checkTerminateRequested();
+
+        // 保留Thread.interrupt()机制作为备用
         if (Thread.currentThread().isInterrupted()) {
-            log.info("检测到任务取消信号，准备停止执行");
+            log.info("检测到线程中断信号，准备停止执行");
             throw new InterruptedException("任务已被取消");
         }
     }
@@ -668,6 +684,32 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
      */
     private boolean handleChatInput(Page jobPage, JobDTO jobDTO, ConfigDTO config) {
         try {
+            // 先等待聊天内容区域加载，然后点击第一个聊天列表项
+            try {
+                // 等待聊天内容区域加载完成
+                Locator chatContent = jobPage.locator(".chat-content");
+                chatContent.waitFor(new Locator.WaitForOptions()
+                        .setState(WaitForSelectorState.VISIBLE)
+                        .setTimeout(10000.0));
+                log.info("聊天内容区域已加载");
+
+                // 等待聊天列表加载完成
+                Locator firstChatItem = jobPage
+                        .locator(".chat-content .user-list .user-list-content ul[role='group'] li[role='listitem']")
+                        .first();
+                firstChatItem.waitFor(new Locator.WaitForOptions()
+                        .setState(WaitForSelectorState.VISIBLE)
+                        .setTimeout(5000.0));
+
+                if (firstChatItem.isVisible()) {
+                    firstChatItem.click();
+                    TimeUnit.SECONDS.sleep(1);
+                    log.info("已点击第一个聊天列表项");
+                }
+            } catch (Exception e) {
+                log.warn("点击第一个聊天列表项失败，继续执行后续逻辑", e);
+            }
+
             Locator input = jobPage.locator(CHAT_INPUT).nth(0);
 
             input.waitFor(new Locator.WaitForOptions()
@@ -1000,7 +1042,7 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
                     return null;
                 },
                 "导航到登录页面",
-                2 // 最多重试2次
+                3 // 最多重试2次
         );
 
         TimeUnit.SECONDS.sleep(5);

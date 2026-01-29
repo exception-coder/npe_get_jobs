@@ -67,6 +67,41 @@ public class PageHealthChecker {
      * @throws PlaywrightException 当所有重试都失败时抛出
      */
     public static <T> T executeWithRetry(Page page, PageOperation<T> operation, String operationName, int maxRetries) {
+        return executeWithRetry(page, operation, operationName, maxRetries, 1000);
+    }
+
+    /**
+     * 安全执行Page操作（带重试机制，支持自定义重试间隔）
+     * 
+     * @param page            Page对象
+     * @param operation       要执行的操作
+     * @param operationName   操作名称（用于日志）
+     * @param maxRetries      最大重试次数
+     * @param retryIntervalMs 重试间隔时间（毫秒）
+     * @param <T>             返回类型
+     * @return 操作结果
+     * @throws PlaywrightException 当所有重试都失败时抛出
+     */
+    public static <T> T executeWithRetry(Page page, PageOperation<T> operation, String operationName, int maxRetries,
+            long retryIntervalMs) {
+        return executeWithRetry(page, operation, operationName, maxRetries, retryIntervalMs, true);
+    }
+
+    /**
+     * 安全执行Page操作（带重试机制，支持自定义重试间隔和健康检查控制）
+     * 
+     * @param page                Page对象
+     * @param operation           要执行的操作
+     * @param operationName       操作名称（用于日志）
+     * @param maxRetries          最大重试次数
+     * @param retryIntervalMs     重试间隔时间（毫秒）
+     * @param checkHealthBeforeOp 是否在执行操作前检查Page健康状态（访问URL等简单操作可设为false）
+     * @param <T>                 返回类型
+     * @return 操作结果
+     * @throws PlaywrightException 当所有重试都失败时抛出
+     */
+    public static <T> T executeWithRetry(Page page, PageOperation<T> operation, String operationName, int maxRetries,
+            long retryIntervalMs, boolean checkHealthBeforeOp) {
         int attempt = 0;
         PlaywrightException lastException = null;
 
@@ -76,8 +111,8 @@ public class PageHealthChecker {
                     log.info("正在重试 {} (第{}/{}次)", operationName, attempt, maxRetries);
                 }
 
-                // 执行操作前检查Page健康状态
-                if (!isPageHealthy(page)) {
+                // 执行操作前检查Page健康状态（可选）
+                if (checkHealthBeforeOp && !isPageHealthy(page)) {
                     log.warn("Page不健康，{} 操作跳过当前尝试", operationName);
                     throw new PlaywrightException("Page对象不健康");
                 }
@@ -112,10 +147,10 @@ public class PageHealthChecker {
                 }
 
                 if (isRetryableException) {
-                    // 等待一小段时间再重试
+                    // 等待指定时间再重试
                     if (attempt < maxRetries) {
                         try {
-                            Thread.sleep(1000);
+                            Thread.sleep(retryIntervalMs);
                         } catch (InterruptedException ie) {
                             Thread.currentThread().interrupt();
                             throw new PlaywrightException("重试等待被中断", ie);

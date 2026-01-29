@@ -4,7 +4,9 @@ import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Cookie;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.common.util.JsCaptureManager;
 import getjobs.common.util.PageRecoveryManager;
+import getjobs.common.util.StealthScriptManager;
 import getjobs.repository.entity.ConfigEntity;
 import getjobs.service.ConfigService;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,141 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Playwright服务，统一管理Playwright实例、浏览器、上下文和页面。
  * 为每个招聘平台提供独立的BrowserContext和Page。
+ * 
+ * <h2>反爬虫检测对抗配置说明</h2>
+ * 
+ * <p>
+ * 本服务针对BOSS直聘等网站的security-js反爬虫检测机制，实施了全面的反检测配置。
+ * 
+ * <h3>检测点覆盖清单：</h3>
+ * <ol>
+ * <li><b>WebDriver检测</b> - navigator.webdriver, window.__webdriver
+ * <ul>
+ * <li>配置: --disable-blink-features=AutomationControlled</li>
+ * <li>脚本: 删除webdriver属性，设置为undefined</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>ChromeDriver变量检测</b> - $cdc_, $chrome
+ * <ul>
+ * <li>脚本: 删除所有$cdc_和$chrome开头的变量</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Phantom/Headless检测</b> - window.callPhantom, window._phantom
+ * <ul>
+ * <li>配置: setHeadless(false) - 使用有头模式</li>
+ * <li>脚本: 删除callPhantom和_phantom属性</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Navigator.plugins检测</b> - plugins.length === 0
+ * <ul>
+ * <li>脚本: 伪造3个常见插件（PDF Plugin, PDF Viewer, Native Client）</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Navigator.languages检测</b> - languages为空或只有一个
+ * <ul>
+ * <li>配置: setLocale("zh-CN")</li>
+ * <li>脚本: 设置为['zh-CN', 'zh', 'en-US', 'en']</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Navigator.hardwareConcurrency检测</b> - 值为1或异常
+ * <ul>
+ * <li>脚本: 设置为8（模拟8核CPU）</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Navigator.deviceMemory检测</b> - 缺失或异常
+ * <ul>
+ * <li>脚本: 设置为8（模拟8GB内存）</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Navigator.vendor检测</b>
+ * <ul>
+ * <li>脚本: 设置为'Google Inc.'</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Navigator.platform检测</b>
+ * <ul>
+ * <li>脚本: 设置为'MacIntel'</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Navigator.maxTouchPoints检测</b>
+ * <ul>
+ * <li>脚本: 设置为0（桌面设备）</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Chrome对象完整性检测</b> - window.chrome
+ * <ul>
+ * <li>配置: 加载真实Chrome扩展（uBlock Origin）</li>
+ * <li>脚本: 伪造chrome.runtime, chrome.loadTimes, chrome.csi, chrome.app</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>扩展检测</b> - chrome-extension:// 请求
+ * <ul>
+ * <li>配置: 加载真实扩展</li>
+ * <li>脚本: 拦截chrome-extension://请求，返回成功响应</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Canvas指纹检测</b>
+ * <ul>
+ * <li>脚本: 在toDataURL时添加微小随机噪点</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>WebGL指纹检测</b>
+ * <ul>
+ * <li>配置: --disable-gpu（避免SwiftShader）</li>
+ * <li>脚本: 伪装UNMASKED_VENDOR_WEBGL和UNMASKED_RENDERER_WEBGL</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Permissions API检测</b>
+ * <ul>
+ * <li>配置: setPermissions(["geolocation", "notifications"])</li>
+ * <li>脚本: 修改permissions.query返回值</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Screen属性一致性检测</b>
+ * <ul>
+ * <li>脚本: 确保availWidth/availHeight与width/height一致</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>Function.toString检测</b>
+ * <ul>
+ * <li>脚本: 让被修改的函数看起来像[native code]</li>
+ * </ul>
+ * </li>
+ * 
+ * <li><b>自动化工具特征检测</b>
+ * <ul>
+ * <li>配置: --exclude-switches=enable-automation</li>
+ * <li>脚本: 删除所有Playwright/Selenium/WebDriver特有属性</li>
+ * </ul>
+ * </li>
+ * </ol>
+ * 
+ * <h3>配置优先级：</h3>
+ * <ol>
+ * <li>浏览器启动参数（BrowserType.LaunchPersistentContextOptions）</li>
+ * <li>Context初始化脚本（addInitScript）</li>
+ * <li>扩展加载（Chrome Extension）</li>
+ * <li>AJAX拦截器（拦截反爬虫验证接口）</li>
+ * </ol>
+ * 
+ * @see <a href="logs/anti-crawler-analysis/security-js-analysis.md">Security-JS
+ *      分析报告</a>
  */
 @Slf4j
 @Service
@@ -78,8 +215,8 @@ public class PlaywrightService {
             context = playwright.chromium().launchPersistentContext(
                     userDataDir,
                     new BrowserType.LaunchPersistentContextOptions()
-                            .setHeadless(false)
-                            .setSlowMo(50)
+                            .setHeadless(false) // 必须使用有头模式，headless 容易被检测
+                            .setSlowMo(50) // 减慢操作速度，模拟人类行为
                             .setUserAgent(randomUserAgent)
                             .setLocale("zh-CN")
                             .setTimezoneId("Asia/Shanghai")
@@ -87,28 +224,65 @@ public class PlaywrightService {
                             .setPermissions(List.of("geolocation", "notifications"))
                             .setIgnoreDefaultArgs(List.of("--enable-automation")) // 禁用自动化标记
                             .setArgs(List.of(
-                                    "--disable-blink-features=AutomationControlled",
+                                    // ========== 核心反检测参数 ==========
+                                    "--disable-blink-features=AutomationControlled", // 最重要！禁用自动化控制特征
                                     "--disable-infobars", // 隐藏 "Chrome 正受到自动测试软件的控制" 提示
-                                    "--disable-web-security",
-                                    "--disable-features=VizDisplayCompositor",
-                                    "--disable-dev-shm-usage",
-                                    "--no-sandbox",
-                                    "--no-first-run", // 跳过首次运行向导
-                                    "--no-default-browser-check", // 跳过默认浏览器检查
-                                    // 加载Chrome扩展 - 这是关键！
+
+                                    // ========== 扩展相关 ==========
                                     "--disable-extensions-except=" + extensionPath.toAbsolutePath(),
                                     "--load-extension=" + extensionPath.toAbsolutePath(),
-                                    "--disable-background-timer-throttling",
-                                    "--disable-renderer-backgrounding",
-                                    "--disable-backgrounding-occluded-windows",
-                                    "--disable-ipc-flooding-protection")));
+
+                                    // ========== 性能和稳定性 ==========
+                                    "--disable-dev-shm-usage", // 解决共享内存不足问题
+                                    "--no-sandbox", // 禁用沙箱（Docker环境需要）
+                                    "--disable-setuid-sandbox",
+
+                                    // ========== 隐藏自动化特征 ==========
+                                    "--disable-web-security", // 禁用Web安全策略
+                                    "--disable-features=VizDisplayCompositor",
+                                    "--disable-features=IsolateOrigins,site-per-process", // 禁用站点隔离
+                                    "--disable-site-isolation-trials",
+
+                                    // ========== 用户体验优化 ==========
+                                    "--no-first-run", // 跳过首次运行向导
+                                    "--no-default-browser-check", // 跳过默认浏览器检查
+                                    "--password-store=basic", // 使用基本密码存储
+                                    "--use-mock-keychain", // 使用模拟钥匙串
+
+                                    // ========== 后台进程优化 ==========
+                                    "--disable-background-timer-throttling", // 禁用后台定时器节流
+                                    "--disable-renderer-backgrounding", // 禁用渲染器后台化
+                                    "--disable-backgrounding-occluded-windows", // 禁用被遮挡窗口的后台化
+                                    "--disable-ipc-flooding-protection", // 禁用IPC洪水保护
+
+                                    // ========== GPU 和渲染 ==========
+                                    "--disable-gpu", // 禁用GPU加速（避免WebGL检测异常）
+                                    "--disable-software-rasterizer", // 禁用软件光栅化
+
+                                    // ========== 其他反检测参数 ==========
+                                    "--disable-blink-features=AutomationControlled", // 再次强调
+                                    "--exclude-switches=enable-automation", // 排除自动化开关
+                                    "--disable-component-extensions-with-background-pages", // 禁用带后台页面的组件扩展
+                                    "--disable-default-apps", // 禁用默认应用
+                                    "--disable-sync", // 禁用同步
+                                    "--metrics-recording-only", // 仅记录指标
+                                    "--mute-audio", // 静音
+                                    "--no-report-upload", // 不上传报告
+                                    "--test-type" // 测试类型（有助于绕过某些检测）
+                            )));
 
             // 保存 launchPersistentContext 默认打开的空白页面，稍后关闭
             List<Page> defaultPages = new ArrayList<>(context.pages());
             log.info("默认打开的页面数量: {}", defaultPages.size());
 
             // 为持久化上下文添加反检测脚本
-            addStealthScripts(context);
+//            addStealthScripts(context);
+            StealthScriptManager.addAllStealthScripts(context);
+
+            // 启用 JS 捕获能力（捕获所有 JS 文件用于分析反爬虫机制）
+//            log.info("启用 JS 捕获能力...");
+//            JsCaptureManager jsCaptureManager = JsCaptureManager.captureAll(context);
+//            log.info("✓ JS 捕获能力已启用");
 
             for (RecruitmentPlatformEnum platform : RecruitmentPlatformEnum.values()) {
                 Page page = createNewPage(context);
@@ -425,28 +599,45 @@ public class PlaywrightService {
                         "  console.log('[EXTENSION_BYPASS] ✓ 扩展检测绕过已就绪');\n" +
                         "})();");
 
-        // 3. 完整的 Stealth 脚本 - 隐藏所有 Playwright 特征
+        // 3. 完整的 Stealth 脚本 - 针对 security-js 的所有检测点进行防护
         context.addInitScript(
                 "(() => {\n" +
-                        "  // ========== Playwright Stealth Mode ==========\n" +
+                        "  console.log('[STEALTH] 🛡️ 启动完整反检测脚本...');\n" +
                         "  \n" +
-                        "  // 1. 隐藏 webdriver 属性（最重要！）\n" +
+                        "  // ========== 1. WebDriver 检测防护 ==========\n" +
+                        "  // 对应检测: navigator.webdriver, window.__webdriver, document.__webdriver\n" +
                         "  Object.defineProperty(navigator, 'webdriver', {\n" +
                         "    get: () => undefined,\n" +
                         "    configurable: true\n" +
                         "  });\n" +
-                        "  \n" +
-                        "  // 删除 Playwright 特有的属性\n" +
                         "  delete navigator.__proto__.webdriver;\n" +
+                        "  delete window.__webdriver;\n" +
+                        "  delete document.__webdriver;\n" +
                         "  \n" +
-                        "  // 2. 覆盖 chrome 对象（模拟真实 Chrome 和扩展环境）\n" +
+                        "  // ========== 2. ChromeDriver 变量检测防护 ==========\n" +
+                        "  // 对应检测: $cdc_, $chrome 等 ChromeDriver 注入的变量\n" +
+                        "  // 删除所有 $cdc_ 开头的属性\n" +
+                        "  Object.keys(window).forEach(key => {\n" +
+                        "    if (key.startsWith('$cdc_') || key.startsWith('$chrome')) {\n" +
+                        "      delete window[key];\n" +
+                        "    }\n" +
+                        "  });\n" +
+                        "  \n" +
+                        "  // ========== 3. Phantom/Headless 检测防护 ==========\n" +
+                        "  // 对应检测: window.callPhantom, window._phantom\n" +
+                        "  delete window.callPhantom;\n" +
+                        "  delete window._phantom;\n" +
+                        "  delete window.__phantomas;\n" +
+                        "  \n" +
+                        "  // ========== 4. Chrome 对象完整伪装 ==========\n" +
+                        "  // 对应检测: window.chrome 的完整性\n" +
                         "  if (!window.chrome) {\n" +
                         "    window.chrome = {};\n" +
                         "  }\n" +
                         "  \n" +
                         "  // 模拟 chrome.runtime（让网站认为有扩展存在）\n" +
                         "  window.chrome.runtime = window.chrome.runtime || {\n" +
-                        "    id: 'cjpalhdlnbpafiamejdnhcphjbkeiagm', // uBlock Origin ID\n" +
+                        "    id: 'cjpalhdlnbpafiamejdnhcphjbkeiagm',\n" +
                         "    connect: function() { return { onMessage: { addListener: function() {} }, postMessage: function() {} }; },\n"
                         +
                         "    sendMessage: function(extId, msg, callback) { if (callback) setTimeout(callback, 10); },\n"
@@ -476,6 +667,7 @@ public class PlaywrightService {
                         "      wasNpnNegotiated: true\n" +
                         "    };\n" +
                         "  };\n" +
+                        "  \n" +
                         "  window.chrome.csi = window.chrome.csi || function() {\n" +
                         "    return {\n" +
                         "      onloadT: Date.now(),\n" +
@@ -484,6 +676,7 @@ public class PlaywrightService {
                         "      tran: 15\n" +
                         "    };\n" +
                         "  };\n" +
+                        "  \n" +
                         "  window.chrome.app = window.chrome.app || {\n" +
                         "    isInstalled: false,\n" +
                         "    InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' },\n"
@@ -492,7 +685,75 @@ public class PlaywrightService {
                         +
                         "  };\n" +
                         "  \n" +
-                        "  // 3. 修改 permissions 查询结果\n" +
+                        "  // ========== 5. Navigator.plugins 完整伪装 ==========\n" +
+                        "  // 对应检测: navigator.plugins.length === 0\n" +
+                        "  const plugins = [\n" +
+                        "    { name: 'Chrome PDF Plugin', description: 'Portable Document Format', filename: 'internal-pdf-viewer', length: 1 },\n"
+                        +
+                        "    { name: 'Chrome PDF Viewer', description: '', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', length: 1 },\n"
+                        +
+                        "    { name: 'Native Client', description: '', filename: 'internal-nacl-plugin', length: 1 }\n"
+                        +
+                        "  ];\n" +
+                        "  \n" +
+                        "  Object.defineProperty(navigator, 'plugins', {\n" +
+                        "    get: () => {\n" +
+                        "      const arr = plugins.map(p => ({\n" +
+                        "        ...p,\n" +
+                        "        item: (i) => (i === 0 ? { type: 'application/pdf' } : null),\n" +
+                        "        namedItem: (name) => (name === 'application/pdf' ? { type: 'application/pdf' } : null),\n"
+                        +
+                        "        [Symbol.iterator]: function* () { yield this; }\n" +
+                        "      }));\n" +
+                        "      arr.length = plugins.length;\n" +
+                        "      arr.item = (i) => arr[i] || null;\n" +
+                        "      arr.namedItem = (name) => arr.find(p => p.name === name) || null;\n" +
+                        "      arr.refresh = () => {};\n" +
+                        "      return arr;\n" +
+                        "    },\n" +
+                        "    configurable: true\n" +
+                        "  });\n" +
+                        "  \n" +
+                        "  // ========== 6. Navigator.languages 伪装 ==========\n" +
+                        "  // 对应检测: languages 为空或只有一个\n" +
+                        "  Object.defineProperty(navigator, 'languages', {\n" +
+                        "    get: () => ['zh-CN', 'zh', 'en-US', 'en'],\n" +
+                        "    configurable: true\n" +
+                        "  });\n" +
+                        "  \n" +
+                        "  // ========== 7. Navigator.hardwareConcurrency 伪装 ==========\n" +
+                        "  // 对应检测: hardwareConcurrency 为 1 或异常值\n" +
+                        "  Object.defineProperty(navigator, 'hardwareConcurrency', {\n" +
+                        "    get: () => 8,\n" +
+                        "    configurable: true\n" +
+                        "  });\n" +
+                        "  \n" +
+                        "  // ========== 8. Navigator.deviceMemory 伪装 ==========\n" +
+                        "  // 对应检测: deviceMemory 缺失或异常\n" +
+                        "  Object.defineProperty(navigator, 'deviceMemory', {\n" +
+                        "    get: () => 8,\n" +
+                        "    configurable: true\n" +
+                        "  });\n" +
+                        "  \n" +
+                        "  // ========== 9. Navigator.vendor 伪装 ==========\n" +
+                        "  Object.defineProperty(navigator, 'vendor', {\n" +
+                        "    get: () => 'Google Inc.',\n" +
+                        "    configurable: true\n" +
+                        "  });\n" +
+                        "  \n" +
+                        "  // ========== 10. Navigator.platform 伪装 ==========\n" +
+                        "  Object.defineProperty(navigator, 'platform', {\n" +
+                        "    get: () => 'MacIntel',\n" +
+                        "    configurable: true\n" +
+                        "  });\n" +
+                        "  \n" +
+                        "  // ========== 11. Navigator.maxTouchPoints 伪装 ==========\n" +
+                        "  Object.defineProperty(navigator, 'maxTouchPoints', {\n" +
+                        "    get: () => 0,\n" +
+                        "    configurable: true\n" +
+                        "  });\n" +
+                        "  \n" +
+                        "  // ========== 12. Permissions API 伪装 ==========\n" +
                         "  const originalQuery = navigator.permissions.query;\n" +
                         "  navigator.permissions.query = function(parameters) {\n" +
                         "    if (parameters.name === 'notifications') {\n" +
@@ -501,57 +762,39 @@ public class PlaywrightService {
                         "    return originalQuery.call(this, parameters);\n" +
                         "  };\n" +
                         "  \n" +
-                        "  // 4. 创建真实的 PluginArray\n" +
-                        "  const plugins = [\n" +
-                        "    { name: 'Chrome PDF Plugin', description: 'Portable Document Format', filename: 'internal-pdf-viewer' },\n"
-                        +
-                        "    { name: 'Chrome PDF Viewer', description: '', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },\n"
-                        +
-                        "    { name: 'Native Client', description: '', filename: 'internal-nacl-plugin' }\n" +
-                        "  ];\n" +
-                        "  Object.defineProperty(navigator, 'plugins', {\n" +
-                        "    get: () => {\n" +
-                        "      const arr = plugins.map(p => ({\n" +
-                        "        ...p,\n" +
-                        "        length: 1,\n" +
-                        "        item: () => null,\n" +
-                        "        namedItem: () => null,\n" +
-                        "        [Symbol.iterator]: function* () { yield this; }\n" +
-                        "      }));\n" +
-                        "      arr.item = (i) => arr[i];\n" +
-                        "      arr.namedItem = (name) => arr.find(p => p.name === name);\n" +
-                        "      arr.refresh = () => {};\n" +
-                        "      return arr;\n" +
-                        "    },\n" +
-                        "    configurable: true\n" +
-                        "  });\n" +
+                        "  // ========== 13. Canvas 指纹随机化（添加噪点） ==========\n" +
+                        "  const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;\n" +
+                        "  HTMLCanvasElement.prototype.toDataURL = function(type) {\n" +
+                        "    // 添加微小的随机噪点\n" +
+                        "    const context = this.getContext('2d');\n" +
+                        "    if (context) {\n" +
+                        "      const imageData = context.getImageData(0, 0, this.width, this.height);\n" +
+                        "      for (let i = 0; i < imageData.data.length; i += 4) {\n" +
+                        "        // 随机修改 0.1% 的像素\n" +
+                        "        if (Math.random() < 0.001) {\n" +
+                        "          imageData.data[i] = imageData.data[i] ^ 1;\n" +
+                        "        }\n" +
+                        "      }\n" +
+                        "      context.putImageData(imageData, 0, 0);\n" +
+                        "    }\n" +
+                        "    return originalToDataURL.apply(this, arguments);\n" +
+                        "  };\n" +
                         "  \n" +
-                        "  // 5. 修改 languages\n" +
-                        "  Object.defineProperty(navigator, 'languages', {\n" +
-                        "    get: () => ['zh-CN', 'zh', 'en-US', 'en'],\n" +
-                        "    configurable: true\n" +
-                        "  });\n" +
+                        "  // ========== 14. WebGL 指纹伪装 ==========\n" +
+                        "  const getParameter = WebGLRenderingContext.prototype.getParameter;\n" +
+                        "  WebGLRenderingContext.prototype.getParameter = function(parameter) {\n" +
+                        "    // 伪装 UNMASKED_VENDOR_WEBGL 和 UNMASKED_RENDERER_WEBGL\n" +
+                        "    if (parameter === 37445) {\n" +
+                        "      return 'Intel Inc.';\n" +
+                        "    }\n" +
+                        "    if (parameter === 37446) {\n" +
+                        "      return 'Intel Iris OpenGL Engine';\n" +
+                        "    }\n" +
+                        "    return getParameter.call(this, parameter);\n" +
+                        "  };\n" +
                         "  \n" +
-                        "  // 6. 修改 hardwareConcurrency\n" +
-                        "  Object.defineProperty(navigator, 'hardwareConcurrency', {\n" +
-                        "    get: () => 8,\n" +
-                        "    configurable: true\n" +
-                        "  });\n" +
-                        "  \n" +
-                        "  // 7. 修改 deviceMemory\n" +
-                        "  Object.defineProperty(navigator, 'deviceMemory', {\n" +
-                        "    get: () => 8,\n" +
-                        "    configurable: true\n" +
-                        "  });\n" +
-                        "  \n" +
-                        "  // 8. 修改 platform\n" +
-                        "  Object.defineProperty(navigator, 'platform', {\n" +
-                        "    get: () => 'MacIntel',\n" +
-                        "    configurable: true\n" +
-                        "  });\n" +
-                        "  \n" +
-                        "  // 9. 隐藏 Playwright 特有的函数和属性\n" +
-                        "  const playwrightProps = [\n" +
+                        "  // ========== 15. 隐藏所有自动化工具特征 ==========\n" +
+                        "  const automationProps = [\n" +
                         "    '__playwright',\n" +
                         "    '__pw_manual',\n" +
                         "    '__PW_inspect',\n" +
@@ -564,12 +807,17 @@ public class PlaywrightService {
                         "    '__driver_unwrapped',\n" +
                         "    '__webdriver_unwrapped',\n" +
                         "    '__selenium_unwrapped',\n" +
-                        "    '__fxdriver_unwrapped'\n" +
+                        "    '__fxdriver_unwrapped',\n" +
+                        "    '__webdriver_script_fn',\n" +
+                        "    '__webdriver_script_func',\n" +
+                        "    'domAutomation',\n" +
+                        "    'domAutomationController'\n" +
                         "  ];\n" +
                         "  \n" +
-                        "  playwrightProps.forEach(prop => {\n" +
+                        "  automationProps.forEach(prop => {\n" +
                         "    try {\n" +
                         "      delete window[prop];\n" +
+                        "      delete document[prop];\n" +
                         "      Object.defineProperty(window, prop, {\n" +
                         "        get: () => undefined,\n" +
                         "        configurable: true\n" +
@@ -577,16 +825,39 @@ public class PlaywrightService {
                         "    } catch(e) {}\n" +
                         "  });\n" +
                         "  \n" +
-                        "  // 10. 修复 Function.prototype.toString 检测\n" +
+                        "  // ========== 16. Function.prototype.toString 修复 ==========\n" +
                         "  const originalToString = Function.prototype.toString;\n" +
                         "  Function.prototype.toString = function() {\n" +
-                        "    if (this === navigator.permissions.query) {\n" +
-                        "      return 'function query() { [native code] }';\n" +
+                        "    // 让所有被修改的函数看起来像原生代码\n" +
+                        "    if (this === navigator.permissions.query ||\n" +
+                        "        this === HTMLCanvasElement.prototype.toDataURL ||\n" +
+                        "        this === WebGLRenderingContext.prototype.getParameter) {\n" +
+                        "      return 'function ' + this.name + '() { [native code] }';\n" +
                         "    }\n" +
                         "    return originalToString.call(this);\n" +
                         "  };\n" +
                         "  \n" +
-                        "  console.log('[STEALTH] ✓ Playwright 特征伪装完成');\n" +
+                        "  // ========== 17. Screen 属性一致性 ==========\n" +
+                        "  // 确保 screen 和 window 尺寸合理\n" +
+                        "  Object.defineProperty(screen, 'availWidth', {\n" +
+                        "    get: () => screen.width,\n" +
+                        "    configurable: true\n" +
+                        "  });\n" +
+                        "  Object.defineProperty(screen, 'availHeight', {\n" +
+                        "    get: () => screen.height - 23, // 减去菜单栏高度\n" +
+                        "    configurable: true\n" +
+                        "  });\n" +
+                        "  \n" +
+                        "  console.log('[STEALTH] ✅ 完整反检测脚本已加载');\n" +
+                        "  console.log('[STEALTH] 📊 检测点覆盖:');\n" +
+                        "  console.log('[STEALTH]   ✓ WebDriver 标识');\n" +
+                        "  console.log('[STEALTH]   ✓ ChromeDriver 变量');\n" +
+                        "  console.log('[STEALTH]   ✓ Phantom/Headless 特征');\n" +
+                        "  console.log('[STEALTH]   ✓ Navigator 属性 (plugins, languages, hardware, etc.)');\n" +
+                        "  console.log('[STEALTH]   ✓ Canvas 指纹随机化');\n" +
+                        "  console.log('[STEALTH]   ✓ WebGL 指纹伪装');\n" +
+                        "  console.log('[STEALTH]   ✓ Chrome 对象完整性');\n" +
+                        "  console.log('[STEALTH]   ✓ 自动化工具特征清除');\n" +
                         "})();");
 
         log.info("✓ 已添加反检测脚本到BrowserContext");
@@ -1061,6 +1332,128 @@ public class PlaywrightService {
             return true;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    // ==================== JS 捕获能力（便捷入口） ====================
+
+    /**
+     * 启用 JS 捕获能力（捕获所有 JS）
+     * 
+     * 这是一个便捷方法，内部调用 JsCaptureManager.captureAll()
+     * 适用于快速启用 JS 捕获，无需手动获取 BrowserContext
+     * 
+     * 使用示例：
+     * 
+     * <pre>
+     * JsCaptureManager manager = playwrightService.enableJsCapture();
+     * // 访问页面，JS 会自动被捕获...
+     * manager.saveReport();
+     * </pre>
+     *
+     * @return JsCaptureManager 实例，可用于后续操作（如生成报告等）
+     */
+    public JsCaptureManager enableJsCapture() {
+        if (context == null) {
+            log.error("BrowserContext 未初始化，无法启用 JS 捕获");
+            return null;
+        }
+
+        log.info("启用 JS 捕获能力（捕获所有 JS）...");
+        return JsCaptureManager.captureAll(context);
+    }
+
+    /**
+     * 启用 JS 捕获能力（只捕获指定域名）
+     * 
+     * 这是一个便捷方法，内部调用 JsCaptureManager.captureByDomains()
+     * 适用于只想捕获特定网站 JS 的场景
+     * 
+     * 使用示例：
+     * 
+     * <pre>
+     * JsCaptureManager manager = playwrightService.enableJsCaptureForDomains("zhipin.com", "bosszp.com");
+     * // 访问页面，只有指定域名的 JS 会被捕获...
+     * manager.saveReport();
+     * </pre>
+     *
+     * @param domains 目标域名（可变参数）
+     * @return JsCaptureManager 实例
+     */
+    public JsCaptureManager enableJsCaptureForDomains(String... domains) {
+        if (context == null) {
+            log.error("BrowserContext 未初始化，无法启用 JS 捕获");
+            return null;
+        }
+
+        log.info("启用 JS 捕获能力（只捕获指定域名：{}）...", Arrays.toString(domains));
+        return JsCaptureManager.captureByDomains(context, domains);
+    }
+
+    /**
+     * 启用 JS 捕获能力（使用自定义配置）
+     * 
+     * 这是一个便捷方法，内部调用 JsCaptureManager.captureWithConfig()
+     * 适用于需要精细化配置的场景
+     * 
+     * 使用示例：
+     * 
+     * <pre>
+     * JsCaptureConfig config = JsCaptureConfig.builder()
+     *         .captureAll(true)
+     *         .addExcludePattern("jquery")
+     *         .addExcludePattern("bootstrap")
+     *         .build();
+     * JsCaptureManager manager = playwrightService.enableJsCaptureWithConfig(config);
+     * // 访问页面，JS 会按配置被捕获...
+     * manager.saveReport();
+     * </pre>
+     *
+     * @param config JS 捕获配置
+     * @return JsCaptureManager 实例
+     */
+    public JsCaptureManager enableJsCaptureWithConfig(JsCaptureManager.JsCaptureConfig config) {
+        if (context == null) {
+            log.error("BrowserContext 未初始化，无法启用 JS 捕获");
+            return null;
+        }
+
+        log.info("启用 JS 捕获能力（使用自定义配置）...");
+        return JsCaptureManager.captureWithConfig(context, config);
+    }
+
+    /**
+     * 为指定平台启用 JS 捕获能力
+     * 
+     * 这个方法会为特定平台的 BrowserContext 启用 JS 捕获
+     * 适用于只想捕获某个平台 JS 的场景
+     * 
+     * 使用示例：
+     * 
+     * <pre>
+     * JsCaptureManager manager = playwrightService.enableJsCaptureForPlatform(
+     *         RecruitmentPlatformEnum.BOSS_ZHIPIN,
+     *         "zhipin.com", "bosszp.com");
+     * // 访问 Boss 直聘页面，JS 会被捕获...
+     * manager.saveReport();
+     * </pre>
+     *
+     * @param platform 平台枚举
+     * @param domains  目标域名（可变参数，为空则捕获所有）
+     * @return JsCaptureManager 实例
+     */
+    public JsCaptureManager enableJsCaptureForPlatform(RecruitmentPlatformEnum platform, String... domains) {
+        if (context == null) {
+            log.error("BrowserContext 未初始化，无法启用 JS 捕获");
+            return null;
+        }
+
+        log.info("为平台 {} 启用 JS 捕获能力...", platform.getPlatformName());
+
+        if (domains == null || domains.length == 0) {
+            return JsCaptureManager.captureAll(context);
+        } else {
+            return JsCaptureManager.captureByDomains(context, domains);
         }
     }
 }

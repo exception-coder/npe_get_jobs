@@ -102,13 +102,23 @@ public class ZhiLianRecruitmentServiceImpl extends AbstractRecruitmentService {
         try {
             // 按城市和关键词搜索岗位
             for (String cityCode : config.getCityCodeCodes()) {
+                // 检查任务是否被终止
+                checkTerminateRequested();
+
                 for (String keyword : config.getKeywordsList()) {
+                    // 检查任务是否被终止
+                    checkTerminateRequested();
+
                     List<JobDTO> jobDTOS = collectJobsByCity(cityCode, keyword, config);
                     allJobDTOS.addAll(jobDTOS);
                 }
             }
 
             log.info("智联招聘岗位采集完成，共采集{}个岗位", allJobDTOS.size());
+            return allJobDTOS;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("智联招聘岗位采集被终止，已采集{}个岗位", allJobDTOS.size());
             return allJobDTOS;
         } catch (Exception e) {
             log.error("智联招聘岗位采集失败", e);
@@ -137,6 +147,9 @@ public class ZhiLianRecruitmentServiceImpl extends AbstractRecruitmentService {
 
             for (JobDTO jobDTO : jobDTOS) {
                 try {
+                    // 检查任务是否被终止
+                    checkTerminateRequested();
+
                     log.info("正在投递岗位: {}", jobDTO.getJobName());
 
                     // 导航到岗位详情页（带重试机制）
@@ -177,10 +190,16 @@ public class ZhiLianRecruitmentServiceImpl extends AbstractRecruitmentService {
                         Thread.currentThread().interrupt();
                     }
 
+                } catch (InterruptedException e) {
+                    // 任务被终止，向外传播
+                    throw e;
                 } catch (Exception e) {
                     log.error("投递岗位 {} 时发生异常: {}", jobDTO.getJobName(), e.getMessage());
                 }
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("智联招聘岗位投递被终止，已成功投递: {}", successCount.get());
         } catch (Exception e) {
             log.error("智联招聘岗位投递过程中发生严重错误", e);
         }

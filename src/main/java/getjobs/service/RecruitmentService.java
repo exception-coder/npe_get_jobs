@@ -93,4 +93,20 @@ public interface RecruitmentService {
      */
     String filterByCity(JobDTO job, List<String> allowedCityCodes);
 
+    /**
+     * 检查任务是否请求终止
+     * 在循环中调用此方法，如果返回true则应该中断循环
+     * 
+     * @return true-请求终止，false-继续执行
+     */
+    boolean isTerminateRequested();
+
+    /**
+     * 设置任务执行管理器
+     * 用于在执行过程中检查终止标记
+     * 
+     * @param taskExecutionManager 任务执行管理器
+     */
+    void setTaskExecutionManager(TaskExecutionManager taskExecutionManager);
+
 }

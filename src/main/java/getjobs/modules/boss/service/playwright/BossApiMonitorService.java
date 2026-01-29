@@ -75,17 +75,29 @@ public class BossApiMonitorService {
      */
     private void setupResponseMonitor(Page page) {
         page.onResponse(res -> {
-            String url = res.url();
+            try {
+                String url = res.url();
 
-            // 监听岗位搜索接口响应
-            if (url.contains("/wapi/zpgeek/search/joblist.json")) {
-                handleJobSearchResponse(res);
-            }
-            // 监听推荐岗位接口响应
-            else if (url.contains("/wapi/zpgeek/pc/recommend/job/list.json")) {
-                handleRecommendJobResponse(res);
-            } else if (url.contains("/wapi/zpgeek/job/detail.json")) {
-                handleJobDetailResponse(res);
+                // 监听岗位搜索接口响应
+                if (url.contains("/wapi/zpgeek/search/joblist.json")) {
+                    handleJobSearchResponse(res);
+                }
+                // 监听推荐岗位接口响应
+                else if (url.contains("/wapi/zpgeek/pc/recommend/job/list.json")) {
+                    handleRecommendJobResponse(res);
+                } else if (url.contains("/wapi/zpgeek/job/detail.json")) {
+                    handleJobDetailResponse(res);
+                }
+            } catch (PlaywrightException e) {
+                // 捕获并忽略页面导航/重载时产生的 "Object doesn't exist" 异常
+                // 原因：当页面重新加载时，Playwright 会清理旧的 request/response 对象
+                // 但监听器回调可能还在尝试访问这些已销毁的对象，导致异常
+                // 这种情况下的异常可以安全忽略，不影响正常业务流程
+                if (!e.getMessage().contains("Object doesn't exist")) {
+                    log.error("处理响应时发生异常: {}", e.getMessage(), e);
+                }
+            } catch (Exception e) {
+                log.error("处理响应时发生未知异常: {}", e.getMessage(), e);
             }
         });
     }
