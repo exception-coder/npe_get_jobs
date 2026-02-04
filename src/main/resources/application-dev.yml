@@ -3,9 +3,7 @@ spring:
     # MySQL 数据源配置
     mysql:
       #      driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://170.106.186.65:13306/npe_get_jobs?useSSL=false&serverTimezone=UTC&characterEncoding=utf8
       username: root
-      password: mysqlP@ssw0RD2020
       driver-class-name: com.mysql.jdbc.Driver
       hikari:
         maximum-pool-size: 10      # MySQL 连接池最大连接数
