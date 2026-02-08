@@ -178,6 +178,7 @@ public class BossTaskService {
 
     /**
      * 3. 过滤操作
+     * 注意：JobFilterService.filterJobs() 会直接更新数据库记录
      * 
      * @return 过滤结果
      */
@@ -190,62 +191,36 @@ public class BossTaskService {
                     .getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
 
             // 直接从数据库查询所有职位实体
-            List<JobEntity> allJobEntities = jobService.findAllJobEntitiesByPlatform(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
+            List<JobEntity> allJobEntities = jobService
+                    .findAllJobEntitiesByPlatform(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
             if (allJobEntities == null || allJobEntities.isEmpty()) {
                 throw new IllegalArgumentException("数据库中未找到职位数据或职位数据为空");
             }
 
-            // 执行过滤逻辑，获取过滤原因
-            List<JobDTO> filteredJobDTOS = new ArrayList<>();
-            List<String> filteredJobIds = new ArrayList<>();
-            List<String> filterReasons = new ArrayList<>();
-
+            // 转换为DTO
             List<JobDTO> jobDTOS = new ArrayList<>();
             for (JobEntity entity : allJobEntities) {
                 JobDTO job = jobService.convertToDTO(entity);
                 jobDTOS.add(job);
             }
-            List<JobDTO> filterJobs = bossService.filterJobs(jobDTOS);
-            filterJobs.forEach(job -> {
-                String filterReason = job.getFilterReason();
-                if (filterReason == null) {
-                    // 通过过滤
-                    filteredJobDTOS.add(job);
-                } else {
-                    // 被过滤，记录原因
-                    filteredJobIds.add(job.getEncryptJobId());
-                    filterReasons.add(filterReason);
-                }
-            });
 
-            // 批量更新被过滤的职位状态
-            if (!filteredJobIds.isEmpty()) {
-                // 按过滤原因分组更新
-                Map<String, List<String>> reasonGroups = new HashMap<>();
-                for (int i = 0; i < filteredJobIds.size(); i++) {
-                    String reason = filterReasons.get(i);
-                    String encryptJobId = filteredJobIds.get(i);
-                    reasonGroups.computeIfAbsent(reason, k -> new ArrayList<>()).add(encryptJobId);
-                }
-
-                for (Map.Entry<String, List<String>> entry : reasonGroups.entrySet()) {
-                    jobService.updateJobStatus(entry.getValue(), JobStatusEnum.FILTERED.getCode(), entry.getKey());
-                }
-            }
+            // 执行过滤逻辑（JobFilterService会直接更新数据库，返回通过过滤的职位）
+            List<JobDTO> passedJobs = bossService.filterJobs(jobDTOS);
+            int filteredCount = allJobEntities.size() - passedJobs.size();
 
             FilterResult result = new FilterResult();
             result.setOriginalCount(allJobEntities.size());
-            result.setFilteredCount(filteredJobDTOS.size());
-            result.setJobs(filteredJobDTOS);
+            result.setFilteredCount(passedJobs.size());
+            result.setJobs(passedJobs);
             String message = String.format("原始岗位 %d 个，过滤后剩余 %d 个，已过滤 %d 个",
-                    allJobEntities.size(), filteredJobDTOS.size(), filteredJobIds.size());
+                    allJobEntities.size(), passedJobs.size(), filteredCount);
             result.setMessage(message);
             result.setTimestamp(new Date());
 
-            publishTaskUpdate(TaskStage.FILTER, TaskStatus.SUCCESS, filteredJobDTOS.size(), message);
+            publishTaskUpdate(TaskStage.FILTER, TaskStatus.SUCCESS, passedJobs.size(), message);
 
             log.info("岗位过滤操作完成，原始 {} 个，过滤后 {} 个，已过滤 {} 个",
-                    allJobEntities.size(), filteredJobDTOS.size(), filteredJobIds.size());
+                    allJobEntities.size(), passedJobs.size(), filteredCount);
             return result;
 
         } catch (Exception e) {

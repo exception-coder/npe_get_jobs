@@ -1,0 +1,1 @@
+"use strict";const e={sheets:{tabs:{sheetCopy:"（副本{0}）",sheet:"工作表"},info:{overlappingSelections:"无法对重叠选区使用该命令",acrossMergedCell:"无法跨越合并单元格",partOfCell:"仅选择了合并单元格的一部分",hideSheet:"隐藏后无可见工作表"}}};module.exports=e;

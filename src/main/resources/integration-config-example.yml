@@ -1,0 +1,108 @@
+# 第三方接口集成模块配置示例
+# 将此配置添加到 application.yml 或 application-{profile}.yml 中
+
+integration:
+  # 是否启用第三方接口调用
+  enabled: true
+  
+  # 全局超时时间（毫秒）
+  timeout: 30000
+  
+  # 全局重试次数
+  retry-times: 3
+  
+  # 第三方服务配置
+  services:
+    # 示例服务1：RESTful API
+    example-service:
+      name: "示例服务"
+      base-url: "https://api.example.com"
+      api-key: "your-api-key-here"
+      secret-key: "your-secret-key-here"
+      timeout: 30000
+      retry-times: 3
+      enabled: true
+      extra:
+        custom-header: "custom-value"
+        app-id: "your-app-id"
+    
+    # 示例服务2：微信API
+    wechat-api:
+      name: "微信开放平台"
+      base-url: "https://api.weixin.qq.com"
+      api-key: "${WECHAT_APP_ID}"
+      secret-key: "${WECHAT_APP_SECRET}"
+      timeout: 20000
+      retry-times: 2
+      enabled: true
+      extra:
+        grant-type: "client_credential"
+    
+    # 示例服务3：支付宝API
+    alipay-api:
+      name: "支付宝开放平台"
+      base-url: "https://openapi.alipay.com/gateway.do"
+      api-key: "${ALIPAY_APP_ID}"
+      secret-key: "${ALIPAY_PRIVATE_KEY}"
+      timeout: 15000
+      retry-times: 3
+      enabled: true
+      extra:
+        format: "JSON"
+        charset: "utf-8"
+        sign-type: "RSA2"
+    
+    # 示例服务4：第三方数据服务
+    data-service:
+      name: "数据服务API"
+      base-url: "https://data.example.com/api/v1"
+      api-key: "${DATA_SERVICE_KEY}"
+      secret-key: ""
+      timeout: 60000
+      retry-times: 5
+      enabled: true
+      extra:
+        rate-limit: "100"
+        version: "v1"
+    
+    # ==================== 媒体保存服务配置（基于WebClient） ====================
+    # TikTok视频下载服务
+    tiksave:
+      name: "TikTok下载服务"
+      base-url: "https://tiksave.io/api"
+      enabled: true
+      timeout: 30000
+      retry-times: 3
+    
+    # Instagram内容下载服务
+    instsave:
+      name: "Instagram下载服务"
+      base-url: "https://saveinst.app/api"
+      enabled: true
+      timeout: 30000
+      retry-times: 3
+    
+    # Facebook视频下载服务
+    facebook-saver:
+      name: "Facebook下载服务"
+      base-url: "https://fsaver.com/api"
+      enabled: true
+      timeout: 30000
+      retry-times: 3
+    
+    # Twitter/X视频下载服务
+    twitter-saver:
+      name: "Twitter下载服务"
+      base-url: "https://twittersaver.net/api"
+      enabled: true
+      timeout: 30000
+      retry-times: 3
+
+# 提示：
+# 1. 敏感信息建议使用环境变量 ${ENV_VAR} 方式配置
+# 2. 可以在配置中心（如 Nacos）中管理这些配置，支持动态刷新
+# 3. 每个服务可以有独立的超时和重试配置，优先级高于全局配置
+# 4. extra 字段可以存储任意额外的配置信息，供具体实现使用
+# 5. 所有客户端基于 WebClient 实现，支持响应式非阻塞调用
+# 6. WebClient 提供更好的性能和资源利用率
+

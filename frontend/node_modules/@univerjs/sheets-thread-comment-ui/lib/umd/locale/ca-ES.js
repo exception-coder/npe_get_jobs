@@ -1,0 +1,1 @@
+(function(e,n){typeof exports=="object"&&typeof module<"u"?module.exports=n():typeof define=="function"&&define.amd?define(n):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsThreadCommentUiCaES=n())})(this,(function(){"use strict";return{sheetThreadComment:{menu:{addComment:"Afegeix un comentari",commentManagement:"Gestió de comentaris"}}}}));

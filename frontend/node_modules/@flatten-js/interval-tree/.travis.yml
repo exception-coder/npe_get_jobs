@@ -1,0 +1,14 @@
+language: node_js
+
+node_js:
+  - stable
+
+install:
+  - npm install
+
+script:
+  - npm run test
+
+# Send coverage data to Coveralls
+after_success: npm run coverage
+

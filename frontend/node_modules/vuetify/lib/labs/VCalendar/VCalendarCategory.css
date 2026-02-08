@@ -1,0 +1,102 @@
+.v-calendar-category .v-calendar-category__column,
+.v-calendar-category .v-calendar-category__column-header {
+  border-right: rgba(var(--v-border-color), var(--v-border-opacity)) 1px solid;
+}
+.v-calendar-category .v-calendar-daily__head {
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+}
+.v-calendar-category .v-calendar-daily__intervals-head {
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+}
+.v-calendar-category .v-calendar-daily__intervals-body {
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.v-calendar-category {
+  overflow: auto;
+  position: relative;
+}
+.v-calendar-category .v-calendar-category__category {
+  text-align: center;
+}
+.v-calendar-category .v-calendar-daily__day-container {
+  width: min-content;
+}
+.v-calendar-category .v-calendar-daily__day-container .v-calendar-category__columns {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+}
+.v-calendar-category .v-calendar-daily__day-body {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+.v-calendar-category .v-calendar-daily__head {
+  flex-direction: row;
+  width: min-content;
+  min-width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.v-calendar-category .v-calendar-daily_head-day {
+  width: auto;
+  position: unset;
+}
+.v-calendar-category .v-calendar-daily__intervals-head {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 2;
+}
+.v-calendar-category .v-calendar-daily_head-weekday {
+  position: sticky;
+  left: 50%;
+  width: 50px;
+}
+.v-calendar-category .v-calendar-daily_head-day-label {
+  width: 56px;
+  position: sticky;
+  left: 50%;
+}
+.v-calendar-category .v-calendar-daily__day {
+  min-width: 200px;
+}
+.v-calendar-category .v-calendar-daily__intervals-body {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+.v-calendar-category .v-calendar-daily__interval:last-of-type::after {
+  display: none;
+}
+.v-calendar-category .v-calendar-daily__body {
+  overflow: visible;
+}
+.v-calendar-category .v-calendar-daily__body .v-calendar-daily__scroll-area {
+  overflow-y: visible;
+  flex: none;
+}
+.v-calendar-category .v-calendar-daily__pane {
+  overflow-y: visible;
+}
+.v-calendar-category .v-calendar-category__columns {
+  display: flex;
+  width: min-content;
+  min-width: 100%;
+}
+.v-calendar-category .v-calendar-category__columns .v-calendar-category__column,
+.v-calendar-category .v-calendar-category__columns .v-calendar-category__column-header {
+  flex: 1 1 auto;
+  width: 0;
+  position: relative;
+}
+.v-calendar-category .v-calendar-category__columns .v-calendar-category__column-header {
+  min-width: 200px;
+}

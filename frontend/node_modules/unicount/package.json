@@ -1,0 +1,20 @@
+{
+  "name": "unicount",
+  "version": "1.1.0",
+  "description": "unicode position conversion",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "node test.js",
+    "prepare": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^3.9.2"
+  },
+  "keywords": [
+    "unicode"
+  ],
+  "repository": "https://github.com/josephg/unicount",
+  "author": "Joseph Gentle <me@josephg.com>",
+  "license": "ISC"
+}

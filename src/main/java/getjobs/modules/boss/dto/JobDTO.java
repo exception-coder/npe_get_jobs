@@ -218,6 +218,21 @@ public class JobDTO implements Serializable {
     private String filterReason;
 
     /**
+     * AI匹配是否通过
+     */
+    private Boolean aiMatched;
+
+    /**
+     * AI匹配分数/置信度
+     */
+    private String aiMatchScore;
+
+    /**
+     * AI匹配详细原因
+     */
+    private String aiMatchReason;
+
+    /**
      * 是否收藏
      */
     private Boolean isFavorite = false;

@@ -227,6 +227,24 @@ public class JobEntity extends BaseEntity {
     private String filterReason;
 
     /**
+     * AI匹配是否通过
+     */
+    @Column(name = "ai_matched")
+    private Boolean aiMatched;
+
+    /**
+     * AI匹配分数/置信度
+     */
+    @Column(name = "ai_match_score", length = 50)
+    private String aiMatchScore;
+
+    /**
+     * AI匹配详细原因
+     */
+    @Column(name = "ai_match_reason", columnDefinition = "TEXT")
+    private String aiMatchReason;
+
+    /**
      * 是否收藏
      */
     @Column(name = "is_favorite", nullable = false)

@@ -1,0 +1,1 @@
+(function(e,i){typeof exports=="object"&&typeof module<"u"?module.exports=i():typeof define=="function"&&define.amd?define(i):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsFindReplaceZhTW=i())})(this,(function(){"use strict";return{"sheet-find-replace":{replace:{"partial-failure":"部分單元格替換失敗",failure:"替換失敗"}}}}));

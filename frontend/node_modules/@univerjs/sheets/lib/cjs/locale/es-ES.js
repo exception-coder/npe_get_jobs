@@ -1,0 +1,1 @@
+"use strict";const e={sheets:{tabs:{sheetCopy:"(Copia{0})",sheet:"Hoja"},info:{overlappingSelections:"No se puede usar ese comando en selecciones superpuestas",acrossMergedCell:"A través de una celda combinada",partOfCell:"Solo una parte de una celda combinada está seleccionada",hideSheet:"No hay hojas visibles después de ocultar esta"}}};module.exports=e;

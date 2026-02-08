@@ -1,0 +1,76 @@
+import { IDisposable, IRange, Nullable, Direction, Disposable, ICommandService, Injector, IUndoRedoService, IUniverInstanceService } from '@univerjs/core';
+import { RenderManagerService } from '@univerjs/engine-render';
+import { Observable } from 'rxjs';
+import { IAutoFillLocation, IAutoFillRule, ISheetAutoFillHook, APPLY_TYPE } from './type';
+import { SheetsSelectionsService } from '@univerjs/sheets';
+export interface IAutoFillService {
+    applyType$: Observable<APPLY_TYPE>;
+    applyType: APPLY_TYPE;
+    direction: Direction;
+    menu$: Observable<IApplyMenuItem[]>;
+    menu: IApplyMenuItem[];
+    showMenu$: Observable<boolean>;
+    setShowMenu: (show: boolean) => void;
+    setDisableApplyType: (type: APPLY_TYPE, disable: boolean) => void;
+    getRules(): IAutoFillRule[];
+    isFillingStyle(): boolean;
+    autoFillLocation$: Observable<Nullable<IAutoFillLocation>>;
+    autoFillLocation: Nullable<IAutoFillLocation>;
+    setFillingStyle(isFillingStyle: boolean): void;
+    registerRule(rule: IAutoFillRule): void;
+    getAllHooks(): ISheetAutoFillHook[];
+    getActiveHooks(): ISheetAutoFillHook[];
+    addHook(hook: ISheetAutoFillHook): IDisposable;
+    fillData(applyType: APPLY_TYPE): boolean;
+    triggerAutoFill(unitId: string, subUnitId: string, source: IRange, target: IRange): Promise<boolean>;
+}
+export interface IApplyMenuItem {
+    label: string;
+    value: APPLY_TYPE;
+    disable: boolean;
+}
+export declare class AutoFillService extends Disposable implements IAutoFillService {
+    private _commandService;
+    private _undoRedoService;
+    private readonly _renderManagerService;
+    private _univerInstanceService;
+    private _selectionManagerService;
+    private readonly _injector;
+    private _rules;
+    private _hooks;
+    private readonly _applyType$;
+    private _isFillingStyle;
+    private _prevUndos;
+    private readonly _autoFillLocation$;
+    readonly autoFillLocation$: Observable<Nullable<IAutoFillLocation>>;
+    private readonly _showMenu$;
+    readonly showMenu$: Observable<boolean>;
+    private _direction;
+    readonly applyType$: Observable<APPLY_TYPE>;
+    private readonly _menu$;
+    readonly menu$: Observable<IApplyMenuItem[]>;
+    constructor(_commandService: ICommandService, _undoRedoService: IUndoRedoService, _renderManagerService: RenderManagerService, _univerInstanceService: IUniverInstanceService, _selectionManagerService: SheetsSelectionsService, _injector: Injector);
+    private _init;
+    private _getOneByPriority;
+    private _initPrevUndo;
+    triggerAutoFill(unitId: string, subUnitId: string, source: IRange, selection: IRange): Promise<boolean>;
+    addHook(hook: ISheetAutoFillHook): IDisposable;
+    registerRule(rule: IAutoFillRule): void;
+    getRules(): IAutoFillRule[];
+    getAllHooks(): ISheetAutoFillHook[];
+    getActiveHooks(): ISheetAutoFillHook[];
+    get applyType(): APPLY_TYPE;
+    set applyType(type: APPLY_TYPE);
+    get menu(): IApplyMenuItem[];
+    get direction(): Direction;
+    set direction(direction: Direction);
+    isFillingStyle(): boolean;
+    setFillingStyle(isFillingStyle: boolean): void;
+    get autoFillLocation(): Nullable<IAutoFillLocation>;
+    set autoFillLocation(location: Nullable<IAutoFillLocation>);
+    setDisableApplyType(type: APPLY_TYPE, disable: boolean): void;
+    setShowMenu(show: boolean): void;
+    fillData(applyType: APPLY_TYPE): boolean;
+    private _getAutoHeightUndoRedos;
+}
+export declare const IAutoFillService: import('@wendellhu/redi').IdentifierDecorator<IAutoFillService>;

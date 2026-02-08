@@ -1,0 +1,1 @@
+"use strict";const e={design:{Confirm:{cancel:"отмена",confirm:"ок"},CascaderList:{empty:"Нет"},Select:{empty:"Нет"},Calendar:{year:"",weekDays:["Вс","Пн","Вт","Ср","Чт","Пт","Сб"],months:["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"]},ColorPicker:{more:"Больше цветов",cancel:"отмена",confirm:"ок"}}};module.exports=e;

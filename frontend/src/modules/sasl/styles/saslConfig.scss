@@ -1,0 +1,434 @@
+.binding-table {
+  background: transparent;
+  color: #f4f7ff;
+}
+
+.binding-table thead th {
+  background: rgba(17, 30, 62, 0.9);
+  color: #f4f7ff;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(90, 120, 186, 0.35);
+}
+
+.binding-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(90, 120, 186, 0.25);
+  color: #f4f7ff;
+}
+
+.binding-table tbody tr:hover {
+  background: rgba(12, 22, 46, 0.6);
+}
+
+:deep(.v-file-input) {
+  color: #f4f7ff;
+}
+
+:deep(.v-file-input .v-field) {
+  background-color: rgba(8, 12, 26, 0.75);
+  border: 1px solid rgba(70, 110, 196, 0.35);
+  color: #f5f7ff;
+}
+
+:deep(.v-select .v-field),
+:deep(.v-text-field .v-field),
+:deep(.v-textarea .v-field) {
+  background-color: rgba(8, 12, 26, 0.75);
+  border: 1px solid rgba(70, 110, 196, 0.35);
+  color: #f5f7ff;
+}
+
+.upload-dialog-card {
+  background: rgba(9, 16, 35, 0.95);
+  border: 1px solid rgba(66, 104, 189, 0.4);
+  color: #f4f7ff;
+}
+
+:deep(.upload-dialog-card .v-card-title) {
+  color: #fdfefe;
+  font-weight: 600;
+}
+
+:deep(.upload-dialog-card .v-card-text) {
+  color: #f4f7ff;
+}
+
+// 确保按钮样式与 SaslForm.vue 中的 NEXT 按钮一致
+.apple-primary-btn {
+  background: linear-gradient(135deg, #f06c00, #f9a825) !important;
+  color: #fff9f0 !important;
+  box-shadow: 0 15px 32px rgba(2, 3, 10, 0.55) !important;
+}
+
+.apple-primary-btn:hover {
+  background: linear-gradient(135deg, #f06c00, #f9a825) !important;
+  color: #fff9f0 !important;
+}
+
+.apple-primary-btn:disabled {
+  background: rgba(240, 108, 0, 0.3) !important;
+  color: rgba(255, 249, 240, 0.5) !important;
+}
+
+// 套餐明细检视区块样式（参考 saslForm.scss）
+.plan-detail-row {
+  margin-top: 36px;
+}
+
+.plan-section-surface {
+  border-radius: 24px;
+  padding: 28px 32px;
+  background: rgba(12, 22, 46, 0.92);
+  border: 1px solid rgba(66, 104, 189, 0.45);
+  box-shadow: 0 25px 55px rgba(3, 5, 14, 0.45);
+}
+
+.plan-section-header {
+  margin-bottom: 18px;
+}
+
+.plan-tabs {
+  margin-bottom: 0;
+  padding: 0 8px;
+  border-bottom: 1px solid rgba(90, 120, 186, 0.45);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.plan-tab {
+  text-transform: none;
+  min-height: 48px;
+  border-radius: 0;
+  color: #dbe5ff;
+}
+
+.plan-tab.v-tab--selected {
+  background: transparent;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.plan-tab-title {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.plan-tab-subtitle {
+  font-size: 0.8rem;
+  color: #9fb1df;
+}
+
+.plan-window {
+  margin-top: 18px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+}
+
+.plan-window-item {
+  padding: 4px 0;
+}
+
+.panel-title {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.panel-title-label {
+  font-weight: 600;
+  color: #fdfefe;
+}
+
+.panel-title-sub {
+  font-size: 0.85rem;
+  color: #94a6d4;
+}
+
+.plan-matrix-wrapper {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.plan-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.plan-matrix th,
+.plan-matrix td {
+  padding: 8px 10px;
+  border: 1px solid rgba(90, 120, 186, 0.35);
+  font-size: 0.85rem;
+  text-align: center;
+  color: #f4f7ff;
+}
+
+.plan-matrix thead th {
+  font-weight: 600;
+  background: rgba(17, 30, 62, 0.9);
+}
+
+.plan-matrix tbody th {
+  text-align: left;
+  background: rgba(13, 25, 54, 0.95);
+  font-weight: 600;
+  min-width: 160px;
+  color: #ffffff;
+}
+
+.plan-footnote {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: #f4f7ff;
+}
+
+// 文档清单相关样式
+.document-title-link {
+  color: #5a7aba;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  display: inline-block;
+  
+  &:hover {
+    color: #7ba3e8;
+    text-decoration: underline;
+  }
+}
+
+.document-selected {
+  color: #f9a825;
+  font-weight: 600;
+  
+  &:hover {
+    color: #f9a825;
+  }
+}
+
+.document-data-section {
+  padding: 20px;
+  background: rgba(8, 12, 26, 0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(70, 110, 196, 0.35);
+}
+
+.document-table-wrapper {
+  overflow-x: auto;
+}
+
+.table-container {
+  overflow-x: auto;
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid rgba(90, 120, 186, 0.35);
+  border-radius: 8px;
+}
+
+.document-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(12, 22, 46, 0.8);
+  min-width: 600px;
+}
+
+.document-data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.document-data-table th {
+  background: rgba(17, 30, 62, 0.95);
+  color: #f4f7ff;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-bottom: 2px solid rgba(90, 120, 186, 0.45);
+  text-align: left;
+  position: sticky;
+  top: 0;
+}
+
+.document-data-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(90, 120, 186, 0.25);
+  color: #f4f7ff;
+}
+
+.document-data-table tbody tr:hover {
+  background: rgba(12, 22, 46, 0.6);
+}
+
+.document-data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+// 文档分组相关样式
+.document-groups-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.document-group-item {
+  background: rgba(8, 12, 26, 0.5);
+  border: 1px solid rgba(70, 110, 196, 0.35);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.document-group-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(90, 120, 186, 0.25);
+  margin-bottom: 12px;
+  
+  .d-flex {
+    width: 100%;
+  }
+}
+
+.import-records-table {
+  background: transparent;
+  color: #f4f7ff;
+}
+
+.import-records-table thead th {
+  background: rgba(17, 30, 62, 0.9);
+  color: #f4f7ff;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(90, 120, 186, 0.35);
+  font-size: 0.875rem;
+}
+
+.import-records-table tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(90, 120, 186, 0.25);
+  color: #f4f7ff;
+  font-size: 0.875rem;
+}
+
+.import-records-table tbody tr:hover {
+  background: rgba(12, 22, 46, 0.6);
+}
+
+// 公告内容样式
+.announcement-content {
+  max-width: 400px;
+  word-wrap: break-word;
+  word-break: break-all;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  color: #f4f7ff;
+}
+
+// 确保文本在深色背景下可见
+.text-light-emphasis {
+  color: #dbe5ff !important;
+}
+
+// 线索分配穿梭窗样式
+.lead-transfer-container {
+  width: 100%;
+}
+
+.transfer-wrapper {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  min-height: 500px;
+}
+
+.transfer-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 12, 26, 0.5);
+  border: 1px solid rgba(70, 110, 196, 0.35);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.transfer-panel-header {
+  padding: 16px;
+  background: rgba(17, 30, 62, 0.9);
+  border-bottom: 1px solid rgba(90, 120, 186, 0.35);
+}
+
+.transfer-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.transfer-list {
+  background: transparent;
+}
+
+.transfer-list :deep(.v-list-item) {
+  border-radius: 8px;
+  margin-bottom: 4px;
+  padding: 8px 12px;
+  background: rgba(12, 22, 46, 0.6);
+  border: 1px solid rgba(70, 110, 196, 0.2);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(12, 22, 46, 0.8);
+    border-color: rgba(70, 110, 196, 0.4);
+  }
+}
+
+.transfer-list :deep(.v-list-item-title) {
+  color: #f4f7ff;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.transfer-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 8px;
+  min-width: 60px;
+  position: sticky;
+  top: 120px;
+  align-self: flex-start;
+  z-index: 10;
+  background: rgba(8, 12, 26, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+.transfer-actions .v-btn {
+  min-width: 44px;
+  height: 44px;
+}
+
+@media (max-width: 960px) {
+  .transfer-wrapper {
+    flex-direction: column;
+    min-height: auto;
+  }
+  
+  .transfer-actions {
+    flex-direction: row;
+    justify-content: center;
+    padding: 8px 0;
+    min-width: auto;
+  }
+  
+  .transfer-panel {
+    min-height: 300px;
+  }
+}
+

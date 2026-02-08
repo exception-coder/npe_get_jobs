@@ -1,0 +1,1 @@
+(function(e,n){typeof exports=="object"&&typeof module<"u"?module.exports=n():typeof define=="function"&&define.amd?define(n):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsFormulaZhTW=n())})(this,(function(){"use strict";return{formula:{progress:{analyzing:"分析中",calculating:"計算中","array-analysis":"陣列分析","array-calculation":"陣列計算",done:"完成"}}}}));

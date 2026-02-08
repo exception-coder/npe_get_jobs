@@ -1,0 +1,268 @@
+package getjobs.common.service;
+
+import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.Cookie;
+import com.microsoft.playwright.options.WaitForSelectorState;
+import getjobs.common.enums.RecruitmentPlatformEnum;
+import getjobs.common.util.JsCaptureManager;
+import getjobs.common.util.PageRecoveryManager;
+import getjobs.common.util.StealthScriptManager;
+import getjobs.repository.entity.ConfigEntity;
+import getjobs.service.ConfigService;
+import lombok.extern.slf4j.Slf4j;
+import com.github.openjson.JSONArray;
+import com.github.openjson.JSONObject;
+import org.springframework.stereotype.Service;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Playwright服务，统一管理Playwright实例、浏览器、上下文和页面。
+ * 为每个招聘平台提供独立的BrowserContext和Page。
+ */
+@Slf4j
+@Service
+public class PlaywrightService {
+
+    private final ConfigService configService;
+
+    private Playwright playwright;
+    // 注意：使用 launchPersistentContext 时，Browser 嵌入在 BrowserContext 中
+    private BrowserContext context;
+    private final Map<RecruitmentPlatformEnum, Page> pageMap = new ConcurrentHashMap<>();
+
+    private static final int DEFAULT_TIMEOUT = 30000;
+
+    // 扩展相关路径
+    private Path extensionPath;
+    private Path userDataDir;
+    // 取证/观测日志（BOSS 专用）
+    private Path bossForensicLogFile;
+    private final Object bossForensicLogLock = new Object();
+
+    public PlaywrightService(ConfigService configService) {
+        this.configService = configService;
+    }
+
+    private static final String[] USER_AGENTS = {
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+    };
+
+    @PostConstruct
+    public void init() {
+        try {
+            log.info("=== 开始初始化 Playwright 服务 ===");
+            log.info("（数据库已就绪，可以加载平台配置和Cookie）");
+            playwright = Playwright.create();
+
+            // 准备Chrome扩展
+            extensionPath = prepareExtension();
+            userDataDir = Files.createTempDirectory("playwright-user-data");
+            log.info("✓ Chrome扩展已准备: {}", extensionPath);
+            log.info("✓ 用户数据目录: {}", userDataDir);
+            bossForensicLogFile = initBossForensicLogFile();
+            log.info("✓ BOSS取证日志文件: {}", bossForensicLogFile.toAbsolutePath());
+
+            String randomUserAgent = getRandomUserAgent();
+
+            // 使用 launchPersistentContext 加载扩展
+            // 注意：launchPersistentContext 同时创建 browser 和 context
+            context = playwright.chromium().launchPersistentContext(
+                    userDataDir,
+                    new BrowserType.LaunchPersistentContextOptions()
+                            .setHeadless(false)
+                            .setSlowMo(50)
+                            .setUserAgent(randomUserAgent)
+                            .setLocale("zh-CN")
+                            .setTimezoneId("Asia/Shanghai")
+                            .setBypassCSP(true)
+                            .setPermissions(List.of("geolocation", "notifications"))
+                            .setIgnoreDefaultArgs(List.of("--enable-automation")) // 禁用自动化标记
+                            .setArgs(List.of(
+                                    "--disable-blink-features=AutomationControlled",
+                                    "--disable-infobars", // 隐藏 "Chrome 正受到自动测试软件的控制" 提示
+                                    "--disable-web-security",
+                                    "--disable-features=VizDisplayCompositor",
+                                    "--disable-dev-shm-usage",
+                                    "--no-sandbox",
+                                    "--no-first-run", // 跳过首次运行向导
+                                    "--no-default-browser-check", // 跳过默认浏览器检查
+                                    // 加载Chrome扩展 - 这是关键！
+                                    "--disable-extensions-except=" + extensionPath.toAbsolutePath(),
+                                    "--load-extension=" + extensionPath.toAbsolutePath(),
+                                    "--disable-background-timer-throttling",
+                                    "--disable-renderer-backgrounding",
+                                    "--disable-backgrounding-occluded-windows",
+                                    "--disable-ipc-flooding-protection")));
+
+            // 保存 launchPersistentContext 默认打开的空白页面，稍后关闭
+            List<Page> defaultPages = new ArrayList<>(context.pages());
+            log.info("默认打开的页面数量: {}", defaultPages.size());
+
+            // 为持久化上下文添加反检测脚本
+            addStealthScripts(context);
+
+            for (RecruitmentPlatformEnum platform : RecruitmentPlatformEnum.values()) {
+                Page page = createNewPage(context);
+
+                // 仅对 Boss 直聘启用取证/观测器（用于定位 about:blank、脚本错误、扩展检测等）
+                if (platform == RecruitmentPlatformEnum.BOSS_ZHIPIN) {
+                    attachObservers(page);
+                }
+
+                // 先加载Cookie，再导航到页面
+                loadPlatformCookies(platform, page);
+
+                page.navigate(platform.getHomeUrl());
+                pageMap.put(platform, page);
+                log.info("✓ 已为平台 {} 初始化页面: {}", platform.getPlatformName(),
+                        platform.getHomeUrl());
+            }
+
+            // 关闭默认的空白页面（about:blank）
+            for (Page defaultPage : defaultPages) {
+                try {
+                    String url = defaultPage.url();
+                    if ("about:blank".equals(url) || url.isEmpty()) {
+                        defaultPage.close();
+                        log.info("✓ 已关闭默认空白页面");
+                    }
+                } catch (Exception e) {
+                    log.warn("关闭默认页面失败", e);
+                }
+            }
+
+            log.info("✓ Playwright 服务初始化成功（已加载Chrome扩展）");
+            log.info("=== Playwright 服务初始化完成 ===");
+        } catch (Exception e) {
+            log.error("Failed to initialize Playwright service", e);
+            // Ensure cleanup is called on initialization failure
+            close();
+            throw new RuntimeException("Failed to initialize Playwright service", e);
+        }
+    }
+
+    /**
+     * 准备Chrome扩展目录
+     * 从classpath的resources/extensions复制到临时目录
+     */
+    private Path prepareExtension() throws IOException {
+        Path tempExtensionDir = Files.createTempDirectory("chrome-extension-");
+        Path extensionDir = tempExtensionDir.resolve("ublock-origin");
+        Files.createDirectories(extensionDir);
+
+        // 需要复制的扩展文件列表
+        String[] extensionFiles = {
+                "manifest.json",
+                "background.js",
+                "content.js",
+                "icon16.png",
+                "icon48.png",
+                "icon128.png"
+        };
+
+        for (String fileName : extensionFiles) {
+            String resourcePath = "extensions/ublock-origin/" + fileName;
+            try (InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+                if (is != null) {
+                    Files.copy(is, extensionDir.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
+                    log.debug("已复制扩展文件: {}", fileName);
+                } else {
+                    log.warn("扩展文件不存在: {}", resourcePath);
+                }
+            }
+        }
+
+        log.info("扩展目录已准备: {}", extensionDir);
+        return extensionDir;
+    }
+
+    /**
+     * 为BrowserContext添加反检测脚本
+     * 
+     * 使用 StealthScriptManager 统一管理反检测脚本
+     * 脚本存储在 resources/stealth-scripts/ 目录下，便于维护
+     */
+    private void addStealthScripts(BrowserContext context) {
+        // 使用 StealthScriptManager 添加所有反检测脚本
+        // 脚本从独立的 JS 文件加载，无需硬编码
+        StealthScriptManager.addAllStealthScripts(context);
+
+        log.info("✓ 已通过 StealthScriptManager 添加反检测脚本");
+
+        // 如果需要只添加特定脚本，可以使用：
+        // StealthScriptManager.addScripts(context,
+        // StealthScriptManager.ScriptType.AJAX_INTERCEPTOR,
+        // StealthScriptManager.ScriptType.EXTENSION_BYPASS,
+        // StealthScriptManager.ScriptType.PLAYWRIGHT_STEALTH
+        // );
+    }
+
+    /**
+     * 为BrowserContext添加反检测脚本（旧版本，已废弃）
+     * 
+     * @deprecated 使用 {@link #addStealthScripts(BrowserContext)} 代替
+     * 
+     *             此方法包含600+行硬编码的JavaScript，已被StealthScriptManager替代。
+     *             保留此注释仅作为历史记录，实际代码已删除。
+     * 
+     *             旧版本包含的脚本：
+     *             1. AJAX拦截器 - 拦截Boss直聘反爬虫验证接口
+     *             2. 扩展检测绕过 - 拦截chrome-extension://请求
+     *             3. Playwright特征隐藏 - 隐藏webdriver等自动化特征
+     * 
+     *             新版本优势：
+     *             - 脚本存储在独立的JS文件中，易于维护和调试
+     *             - 支持脚本缓存，提高性能
+     *             - 支持灵活的脚本组合加载
+     *             - 代码更简洁，可读性更好
+     */
+    @Deprecated
+    private void addStealthScriptsOld_REMOVED(BrowserContext context) {
+        // 此方法已废弃，请使用 addStealthScripts(context)
+        // 原600+行硬编码JavaScript已迁移到 resources/stealth-scripts/ 目录
+        throw new UnsupportedOperationException("此方法已废弃，请使用 addStealthScripts(context)");
+    }
+
+    private Page createNewPage(BrowserContext context) {
+        Page page = context.newPage();
+        page.setDefaultTimeout(DEFAULT_TIMEOUT);
+        page.onConsoleMessage(message -> {
+            if ("error".equals(message.type())) {
+                log.error("Browser console error: {}", message.text());
+            }
+        });
+        return page;
+    }
+
+    @PreDestroy
+    public void close() {
+        log.info("Closing Playwright service...");
+        pageMap.values().forEach(Page::close);
+
+        if (context != null) {
+            context.close();
+        }
+
+        // 注意：使用 launchPersistentContext 时，browser 对象是内嵌的，不需要单独关闭
+        // browser.close() 会在 context.close() 时自动处理
+
+        if (playwright != null) {
+            playwright.close();
+        }
+
+        // 清理临时目录
+        cleanupTempDirectories();
+
+        log.info("Playwright service closed.");
+    }

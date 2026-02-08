@@ -1,0 +1,98 @@
+// Composables
+import { useLocale } from "../locale.js"; // Utilities
+import { inject, reactive, watch } from 'vue';
+import { mergeDeep } from "../../util/index.js"; // Types
+// Adapters
+import { VuetifyDateAdapter } from "./adapters/vuetify.js";
+/** Supports module augmentation to specify date adapter types */
+export let DateModule;
+export const DateOptionsSymbol = Symbol.for('vuetify:date-options');
+export const DateAdapterSymbol = Symbol.for('vuetify:date-adapter');
+export function createDate(options, locale) {
+  const _options = mergeDeep({
+    adapter: VuetifyDateAdapter,
+    locale: {
+      af: 'af-ZA',
+      // ar: '', # not the same value for all variants
+      bg: 'bg-BG',
+      ca: 'ca-ES',
+      ckb: '',
+      cs: 'cs-CZ',
+      de: 'de-DE',
+      el: 'el-GR',
+      en: 'en-US',
+      // es: '', # not the same value for all variants
+      et: 'et-EE',
+      fa: 'fa-IR',
+      fi: 'fi-FI',
+      // fr: '', #not the same value for all variants
+      hr: 'hr-HR',
+      hu: 'hu-HU',
+      he: 'he-IL',
+      id: 'id-ID',
+      it: 'it-IT',
+      ja: 'ja-JP',
+      ko: 'ko-KR',
+      lv: 'lv-LV',
+      lt: 'lt-LT',
+      nl: 'nl-NL',
+      no: 'no-NO',
+      pl: 'pl-PL',
+      pt: 'pt-PT',
+      ro: 'ro-RO',
+      ru: 'ru-RU',
+      sk: 'sk-SK',
+      sl: 'sl-SI',
+      srCyrl: 'sr-SP',
+      srLatn: 'sr-SP',
+      sv: 'sv-SE',
+      th: 'th-TH',
+      tr: 'tr-TR',
+      az: 'az-AZ',
+      uk: 'uk-UA',
+      vi: 'vi-VN',
+      zhHans: 'zh-CN',
+      zhHant: 'zh-TW'
+    }
+  }, options);
+  return {
+    options: _options,
+    instance: createInstance(_options, locale)
+  };
+}
+export function createDateRange(adapter, start, stop) {
+  const diff = daysDiff(adapter, start, stop);
+  const datesInRange = [start];
+  for (let i = 1; i < diff; i++) {
+    const nextDate = adapter.addDays(start, i);
+    datesInRange.push(nextDate);
+  }
+  if (stop) {
+    datesInRange.push(adapter.endOfDay(stop));
+  }
+  return datesInRange;
+}
+export function daysDiff(adapter, start, stop) {
+  const iso = [`${adapter.toISO(stop ?? start).split('T')[0]}T00:00:00Z`, `${adapter.toISO(start).split('T')[0]}T00:00:00Z`];
+  return typeof adapter.date() === 'string' ? adapter.getDiff(iso[0], iso[1], 'days') // for StringDateAdapter
+  : adapter.getDiff(adapter.date(iso[0]), adapter.date(iso[1]), 'days');
+}
+function createInstance(options, locale) {
+  const instance = reactive(typeof options.adapter === 'function'
+  // eslint-disable-next-line new-cap
+  ? new options.adapter({
+    locale: options.locale[locale.current.value] ?? locale.current.value,
+    formats: options.formats
+  }) : options.adapter);
+  watch(locale.current, value => {
+    instance.locale = options.locale[value] ?? value ?? instance.locale;
+  });
+  return instance;
+}
+export function useDate() {
+  const options = inject(DateOptionsSymbol);
+  if (!options) throw new Error('[Vuetify] Could not find injected date options');
+  const locale = useLocale();
+  return createInstance(options, locale);
+}
+//# sourceMappingURL=date.js.map

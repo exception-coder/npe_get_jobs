@@ -1,0 +1,1 @@
+(function(e,n){typeof exports=="object"&&typeof module<"u"?module.exports=n():typeof define=="function"&&define.amd?define(n):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsFormulaKoKR=n())})(this,(function(){"use strict";return{formula:{progress:{analyzing:"분석 중",calculating:"계산 중","array-analysis":"배열 분석","array-calculation":"배열 계산",done:"완료"}}}}));

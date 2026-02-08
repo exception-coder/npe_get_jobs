@@ -1,0 +1,36 @@
+import { Nullable, Disposable } from '@univerjs/core';
+import { BaseAstNode } from '../ast-node/base-ast-node';
+import { IFormulaRuntimeService } from '../../services/runtime.service';
+import { AstRootNodeFactory } from '../ast-node/ast-root-node';
+import { FunctionNodeFactory } from '../ast-node/function-node';
+import { LambdaNodeFactory } from '../ast-node/lambda-node';
+import { LambdaParameterNodeFactory } from '../ast-node/lambda-parameter-node';
+import { OperatorNodeFactory } from '../ast-node/operator-node';
+import { PrefixNodeFactory } from '../ast-node/prefix-node';
+import { ReferenceNodeFactory } from '../ast-node/reference-node';
+import { SuffixNodeFactory } from '../ast-node/suffix-node';
+import { UnionNodeFactory } from '../ast-node/union-node';
+import { ValueNodeFactory } from '../ast-node/value-node';
+import { LexerNode } from './lexer-node';
+export declare class AstTreeBuilder extends Disposable {
+    private readonly _runtimeService;
+    private readonly _astRootNodeFactory;
+    private readonly _functionNodeFactory;
+    private readonly _lambdaNodeFactory;
+    private readonly _lambdaParameterNodeFactory;
+    private readonly _operatorNodeFactory;
+    private readonly _prefixNodeFactory;
+    private readonly _referenceNodeFactory;
+    private readonly _suffixNodeFactory;
+    private readonly _unionNodeFactory;
+    private readonly _valueNodeFactory;
+    private _astNodeFactoryList;
+    constructor(_runtimeService: IFormulaRuntimeService, _astRootNodeFactory: AstRootNodeFactory, _functionNodeFactory: FunctionNodeFactory, _lambdaNodeFactory: LambdaNodeFactory, _lambdaParameterNodeFactory: LambdaParameterNodeFactory, _operatorNodeFactory: OperatorNodeFactory, _prefixNodeFactory: PrefixNodeFactory, _referenceNodeFactory: ReferenceNodeFactory, _suffixNodeFactory: SuffixNodeFactory, _unionNodeFactory: UnionNodeFactory, _valueNodeFactory: ValueNodeFactory);
+    dispose(): void;
+    parse(lexerNode: LexerNode): Nullable<BaseAstNode>;
+    private _lambdaParameterHandler;
+    private _changeLetToLambda;
+    private _parse;
+    private _checkAstNode;
+    private _initializeAstNode;
+}

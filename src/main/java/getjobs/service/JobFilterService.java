@@ -1,15 +1,19 @@
 package getjobs.service;
 
 import getjobs.common.dto.ConfigDTO;
+import getjobs.common.enums.JobStatusEnum;
 import getjobs.modules.ai.job.dto.JobMatchResult;
 import getjobs.modules.ai.job.service.JobMatchAiService;
 import getjobs.modules.boss.dto.JobDTO;
+import getjobs.repository.JobRepository;
 import getjobs.repository.UserProfileRepository;
+import getjobs.repository.entity.JobEntity;
 import getjobs.repository.entity.UserProfile;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,32 +32,91 @@ public class JobFilterService {
 
     private final SalaryFilterService salaryFilterService;
 
+    private final JobRepository jobRepository;
+
     public JobFilterService(JobMatchAiService jobMatchAiService,
             UserProfileRepository userProfileRepository,
             @Lazy RecruitmentServiceFactory recruitmentServiceFactory,
-            SalaryFilterService salaryFilterService) {
+            SalaryFilterService salaryFilterService,
+            JobRepository jobRepository) {
         this.jobMatchAiService = jobMatchAiService;
         this.userProfileRepository = userProfileRepository;
         this.recruitmentServiceFactory = recruitmentServiceFactory;
         this.salaryFilterService = salaryFilterService;
+        this.jobRepository = jobRepository;
     }
 
     public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config) {
         return filterJobs(jobDTOS, config, true);
     }
 
+    /**
+     * 过滤职位并直接更新数据库记录
+     * 
+     * @param jobDTOS        职位列表
+     * @param config         配置信息
+     * @param salaryExpected 是否检查薪资
+     * @return 过滤后的职位列表（通过过滤的职位）
+     */
+    @Transactional
     public List<JobDTO> filterJobs(List<JobDTO> jobDTOS, ConfigDTO config, boolean salaryExpected) {
         log.info("开始Boss直聘岗位过滤，原始岗位数量: {}", jobDTOS.size());
-        List<JobDTO> filteredJobDTOS = jobDTOS.stream()
-                .map(job -> {
-                    String filterReason = getFilterReason(job, config, salaryExpected);
-                    job.setFilterReason(filterReason);
-                    return job;
-                })
+
+        // 预先加载所有需要的JobEntity，建立映射关系
+        List<String> allJobIds = jobDTOS.stream()
+                .map(JobDTO::getEncryptJobId)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        log.info("Boss直聘岗位过滤完成，过滤后岗位数量: {}", filteredJobDTOS.size());
-        return filteredJobDTOS;
+        Map<String, JobEntity> jobEntityMap = new HashMap<>();
+        if (!allJobIds.isEmpty()) {
+            List<JobEntity> entities = jobRepository.findAllByEncryptJobIdIn(allJobIds);
+            jobEntityMap = entities.stream()
+                    .collect(Collectors.toMap(JobEntity::getEncryptJobId, entity -> entity));
+        }
+
+        // 用于收集通过过滤的职位
+        List<JobDTO> passedJobs = new ArrayList<>();
+        List<JobEntity> entitiesToUpdate = new ArrayList<>();
+
+        // 执行过滤逻辑，并直接更新对应的JobEntity
+        for (JobDTO job : jobDTOS) {
+            JobEntity entity = jobEntityMap.get(job.getEncryptJobId());
+            if (entity == null) {
+                log.warn("未找到职位实体: {}", job.getEncryptJobId());
+                continue;
+            }
+
+            // 获取过滤原因（会在内部进行AI匹配并立即更新数据库）⭐
+            String filterReason = getFilterReason(job, config, salaryExpected);
+            job.setFilterReason(filterReason);
+
+            // 更新JobEntity的状态和过滤原因
+            if (filterReason == null) {
+                // 通过过滤
+                entity.setStatus(JobStatusEnum.PENDING.getCode());
+                entity.setFilterReason(null);
+                passedJobs.add(job);
+            } else {
+                // 被过滤
+                entity.setStatus(JobStatusEnum.FILTERED.getCode());
+                entity.setFilterReason(filterReason);
+            }
+
+            // 注意：AI匹配结果已在getFilterReason()中实时更新到数据库，这里只需更新状态
+            entitiesToUpdate.add(entity);
+        }
+
+        // 批量保存到数据库
+        if (!entitiesToUpdate.isEmpty()) {
+            jobRepository.saveAll(entitiesToUpdate);
+            log.info("成功更新 {} 个职位记录到数据库", entitiesToUpdate.size());
+        }
+
+        log.info("Boss直聘岗位过滤完成，通过过滤: {} 个，被过滤: {} 个",
+                passedJobs.size(), jobDTOS.size() - passedJobs.size());
+
+        return passedJobs;
     }
 
     /**
@@ -107,17 +170,38 @@ public class JobFilterService {
                     .map(profile -> profile.getRole())
                     .orElse(null);
             String jobDescription = job.getJobDescription();
+
             if (ObjectUtils.isEmpty(jobDescription)) {
-                // return "AI岗位匹配失败，职位要求为空";
+                // 职位描述为空，记录AI匹配结果但不过滤
+                job.setAiMatched(null);
+                job.setAiMatchScore("N/A");
+                job.setAiMatchReason("职位要求为空，无法进行AI匹配");
+                // 立即更新数据库
+                updateJobAIResult(job);
                 return null;
             }
+
             if (ObjectUtils.isNotEmpty(myJd)) {
                 JobMatchResult matchResult = jobMatchAiService.matchWithReason(myJd, job.getJobDescription());
+
+                // 记录AI匹配结果到职位对象
+                job.setAiMatched(matchResult.isMatched());
+                job.setAiMatchScore(matchResult.getConfidence() != null ? matchResult.getConfidence() : "high");
+                job.setAiMatchReason(matchResult.getReason());
+
+                // 立即更新数据库 ⭐
+                updateJobAIResult(job);
+
                 if (!matchResult.isMatched()) {
                     return "AI岗位匹配度低于阈值: " + matchResult.getReason();
                 }
             } else {
-                // return "AI岗位匹配失败，请补充用户职位角色信息";
+                // 用户未配置职位角色，记录AI匹配结果但不过滤
+                job.setAiMatched(null);
+                job.setAiMatchScore("N/A");
+                job.setAiMatchReason("用户未配置职位角色信息，无法进行AI匹配");
+                // 立即更新数据库
+                updateJobAIResult(job);
                 return null;
             }
         }
@@ -212,6 +296,33 @@ public class JobFilterService {
             return "城市代码不符合要求-" + job.getCityCode();
         }
         return null;
+    }
+
+    /**
+     * 立即更新职位的AI匹配结果到数据库
+     * 
+     * @param job 职位DTO（包含AI匹配结果）
+     */
+    private void updateJobAIResult(JobDTO job) {
+        if (job.getEncryptJobId() == null) {
+            log.warn("职位ID为空，无法更新AI匹配结果");
+            return;
+        }
+
+        try {
+            JobEntity entity = jobRepository.findByEncryptJobId(job.getEncryptJobId());
+            if (entity != null) {
+                entity.setAiMatched(job.getAiMatched());
+                entity.setAiMatchScore(job.getAiMatchScore());
+                entity.setAiMatchReason(job.getAiMatchReason());
+                jobRepository.save(entity);
+                log.debug("已更新职位 {} 的AI匹配结果到数据库", job.getEncryptJobId());
+            } else {
+                log.warn("未找到职位实体: {}", job.getEncryptJobId());
+            }
+        } catch (Exception e) {
+            log.error("更新职位AI匹配结果失败: {}", job.getEncryptJobId(), e);
+        }
     }
 
 }

@@ -168,6 +168,9 @@ public class JobService {
         dto.setSecurityId(entity.getSecurityId());
         dto.setStatus(entity.getStatus());
         dto.setFilterReason(entity.getFilterReason());
+        dto.setAiMatched(entity.getAiMatched());
+        dto.setAiMatchScore(entity.getAiMatchScore());
+        dto.setAiMatchReason(entity.getAiMatchReason());
         dto.setIsFavorite(entity.getIsFavorite());
         dto.setIsOptimal(entity.getIsOptimal());
         dto.setIsProxyJob(entity.getIsProxyJob());
@@ -214,6 +217,11 @@ public class JobService {
         entity.setHrName(dto.getRecruiter());
         entity.setCompanyTag(dto.getCompanyTag());
         entity.setJobLabels(String.join(",", dto.getJobLabels()));
+
+        // AI匹配结果映射
+        entity.setAiMatched(dto.getAiMatched());
+        entity.setAiMatchScore(dto.getAiMatchScore());
+        entity.setAiMatchReason(dto.getAiMatchReason());
 
         // 设置默认值
         entity.setStatus(0); // 待处理
@@ -293,6 +301,53 @@ public class JobService {
         } catch (Exception e) {
             log.error("批量更新职位状态失败", e);
             throw new RuntimeException("批量更新职位状态失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 批量更新职位状态、过滤原因和AI匹配结果
+     * 
+     * @param jobDTOs 包含AI匹配结果的职位DTO列表
+     * @param status  新状态
+     * @return 更新的职位数量
+     */
+    @Transactional
+    public int updateJobStatusWithAI(List<JobDTO> jobDTOs, Integer status) {
+        if (jobDTOs == null || jobDTOs.isEmpty()) {
+            log.warn("没有职位需要更新状态");
+            return 0;
+        }
+
+        try {
+            List<String> encryptJobIds = jobDTOs.stream()
+                    .map(JobDTO::getEncryptJobId)
+                    .collect(Collectors.toList());
+
+            List<JobEntity> jobEntities = jobRepository.findAllByEncryptJobIdIn(encryptJobIds);
+
+            // 创建一个Map方便快速查找
+            java.util.Map<String, JobDTO> dtoMap = jobDTOs.stream()
+                    .collect(Collectors.toMap(JobDTO::getEncryptJobId, dto -> dto));
+
+            for (JobEntity entity : jobEntities) {
+                JobDTO dto = dtoMap.get(entity.getEncryptJobId());
+                if (dto != null) {
+                    entity.setStatus(status);
+                    entity.setFilterReason(dto.getFilterReason());
+                    // 更新AI匹配结果
+                    entity.setAiMatched(dto.getAiMatched());
+                    entity.setAiMatchScore(dto.getAiMatchScore());
+                    entity.setAiMatchReason(dto.getAiMatchReason());
+                }
+            }
+
+            jobRepository.saveAll(jobEntities);
+            log.info("成功更新 {} 个职位的状态为 {}，包含AI匹配结果", jobEntities.size(), status);
+            return jobEntities.size();
+
+        } catch (Exception e) {
+            log.error("批量更新职位状态和AI匹配结果失败", e);
+            throw new RuntimeException("批量更新职位状态和AI匹配结果失败: " + e.getMessage(), e);
         }
     }
 

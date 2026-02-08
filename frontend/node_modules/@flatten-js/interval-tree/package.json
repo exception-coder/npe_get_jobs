@@ -1,0 +1,62 @@
+{
+  "name": "@flatten-js/interval-tree",
+  "version": "1.1.4",
+  "description": "Interval search tree",
+  "author": "Alex Bol",
+  "license": "MIT",
+  "main": "dist/main.cjs",
+  "umd:main": "dist/main.umd.js",
+  "unpkg": "dist/main.umd.js",
+  "module": "dist/main.mjs",
+  "types": "index.d.ts",
+  "exports": {
+    "types": "./index.d.ts",
+    "require": "./dist/main.cjs",
+    "import": "./dist/main.mjs",
+    "default": "./dist/main.umd.js"
+  },
+  "nyc": {
+    "require": [
+      "@babel/register",
+      "@babel/polyfill"
+    ],
+    "sourceMap": false,
+    "instrument": false
+  },
+  "scripts": {
+    "build": "rollup -c --bundleConfigAsCjs",
+    "test": "nyc --reporter=html --reporter=text mocha --exit",
+    "generate-docs-old": "jsdoc -t ./node_modules/minami -d ./docs ./src -r README.md",
+    "generate-docs": "jsdoc -c ./.jsdoc.json --verbose",
+    "coverage": "nyc report --reporter=text-lcov | coveralls",
+    "publish-npm": "npm publish --access public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexbol99/flatten-interval-tree.git"
+  },
+  "keywords": [
+    "interval tree",
+    "binary search tree"
+  ],
+  "bugs": {
+    "url": "https://github.com/alexbol99/flatten-interval-tree/issues"
+  },
+  "homepage": "https://github.com/alexbol99/flatten-interval-tree#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/cli": "^7.2.3",
+    "@babel/core": "^7.22.9",
+    "@babel/node": "^7.2.2",
+    "@babel/preset-env": "^7.3.1",
+    "@babel/register": "^7.0.0",
+    "babel-plugin-istanbul": "^5.1.1",
+    "chai": "^4.2.0",
+    "coveralls": "^3.1.1",
+    "jsdoc": "^3.6.2",
+    "minami": "^1.2.3",
+    "mocha": "^10.1.0",
+    "nyc": "^15.1.0",
+    "rollup": "^3.25.1"
+  }
+}

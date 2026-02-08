@@ -1,0 +1,245 @@
+.vxe-calendar {
+  display: inline-flex;
+  flex-direction: column;
+  width: 100%;
+  height: 38em;
+  border: 1px solid var(--vxe-ui-base-popup-border-color);
+  border-radius: var(--vxe-ui-base-border-radius);
+}
+.vxe-calendar.type--date .vxe-calendar--body td {
+  width: 14.28571%;
+}
+.vxe-calendar.type--week .vxe-calendar--body td {
+  width: 12%;
+}
+.vxe-calendar.type--week .vxe-calendar--body td:first-child {
+  width: 14%;
+}
+.vxe-calendar.type--quarter .vxe-calendar--body td {
+  width: 50%;
+}
+.vxe-calendar.type--month .vxe-calendar--body td, .vxe-calendar.type--year .vxe-calendar--body td {
+  width: 25%;
+}
+
+.vxe-calendar--confirm {
+  outline: 0;
+  border: 1px solid var(--vxe-ui-input-border-color);
+  border-radius: var(--vxe-ui-base-border-radius);
+  cursor: pointer;
+  color: var(--vxe-ui-input-date-time-confirm-button-color);
+  border-color: var(--vxe-ui-font-primary-color);
+  background-color: var(--vxe-ui-font-primary-color);
+  padding: 0 0.5em;
+}
+.vxe-calendar--confirm:hover {
+  background-color: var(--vxe-ui-font-primary-lighten-color);
+  border-color: var(--vxe-ui-font-primary-lighten-color);
+}
+.vxe-calendar--confirm:active {
+  background-color: var(--vxe-ui-font-primary-darken-color);
+  border-color: var(--vxe-ui-font-primary-darken-color);
+}
+
+.vxe-calendar--header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  padding: var(--vxe-ui-layout-padding-default);
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+  border-bottom: 1px solid var(--vxe-ui-input-border-color);
+}
+.vxe-calendar--header .vxe-calendar--type-wrapper {
+  flex-grow: 1;
+}
+.vxe-calendar--header .vxe-calendar--btn-wrapper {
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.vxe-calendar--btn-wrapper {
+  display: flex;
+  flex-direction: row;
+}
+
+.vxe-calendar--btn.is--disabled {
+  color: var(--vxe-ui-font-disabled-color);
+  cursor: no-drop;
+}
+.vxe-calendar--btn:not(.is--disabled) {
+  cursor: pointer;
+}
+.vxe-calendar--btn:not(.is--disabled):hover {
+  background-color: #fff;
+}
+.vxe-calendar--btn:not(.is--disabled):active {
+  background-color: #fff;
+}
+
+.vxe-calendar--body {
+  position: relative;
+  flex-grow: 1;
+  overflow: hidden;
+}
+.vxe-calendar--body table {
+  border: 0;
+  width: 100%;
+  height: 100%;
+  border-spacing: 0;
+  border-collapse: separate;
+  text-align: center;
+  table-layout: fixed;
+}
+
+.vxe-calendar--view-th {
+  font-weight: 700;
+}
+
+.vxe-calendar--view-td {
+  font-weight: normal;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+  transition: all 0.1s ease-in-out;
+}
+.vxe-calendar--view-td.is--prev, .vxe-calendar--view-td.is--next {
+  color: var(--vxe-ui-font-disabled-color);
+}
+.vxe-calendar--view-td.is--prev .vxe-calendar--date-label,
+.vxe-calendar--view-td.is--prev .vxe-calendar--date-festival, .vxe-calendar--view-td.is--next .vxe-calendar--date-label,
+.vxe-calendar--view-td.is--next .vxe-calendar--date-festival {
+  color: var(--vxe-ui-font-disabled-color);
+}
+.vxe-calendar--view-td.is--now:not(.is--selected).is--current {
+  color: var(--vxe-ui-font-primary-color);
+}
+.vxe-calendar--view-td.is--now:not(.is--selected).is--current .vxe-calendar--date-label,
+.vxe-calendar--view-td.is--now:not(.is--selected).is--current .vxe-calendar--date-festival {
+  color: var(--vxe-ui-font-primary-color);
+}
+.vxe-calendar--view-td.is--hover {
+  background-color: var(--vxe-ui-base-hover-background-color);
+}
+.vxe-calendar--view-td.is--selected {
+  color: var(--vxe-ui-calendar-selected-color);
+  background-color: var(--vxe-ui-font-primary-color);
+}
+.vxe-calendar--view-td.is--selected.is--prev, .vxe-calendar--view-td.is--selected.is--next {
+  background-color: var(--vxe-ui-font-primary-lighten-color);
+}
+.vxe-calendar--view-td.is--selected .vxe-calendar--date-label,
+.vxe-calendar--view-td.is--selected .vxe-calendar--date-festival {
+  color: var(--vxe-ui-calendar-festival-selected-color);
+}
+.vxe-calendar--view-td.is--selected .vxe-calendar--date-label.is-notice:before {
+  background-color: var(--vxe-ui-calendar-notice-selected-background-color);
+}
+.vxe-calendar--view-td:not(.is--disabled) {
+  cursor: pointer;
+}
+.vxe-calendar--view-td.is--disabled {
+  cursor: no-drop;
+  color: var(--vxe-ui-input-disabled-color);
+  background-color: var(--vxe-ui-input-disabled-background-color);
+}
+.vxe-calendar--view-td.is--disabled .vxe-calendar--date-label,
+.vxe-calendar--view-td.is--disabled .vxe-calendar--date-festival {
+  color: var(--vxe-ui-input-disabled-color);
+}
+
+.vxe-calendar--date-label,
+.vxe-calendar--date-festival {
+  display: block;
+  overflow: hidden;
+}
+
+.vxe-calendar--date-label {
+  position: relative;
+}
+.vxe-calendar--date-label.is-notice:before {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  left: 0.8em;
+  top: 0.1em;
+  transform: translateX(-50%);
+  border-radius: 100%;
+  background-color: var(--vxe-ui-input-date-notice-background-color);
+}
+
+.vxe-calendar--date-label--extra {
+  position: absolute;
+  right: 0.1em;
+  top: -0.2em;
+  transform: scale(0.9);
+  color: var(--vxe-ui-input-date-extra-color);
+}
+.vxe-calendar--date-label--extra.is-important {
+  color: var(--vxe-ui-input-date-extra-important-color);
+}
+
+.vxe-calendar--date-festival {
+  color: var(--vxe-ui-input-date-festival-color);
+  height: 14px;
+  line-height: 1;
+  overflow: hidden;
+}
+.vxe-calendar--date-festival.is-important {
+  color: var(--vxe-ui-input-date-festival-important-color);
+}
+
+.vxe-calendar--date-festival--label {
+  display: block;
+  transform: scale(0.8);
+}
+
+@keyframes festivalOverlap2 {
+  0%, 45%, 100% {
+    transform: translateY(0);
+  }
+  50%, 95% {
+    transform: translateY(-14px);
+  }
+}
+@keyframes festivalOverlap3 {
+  0%, 20%, 100% {
+    transform: translateY(0);
+  }
+  25%, 45%, 75%, 95% {
+    transform: translateY(-14px);
+  }
+  50%, 70% {
+    transform: translateY(-28px);
+  }
+}
+.vxe-calendar--date-festival--overlap {
+  display: block;
+  font-size: 12px;
+}
+.vxe-calendar--date-festival--overlap.overlap--2 {
+  animation: festivalOverlap2 6s infinite ease-in-out;
+}
+.vxe-calendar--date-festival--overlap.overlap--3 {
+  animation: festivalOverlap3 9s infinite ease-in-out;
+}
+.vxe-calendar--date-festival--overlap > span {
+  height: 14px;
+  display: block;
+  transform: scale(0.8);
+}
+
+.vxe-calendar {
+  font-size: var(--vxe-ui-font-size-default);
+}
+.vxe-calendar.size--medium {
+  font-size: var(--vxe-ui-font-size-medium);
+}
+.vxe-calendar.size--small {
+  font-size: var(--vxe-ui-font-size-small);
+}
+.vxe-calendar.size--mini {
+  font-size: var(--vxe-ui-font-size-mini);
+}

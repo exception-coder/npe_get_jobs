@@ -1,0 +1,18 @@
+const e = {
+  sheetsSort: {
+    title: "Ordenar",
+    toolbar: {
+      "sort-asc": "orden ascendente",
+      "sort-desc": "orden descendente",
+      "sort-custom": "orden personalizado"
+    },
+    "context-menu": {
+      "sort-asc": "orden ascendente",
+      "sort-desc": "orden descendente",
+      "sort-custom": "orden personalizado"
+    }
+  }
+};
+export {
+  e as default
+};

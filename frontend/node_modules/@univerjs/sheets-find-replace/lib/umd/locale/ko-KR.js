@@ -1,0 +1,1 @@
+(function(e,i){typeof exports=="object"&&typeof module<"u"?module.exports=i():typeof define=="function"&&define.amd?define(i):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsFindReplaceKoKR=i())})(this,(function(){"use strict";return{"sheet-find-replace":{replace:{"partial-failure":"일부 셀 교체에 실패했습니다",failure:"모든 셀 교체에 실패했습니다"}}}}));

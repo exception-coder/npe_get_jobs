@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","names":["useHotkey"],"sources":["../../../src/composables/hotkey/index.ts"],"sourcesContent":["export { useHotkey } from './hotkey'\n"],"mappings":"SAASA,SAAS","ignoreList":[]}

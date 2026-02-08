@@ -1,0 +1,1 @@
+export declare const SHEETS_PRINT_PLUGIN_NAME = "SHEET_PRINT_PLUGIN";

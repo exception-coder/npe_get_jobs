@@ -1,0 +1,10 @@
+import { IAccessor } from '@univerjs/core';
+export declare function getAddPermissionHidden$(accessor: IAccessor): import('rxjs').Observable<boolean>;
+export declare function getEditPermissionHidden$(accessor: IAccessor): import('rxjs').Observable<boolean>;
+export declare function getPermissionDisableBase$(accessor: IAccessor): import('rxjs').Observable<boolean>;
+export declare function getAddPermissionDisableBase$(accessor: IAccessor): import('rxjs').Observable<boolean>;
+export declare function getAddPermissionFromSheetBarDisable$(accessor: IAccessor): import('rxjs').Observable<boolean>;
+export declare function getRemovePermissionFromSheetBarDisable$(accessor: IAccessor): import('rxjs').Observable<boolean>;
+export declare function getSetPermissionFromSheetBarDisable$(accessor: IAccessor): import('rxjs').Observable<boolean>;
+export declare function getRemovePermissionDisable$(accessor: IAccessor): import('rxjs').Observable<boolean>;
+export declare function getViewPermissionDisable$(accessor: IAccessor): import('rxjs').Observable<boolean>;
