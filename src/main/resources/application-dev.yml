@@ -15,6 +15,6 @@ spring:
 repository:
   datasource:
     modules:
-      auth: mysql # 切换到MySQL
-      sasl: mysql  # 切换到MySQL
+      auth: SQLite # 切换到MySQL
+      sasl: SQLite  # 切换到MySQL
 

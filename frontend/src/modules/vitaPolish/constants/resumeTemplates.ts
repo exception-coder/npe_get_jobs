@@ -189,3 +189,4 @@ export const getTemplatesByCategory = (
   return RESUME_TEMPLATES.filter((template) => template.category === category)
 }
 
+

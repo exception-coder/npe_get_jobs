@@ -4,6 +4,7 @@ import getjobs.modules.datasource.mysql.domain.DataSourceVerification;
 import getjobs.modules.datasource.mysql.repository.DataSourceVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ import java.util.Map;
  *
  * @author getjobs
  */
+@ConditionalOnProperty(name = "spring.datasource.mysql.password")
 @Slf4j
 @RestController
 @RequestMapping("/api/datasource/mysql/verification")

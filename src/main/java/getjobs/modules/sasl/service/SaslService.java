@@ -99,13 +99,14 @@ public class SaslService {
     /**
      * MySQL 数据源的 EntityManager，用于批量插入 LeadRecord
      */
-    @PersistenceContext(unitName = "mysql")
+    // @PersistenceContext(unitName = "mysql")
+    @Autowired(required = false)
     private EntityManager mysqlEntityManager;
 
     /**
      * MySQL 数据源的事务管理器，用于编程式事务管理
      */
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("mysqlTransactionManager")
     private PlatformTransactionManager mysqlTransactionManager;
 

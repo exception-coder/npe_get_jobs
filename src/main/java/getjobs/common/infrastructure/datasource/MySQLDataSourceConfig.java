@@ -6,6 +6,7 @@ import jakarta.persistence.EntityManagerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
@@ -56,16 +57,17 @@ import java.util.Map;
  */
 @Slf4j
 @Configuration
+@ConditionalOnProperty(name = "spring.datasource.mysql.password")
 @EnableTransactionManagement
 @EntityScan(basePackages = {
                 "getjobs.modules.auth.domain",
                 "getjobs.modules.sasl.domain",
                 "getjobs.modules.datasource.mysql.domain", // 仅保留 DataSourceVerification 等 MySQL 特有的实体
-                "getjobs.modules.resume.domain" // 简历模块实体
+// "getjobs.modules.resume.domain" // 简历模块实体
 })
 @EnableJpaRepositories(basePackages = {
                 "getjobs.modules.datasource.mysql.repository",
-                "getjobs.modules.resume.repository" // 简历模块 Repository
+// "getjobs.modules.resume.repository" // 简历模块 Repository
 }, entityManagerFactoryRef = "mysqlEntityManagerFactory", transactionManagerRef = "mysqlTransactionManager")
 public class MySQLDataSourceConfig {
 
@@ -162,9 +164,9 @@ public class MySQLDataSourceConfig {
                                 .packages(
                                                 "getjobs.modules.auth.domain",
                                                 "getjobs.modules.sasl.domain",
-                                                "getjobs.modules.datasource.mysql.domain", // 仅保留 DataSourceVerification
-                                                                                           // 等 MySQL 特有的实体
-                                                "getjobs.modules.resume.domain" // 简历模块实体
+                                                "getjobs.modules.datasource.mysql.domain" // 仅保留 DataSourceVerification
+                                                                                          // 等 MySQL 特有的实体
+                                // "getjobs.modules.resume.domain" // 简历模块实体
                                 )
                                 .persistenceUnit("mysql")
                                 .properties(properties)

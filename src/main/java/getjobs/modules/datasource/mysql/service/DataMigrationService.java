@@ -27,6 +27,7 @@ import getjobs.modules.datasource.mysql.repository.UserDocumentTitleMysqlReposit
 import getjobs.modules.datasource.mysql.repository.UserMysqlRepository;
 import getjobs.modules.datasource.mysql.repository.UserRoleMysqlRepository;
 import jakarta.annotation.PostConstruct;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "spring.datasource.mysql.password")
 @Order(Ordered.LOWEST_PRECEDENCE) // 在其他初始化完成后执行
 public class DataMigrationService {
 

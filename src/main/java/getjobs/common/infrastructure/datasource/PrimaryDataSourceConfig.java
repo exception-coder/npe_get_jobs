@@ -43,13 +43,15 @@ import java.util.Map;
         "getjobs.modules.auth",
         "getjobs.modules.sasl",
         "getjobs.repository.entity",
-        "getjobs.modules.webdocs.domain"
+        "getjobs.modules.webdocs.domain",
+        "getjobs.modules.resume.domain" // 简历模块实体
 })
 @EnableJpaRepositories(basePackages = {
         "getjobs.modules.sasl.repository",
         "getjobs.modules.auth.infrastructure",
         "getjobs.repository",
-        "getjobs.modules.webdocs.repository"
+        "getjobs.modules.webdocs.repository",
+        "getjobs.modules.resume.repository"
 }, entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
 public class PrimaryDataSourceConfig {
 
@@ -145,7 +147,8 @@ public class PrimaryDataSourceConfig {
                 "getjobs.modules.auth",
                 "getjobs.modules.sasl",
                 "getjobs.repository.entity",
-                "getjobs.modules.webdocs.domain");
+                "getjobs.modules.webdocs.domain",
+                "getjobs.modules.resume.domain");
         factoryBean.setPersistenceUnitName("primary");
         factoryBean.setPersistenceProviderClass(HibernatePersistenceProvider.class);
         factoryBean.getJpaPropertyMap().putAll(properties);
