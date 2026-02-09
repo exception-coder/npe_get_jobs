@@ -36,8 +36,14 @@ const parseDomainExperience = (value: unknown): string[] => {
     return flattenToStrings(value);
   }
   if (typeof value === 'string') {
-    const trimmed = value.trim();
+    let trimmed = value.trim();
     if (!trimmed) return [];
+    
+    // 移除字符串两端的中括号（如果存在）
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      trimmed = trimmed.slice(1, -1).trim();
+    }
+    
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
