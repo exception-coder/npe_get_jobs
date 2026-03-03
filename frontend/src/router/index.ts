@@ -32,90 +32,10 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true }, 
   },
   {
-    path: '/media-parser',
-    name: 'media-parser',
-    component: () => import('@/modules/media-parser/views/MediaParserView.vue'),
-    meta: { public: true },
-  },
-  {
-    path: '/xiaohongshu-card',
-    name: 'xiaohongshu-card',
-    component: () => import('@/modules/xiaohongshu-card/views/CardGeneratorView.vue'),
-    meta: { public: true },
-  },
-  {
     path: '/login',
     name: 'login',
     component: () => import('@/modules/login/views/LoginPage.vue'),
     meta: { public: true }, 
-  },
-  {
-    path: '/sasl',
-    redirect: '/sasl/form',
-  },
-  {
-    path: '/sasl/form',
-    name: 'sasl-form',
-    component: () => import('@/modules/sasl/views/SaslForm.vue'),
-    // 默认需要认证，无需标记
-  },
-  {
-    path: '/sasl/config',
-    name: 'sasl-config',
-    component: () => import('@/modules/sasl/views/SaslConfig.vue'),
-    // 默认需要认证，无需标记
-  },
-  {
-    path: '/web-docs',
-    name: 'web-docs',
-    component: () => import('@/modules/webDocs/views/TeamSpreadsheet.vue'),
-    meta: { public: true }, // 在线表格协作为公开页面
-  },
-  {
-    path: '/knowledge-base',
-    redirect: '/knowledge-base/mysql-mvcc',
-  },
-  {
-    path: '/knowledge-base/mysql-mvcc',
-    name: 'mysql-mvcc',
-    component: () => import('@/modules/knowledge-base/views/MySQLMVCCView.vue'),
-    meta: { public: true }, // 知识库页面为公开页面
-  },
-  {
-    path: '/knowledge-base/spring-bean-creation',
-    name: 'spring-bean-creation',
-    component: () => import('@/modules/knowledge-base/views/SpringBeanCreationView.vue'),
-    meta: { public: true }, // 知识库页面为公开页面
-  },
-  {
-    path: '/knowledge-base/spring-aop',
-    name: 'spring-aop',
-    component: () => import('@/modules/knowledge-base/views/SpringAOPView.vue'),
-    meta: { public: true }, // 知识库页面为公开页面
-  },
-  {
-    path: '/knowledge-base/spring-annotation',
-    name: 'spring-annotation',
-    component: () => import('@/modules/knowledge-base/views/SpringAnnotationView.vue'),
-    meta: { public: true }, // 知识库页面为公开页面
-  },
-  {
-    path: '/knowledge-base/spring-async-event',
-    name: 'spring-async-event',
-    component: () => import('@/modules/knowledge-base/views/SpringAsyncEventView.vue'),
-    meta: { public: true }, // 知识库页面为公开页面
-  },
-  {
-    path: '/knowledge-base/spring-transaction',
-    name: 'spring-transaction',
-    component: () => import('@/modules/knowledge-base/views/SpringTransactionView.vue'),
-    meta: { public: true }, // 知识库页面为公开页面
-  },
-  {
-    path: '/knowledge-base/spring-design-pattern',
-    name: 'spring-design-pattern',
-    component: () => import('@/modules/knowledge-base/views/SpringDesignPatternView.vue'),
-    meta: { public: true }, // 知识库页面为公开页面
   },
   {
     path: '/:pathMatch(.*)*',

@@ -23,85 +23,85 @@ import org.springframework.context.annotation.Configuration;
 @RefreshScope
 public class DeepseekGptConfig {
 
-    @Value("${spring.ai.deepseek.api-key}")
-    private String apiKey;
+        @Value("${spring.ai.deepseek.api-key}")
+        private String apiKey;
 
-    @Value("${spring.ai.deepseek.base-url:https://api.deepseek.com}")
-    private String baseUrl;
+        @Value("${spring.ai.deepseek.base-url:https://api.deepseek.com}")
+        private String baseUrl;
 
-    @Value("${spring.ai.deepseek.chat.options.model}")
-    private String model;
+        @Value("${spring.ai.deepseek.chat.options.model}")
+        private String model;
 
-    @Value("${spring.ai.deepseek.chat.options.temperature:0.7}")
-    private Double temperature;
+        @Value("${spring.ai.deepseek.chat.options.temperature:0.7}")
+        private Double temperature;
 
-    @Value("${spring.ai.deepseek.chat.options.max-tokens:2000}")
-    private Integer maxTokens;
+        @Value("${spring.ai.deepseek.chat.options.max-tokens:2000}")
+        private Integer maxTokens;
 
-    /**
-     * 配置OpenAiApi
-     * 
-     * @RefreshScope 使该 Bean 支持动态刷新
-     */
-    @Bean
-    @RefreshScope
-    public OpenAiApi deepseekAiApi() {
-        return OpenAiApi.builder()
-                .apiKey(apiKey)
-                .baseUrl(baseUrl)
-                .build();
-    }
+        /**
+         * 配置OpenAiApi
+         * 
+         * @RefreshScope 使该 Bean 支持动态刷新
+         */
+        @Bean
+        @RefreshScope
+        public OpenAiApi deepseekAiApi() {
+                return OpenAiApi.builder()
+                                .apiKey(apiKey)
+                                .baseUrl(baseUrl)
+                                .build();
+        }
 
-    /**
-     * 配置ChatModel
-     * 
-     * @RefreshScope 确保配置更新后，该 Bean 会重新创建并读取最新配置
-     * 
-     *               注意：不通过参数注入 deepseekAiApi，而是每次重新创建，
-     *               因为 @RefreshScope Bean 之间的依赖注入不会触发级联更新
-     */
-    @Bean(AiPlatform.DEEPSEEK_BEAN_NAME)
-    @RefreshScope
-    public ChatModel deepseekChatModel() {
-        // 每次重新创建 OpenAiApi，确保使用最新配置
-        OpenAiApi api = OpenAiApi.builder()
-                .apiKey(apiKey)
-                .baseUrl(baseUrl)
-                .build();
+        /**
+         * 配置ChatModel
+         * 
+         * @RefreshScope 确保配置更新后，该 Bean 会重新创建并读取最新配置
+         * 
+         *               注意：不通过参数注入 deepseekAiApi，而是每次重新创建，
+         *               因为 @RefreshScope Bean 之间的依赖注入不会触发级联更新
+         */
+        @Bean(AiPlatform.DEEPSEEK_BEAN_NAME)
+        @RefreshScope
+        public ChatModel deepseekChatModel() {
+                // 每次重新创建 OpenAiApi，确保使用最新配置
+                OpenAiApi api = OpenAiApi.builder()
+                                .apiKey(apiKey)
+                                .baseUrl(baseUrl)
+                                .build();
 
-        OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .model(model)
-                .temperature(temperature)
-                .maxTokens(maxTokens)
-                .build();
+                OpenAiChatOptions options = OpenAiChatOptions.builder()
+                                .model(model)
+                                .temperature(temperature)
+                                .maxTokens(maxTokens)
+                                .build();
 
-        return new OpenAiChatModel(api, options);
-    }
+                return new OpenAiChatModel(api, options);
+        }
 
-    /**
-     * 配置StreamingChatModel
-     * 
-     * @RefreshScope 确保配置更新后，该 Bean 会重新创建并读取最新配置
-     * 
-     *               注意：不通过参数注入 deepseekAiApi，而是每次重新创建，
-     *               因为 @RefreshScope Bean 之间的依赖注入不会触发级联更新
-     */
-    @Bean("deepseekStreamingChatModel")
-    @RefreshScope
-    @SuppressWarnings("deprecation")
-    public StreamingChatModel deepseekStreamingChatModel() {
-        // 每次重新创建 OpenAiApi，确保使用最新配置
-        OpenAiApi api = OpenAiApi.builder()
-                .apiKey(apiKey)
-                .baseUrl(baseUrl)
-                .build();
+        /**
+         * 配置StreamingChatModel
+         * 
+         * @RefreshScope 确保配置更新后，该 Bean 会重新创建并读取最新配置
+         * 
+         *               注意：不通过参数注入 deepseekAiApi，而是每次重新创建，
+         *               因为 @RefreshScope Bean 之间的依赖注入不会触发级联更新
+         */
+        @Bean("deepseekStreamingChatModel")
+        @RefreshScope
+        @SuppressWarnings("deprecation")
+        public StreamingChatModel deepseekStreamingChatModel() {
+                // 每次重新创建 OpenAiApi，确保使用最新配置
+                OpenAiApi api = OpenAiApi.builder()
+                                .apiKey(apiKey)
+                                .baseUrl(baseUrl)
+                                .build();
 
-        OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .model(model)
-                .temperature(temperature)
-                .maxTokens(maxTokens)
-                .build();
+                OpenAiChatOptions options = OpenAiChatOptions.builder()
+                                .model(model)
+                                .temperature(temperature)
+                                .maxTokens(maxTokens)
+                                .build();
 
-        return new OpenAiChatModel(api, options);
-    }
+                return new OpenAiChatModel(api, options);
+        }
 }

@@ -88,7 +88,7 @@ const { handleSubmit } = useLoginService(loginState, snackbar);
  * 修复方案：
  * - 将样式导入移到 <style> 标签中使用 @import 导入
  * - 这样样式会在组件编译时处理，确保在组件渲染前样式已加载完成
- * - 与项目中其他组件（如 SaslForm.vue）的导入方式保持一致
+ * - 与项目中其他组件的导入方式保持一致
  */
 @import '../styles/login.scss';
 </style>

@@ -1,7 +1,7 @@
-﻿spring:
+spring:
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY}
+      api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
       chat:
         # 启用OpenAI聊天模型
@@ -14,7 +14,7 @@
           # 默认最大token数
           max-tokens: 2000
     deepseek:
-      api-key: ${DEEPSEEK_API_KEY}
+      api-key: ${DEEPSEEK_API_KEY:}
       base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
       chat:
         # 启用OpenAI聊天模型

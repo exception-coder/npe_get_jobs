@@ -2,6 +2,7 @@ package getjobs.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import getjobs.common.dto.UserProfileDTO;
+import getjobs.config.ai.DeepseekConfigRefreshService;
 import getjobs.modules.ai.common.enums.AiPlatform;
 import getjobs.repository.UserProfileRepository;
 import getjobs.repository.entity.UserProfile;
@@ -32,6 +33,7 @@ public class CommonConfigController {
     private final UserProfileRepository userProfileRepository;
     private final ObjectMapper objectMapper;
     private final JobSkillAnalysisAsyncService jobSkillAnalysisAsyncService;
+    private final DeepseekConfigRefreshService deepseekConfigRefreshService;
 
     /**
      * 新增或更新公共配置
@@ -162,7 +164,13 @@ public class CommonConfigController {
 
             // AI平台配置（JSON格式）
             if (configData.containsKey("aiPlatformConfigs")) {
-                userProfile.setAiPlatformConfigs(convertToMap(configData.get("aiPlatformConfigs")));
+                Object aiPlatformConfigsRaw = configData.get("aiPlatformConfigs");
+                userProfile.setAiPlatformConfigs(convertToMap(aiPlatformConfigsRaw));
+                // 若包含 deepseek 的 API Key，写入 Environment 并触发 @RefreshScope 刷新
+                String deepseekApiKey = extractDeepseekApiKey(aiPlatformConfigsRaw);
+                if (deepseekApiKey != null && !deepseekApiKey.isBlank()) {
+                    deepseekConfigRefreshService.updateApiKey(deepseekApiKey.trim());
+                }
             }
 
             // 简历和打招呼配置
@@ -381,6 +389,38 @@ public class CommonConfigController {
 
         // 其他类型尝试用 ObjectMapper 转换
         return objectMapper.convertValue(value, List.class);
+    }
+
+    /**
+     * 从 aiPlatformConfigs 结构中提取 deepseek 的 API Key。
+     * 支持两种结构：直接 { "deepseek": "sk-xxx" } 或嵌套 { "aiPlatformConfigs": { "deepseek": "sk-xxx" } }。
+     *
+     * @param aiPlatformConfigs configData.get("aiPlatformConfigs") 的原始值
+     * @return deepseek 的 API Key，未找到或为空则返回 null
+     */
+    @SuppressWarnings("unchecked")
+    private String extractDeepseekApiKey(Object aiPlatformConfigs) {
+        if (aiPlatformConfigs == null) {
+            return null;
+        }
+        if (!(aiPlatformConfigs instanceof Map)) {
+            return null;
+        }
+        Map<String, Object> map = (Map<String, Object>) aiPlatformConfigs;
+        Object direct = map.get("deepseek");
+        if (direct instanceof String) {
+            String s = (String) direct;
+            return s.isBlank() ? null : s;
+        }
+        Object nested = map.get("aiPlatformConfigs");
+        if (nested instanceof Map) {
+            Object inner = ((Map<?, ?>) nested).get("deepseek");
+            if (inner instanceof String) {
+                String s = (String) inner;
+                return s.isBlank() ? null : s;
+            }
+        }
+        return null;
     }
 
     /**
