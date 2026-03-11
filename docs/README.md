@@ -6,64 +6,6 @@
 
 ## 📚 文档分类
 
-### 架构与开发规范
-
-#### [前端分层架构规范](./FRONTEND_ARCHITECTURE.md) ⭐ 必读
-定义了项目前端代码的分层架构规范，所有新开发的组件都应遵循此规范，包括：
-- 5 层架构设计（Types、Utils、Composables、Components、View）
-- 各层职责和依赖关系
-- 命名规范和最佳实践
-- 重构指南和测试规范
-
-**适用场景**：
-- 开发新的 Vue 3 组件
-- 重构现有复杂组件
-- 代码审查和质量把控
-
----
-
-#### [开发日志](./DEVELOPMENT_CHANGELOG.md)
-记录项目的开发历程、重构记录和技术债务，包括：
-- 功能开发记录
-- Bug 修复记录
-- 重构记录
-- UI/UX 优化记录
-
----
-
-### 重构案例
-
-#### [ResumeOptimizer 重构总结](./RESUME_OPTIMIZER_REFACTORING_SUMMARY.md) ⭐ 推荐
-ResumeOptimizer 组件重构的成果和经验总结，包括：
-- 重构前后对比（1661 行 → 18 个文件）
-- 架构质量提升（可维护性、可测试性、可复用性）
-- 收益分析和经验总结
-
-**适用场景**：
-- 了解前端重构最佳实践
-- 学习如何拆分大型组件
-- 参考重构案例
-
----
-
-#### [ResumeOptimizer 重构设计](./RESUME_OPTIMIZER_REFACTORING.md)
-ResumeOptimizer 组件重构的详细设计文档，包括：
-- 问题分析和重构目标
-- 详细的架构设计
-- 各层实现细节
-- 测试计划
-
----
-
-#### [CommonConfig 重构设计](./COMMON_CONFIG_REFACTORING_DESIGN.md)
-CommonConfigController 重构设计文档，包括：
-- 问题分析
-- 架构设计
-- 实施步骤
-- 测试计划
-
----
-
 ### Spring 框架相关
 
 #### [Spring Boot 配置常见问题指南](./SPRING_BOOT_CONFIGURATION_COMMON_ISSUES.md)
