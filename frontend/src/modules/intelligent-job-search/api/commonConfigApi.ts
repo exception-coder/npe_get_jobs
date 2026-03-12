@@ -55,3 +55,21 @@ export async function saveCommonConfig(payload: CommonConfig) {
   );
 }
 
+/** 登录检测配置（任务开始前是否检测平台登录状态） */
+export interface LoginCheckResponse {
+  success: boolean;
+  enableLoginCheck?: boolean;
+  message?: string;
+}
+
+export async function getLoginCheck() {
+  return http<LoginCheckResponse>('/api/common/config/login-check');
+}
+
+export async function updateLoginCheck(enableLoginCheck: boolean) {
+  return httpJson<LoginCheckResponse>('/api/common/config/login-check', {
+    method: 'POST',
+    body: JSON.stringify({ enableLoginCheck }),
+  });
+}
+

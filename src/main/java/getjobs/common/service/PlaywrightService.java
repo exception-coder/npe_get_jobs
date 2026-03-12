@@ -21,6 +21,10 @@ import java.io.InputStream;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Playwright服务，统一管理Playwright实例、浏览器、上下文和页面。
@@ -181,6 +185,15 @@ public class PlaywrightService {
     private Path bossForensicLogFile;
     private final Object bossForensicLogLock = new Object();
 
+    // 平台 Cookie 自动备份任务（定时从当前页面抓取 Cookie 写入配置）
+    private final ScheduledExecutorService cookieBackupScheduler = Executors.newSingleThreadScheduledExecutor(
+            r -> {
+                Thread t = new Thread(r, "cookie-backup-scheduler");
+                t.setDaemon(true);
+                return t;
+            });
+    private final Map<RecruitmentPlatformEnum, ScheduledFuture<?>> cookieBackupTasks = new ConcurrentHashMap<>();
+
     public PlaywrightService(ConfigService configService) {
         this.configService = configService;
     }
@@ -299,6 +312,9 @@ public class PlaywrightService {
                 pageMap.put(platform, page);
                 log.info("✓ 已为平台 {} 初始化页面: {}", platform.getPlatformName(),
                         platform.getHomeUrl());
+
+                // 启动当前平台页面 Cookie 的定时备份任务（每5秒备份一次）
+                startCookieAutoBackup(platform);
             }
 
             // 关闭默认的空白页面（about:blank）
@@ -877,6 +893,15 @@ public class PlaywrightService {
     @PreDestroy
     public void close() {
         log.info("Closing Playwright service...");
+
+        // 停止 Cookie 自动备份任务
+        cookieBackupTasks.values().forEach(future -> {
+            if (future != null && !future.isCancelled()) {
+                future.cancel(false);
+            }
+        });
+        cookieBackupScheduler.shutdownNow();
+
         pageMap.values().forEach(Page::close);
 
         if (context != null) {
@@ -894,6 +919,37 @@ public class PlaywrightService {
         cleanupTempDirectories();
 
         log.info("Playwright service closed.");
+    }
+
+    /**
+     * 为指定平台启动 Cookie 自动备份任务（每 5 秒备份一次）
+     *
+     * @param platform 平台枚举
+     */
+    private void startCookieAutoBackup(RecruitmentPlatformEnum platform) {
+        // 若该平台已有定时任务，先取消，避免重复调度
+        ScheduledFuture<?> existing = cookieBackupTasks.get(platform);
+        if (existing != null && !existing.isCancelled()) {
+            existing.cancel(false);
+        }
+
+        Runnable task = () -> {
+            try {
+                boolean success = capturePlatformCookies(platform);
+                if (!success) {
+                    log.debug("平台 {} Cookie 自动备份本轮未成功，稍后重试", platform.getPlatformName());
+                }
+            } catch (Exception e) {
+                log.warn("平台 {} Cookie 自动备份任务执行异常", platform.getPlatformName(), e);
+            }
+        };
+
+        ScheduledFuture<?> future = cookieBackupScheduler.scheduleAtFixedRate(
+                task,
+                5, // 初始延迟 5 秒
+                5, // 每 5 秒执行一次
+                TimeUnit.SECONDS);
+        cookieBackupTasks.put(platform, future);
     }
 
     /**

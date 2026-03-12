@@ -143,6 +143,24 @@
           <div class="card-body">
             <v-row dense>
               <v-col cols="12">
+                <div class="switch-item">
+                  <div class="switch-info">
+                    <div class="switch-label">
+                      <v-icon size="20" color="primary">mdi-login</v-icon>
+                      <span>进行登录检测</span>
+                    </div>
+                    <p class="switch-desc">任务开始前检测平台登录状态，未登录时可提示或跳过</p>
+                  </div>
+                  <v-switch
+                    v-model="state.form.enableLoginCheck"
+                    color="primary"
+                    hide-details
+                    inset
+                    @update:model-value="service.updateLoginCheck($event)"
+                  />
+                </div>
+              </v-col>
+              <v-col cols="12">
                 <v-btn
                   block
                   color="primary"

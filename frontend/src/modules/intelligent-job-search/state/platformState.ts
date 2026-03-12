@@ -48,6 +48,9 @@ export const usePlatformState = (platformCode: MaybeRef<PlatformCode>) => {
     });
   };
 
+  /** 任务流程专用：是否进行登录检测，随平台配置保存/加载 */
+  const ENABLE_LOGIN_CHECK_KEY = 'enableLoginCheck';
+
   const initializeForm = () => {
     if (!meta.value) return;
     clearReactiveObject(form);
@@ -60,6 +63,7 @@ export const usePlatformState = (platformCode: MaybeRef<PlatformCode>) => {
         form[field.key] = '';
       }
     });
+    form[ENABLE_LOGIN_CHECK_KEY] = true;
   };
 
   const resetDictOptions = () => {
@@ -230,6 +234,9 @@ export const usePlatformState = (platformCode: MaybeRef<PlatformCode>) => {
         form[field.key] = String(value);
       }
     });
+    if (config[ENABLE_LOGIN_CHECK_KEY] !== undefined) {
+      form[ENABLE_LOGIN_CHECK_KEY] = Boolean(config[ENABLE_LOGIN_CHECK_KEY]);
+    }
   };
 
   const getFieldOptions = (field: FieldConfig) => {
@@ -265,6 +272,7 @@ export const usePlatformState = (platformCode: MaybeRef<PlatformCode>) => {
         payload[field.key] = typeof value === 'string' ? value.trim() : value ?? '';
       }
     });
+    // enableLoginCheck 由公共配置接口单独更新，不随平台配置提交
     return payload;
   };
 

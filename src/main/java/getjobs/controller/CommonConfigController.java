@@ -195,6 +195,9 @@ public class CommonConfigController {
             }
 
             // 功能开关配置
+            if (configData.containsKey("enableLoginCheck")) {
+                userProfile.setEnableLoginCheck(convertToBoolean(configData.get("enableLoginCheck")));
+            }
             if (configData.containsKey("recommendJobs")) {
                 userProfile.setRecommendJobs(convertToBoolean(configData.get("recommendJobs")));
             }
@@ -511,7 +514,61 @@ public class CommonConfigController {
         dto.setMinSalary(userProfile.getMinSalary());
         dto.setMaxSalary(userProfile.getMaxSalary());
 
+        // 任务流程：是否进行登录检测
+        dto.setEnableLoginCheck(userProfile.getEnableLoginCheck());
+
         return dto;
+    }
+
+    /**
+     * 获取「是否进行登录检测」配置
+     *
+     * @return { "success": true, "enableLoginCheck": true }
+     */
+    @GetMapping("/login-check")
+    public ResponseEntity<Map<String, Object>> getLoginCheck() {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            UserProfile userProfile = userProfileRepository.findAll().stream()
+                    .findFirst()
+                    .orElse(null);
+            boolean enable = userProfile == null || Boolean.TRUE.equals(userProfile.getEnableLoginCheck());
+            response.put("success", true);
+            response.put("enableLoginCheck", enable);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "获取登录检测配置失败: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * 更新「是否进行登录检测」配置
+     *
+     * @param body 请求体，如 { "enableLoginCheck": true }
+     * @return 更新结果
+     */
+    @PostMapping("/login-check")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> updateLoginCheck(@RequestBody Map<String, Object> body) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Boolean enableLoginCheck = convertToBoolean(body != null ? body.get("enableLoginCheck") : null);
+            UserProfile userProfile = userProfileRepository.findAll().stream()
+                    .findFirst()
+                    .orElse(new UserProfile());
+            userProfile.setEnableLoginCheck(enableLoginCheck != null ? enableLoginCheck : true);
+            userProfileRepository.save(userProfile);
+            response.put("success", true);
+            response.put("message", "登录检测配置已更新");
+            response.put("enableLoginCheck", userProfile.getEnableLoginCheck());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "更新登录检测配置失败: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     /**

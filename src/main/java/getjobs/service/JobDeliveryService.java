@@ -4,6 +4,8 @@ import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.enums.TaskExecutionStep;
 import getjobs.modules.boss.dto.JobDTO;
+import getjobs.repository.UserProfileRepository;
+import getjobs.repository.entity.UserProfile;
 import getjobs.modules.boss.service.impl.BossRecruitmentServiceImpl;
 import getjobs.modules.job51.service.impl.Job51RecruitmentServiceImpl;
 import getjobs.modules.liepin.service.impl.LiepinRecruitmentServiceImpl;
@@ -42,6 +44,7 @@ public class JobDeliveryService {
     private final ConfigService configService;
     private final JobService jobService;
     private final TaskExecutionManager taskExecutionManager;
+    private final UserProfileRepository userProfileRepository;
 
     /**
      * 执行指定平台的一键投递
@@ -96,22 +99,28 @@ public class JobDeliveryService {
                         .build();
             }
 
-            // 步骤1: 登录检查
+            // 步骤1: 登录检查（若用户未启用登录检测则跳过，默认已登录）
             taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.LOGIN_CHECK, "检查登录状态");
-            log.info("步骤1: 检查{}登录状态", platform.getPlatformName());
-
-            boolean loginSuccess = recruitmentService.login();
-            if (!loginSuccess) {
-                String errorMsg = platform.getPlatformName() + "登录失败，请先登录";
-                log.error(errorMsg);
-                taskExecutionManager.completeTask(platform, false);
-                return resultBuilder
-                        .success(false)
-                        .errorMessage(errorMsg)
-                        .endTime(LocalDateTime.now())
-                        .build();
+            boolean enableLoginCheck = isLoginCheckEnabled();
+            boolean loginSuccess;
+            if (!enableLoginCheck) {
+                log.info("步骤1: 用户未启用登录检查，跳过{}登录检测，默认已登录", platform.getPlatformName());
+                loginSuccess = true;
+            } else {
+                log.info("步骤1: 检查{}登录状态", platform.getPlatformName());
+                loginSuccess = recruitmentService.login();
+                if (!loginSuccess) {
+                    String errorMsg = platform.getPlatformName() + "登录失败，请先登录";
+                    log.error(errorMsg);
+                    taskExecutionManager.completeTask(platform, false);
+                    return resultBuilder
+                            .success(false)
+                            .errorMessage(errorMsg)
+                            .endTime(LocalDateTime.now())
+                            .build();
+                }
+                log.info("✓ {}登录成功", platform.getPlatformName());
             }
-            log.info("✓ {}登录成功", platform.getPlatformName());
 
             // 步骤2: 触发岗位采集（异步入库）
             taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.COLLECT_JOBS, "采集搜索岗位");
@@ -298,8 +307,22 @@ public class JobDeliveryService {
     }
 
     /**
+     * 是否启用登录检查（从公共配置 UserProfile 读取）
+     * 未配置或为 false 时跳过登录检查，默认已登录。
+     */
+    private boolean isLoginCheckEnabled() {
+        try {
+            UserProfile profile = userProfileRepository.findAll().stream().findFirst().orElse(null);
+            return profile != null && Boolean.TRUE.equals(profile.getEnableLoginCheck());
+        } catch (Exception e) {
+            log.warn("读取登录检查配置失败，默认跳过登录检查", e);
+            return false;
+        }
+    }
+
+    /**
      * 加载平台配置
-     * 
+     *
      * @param platform 招聘平台枚举
      * @return 配置DTO
      */

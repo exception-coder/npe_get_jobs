@@ -61,11 +61,9 @@ export const useCommonConfigState = () => {
       minSkill: (value: string[]) => (value && value.length > 0) || '请至少添加一项技能',
       maxHighlights: (value: string[]) => (!value || value.length <= 5) || '个人亮点最多 5 项',
       careerIntent: (value: string) => {
-        if (!value || value.trim().length === 0) {
-          return '职业意向不能为空';
-        }
+        if (!value || value.trim().length === 0) return '职业意向不能为空';
         const len = value.trim().length;
-        return (len >= 10 && len <= 40) || '建议控制在 10-40 个字';
+        return (len >= 10 && len <= 120) || '建议 10-120 字';
       },
     },
   });

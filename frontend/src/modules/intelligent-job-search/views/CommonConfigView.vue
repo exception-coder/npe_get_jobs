@@ -103,6 +103,7 @@
                   <v-text-field
                     v-model="state.form.yearsOfExperience"
                     label="工作年限"
+                    placeholder="例如：5-8年"
                     :rules="[state.rules.required]"
                     variant="outlined"
                     density="comfortable"
@@ -117,11 +118,14 @@
                   <v-combobox
                     v-model="state.form.skills"
                     label="核心技能"
-                    :rules="[state.rules.minSkill]"
+                    placeholder="输入后按回车添加，如：Java、Spring Boot、MySQL"
+                    hint="选填。例如：Java、Spring Boot、MySQL、Redis、微服务"
+                    persistent-hint
                     chips
                     multiple
                     closable-chips
                     hide-selected
+                    clearable
                     variant="outlined"
                     density="comfortable"
                     class="modern-input"
@@ -135,7 +139,10 @@
                   <v-textarea
                     v-model="state.form.careerIntent"
                     label="职业意向"
-                    :counter="40"
+                    placeholder="例：寻求 3-5 年经验的高级 Java 开发岗位，偏向后端与微服务，希望参与高并发与分布式系统设计"
+                    hint="建议 10-120 字，简要说明目标岗位与方向"
+                    persistent-hint
+                    :counter="120"
                     :rules="[state.rules.careerIntent]"
                     rows="3"
                     auto-grow

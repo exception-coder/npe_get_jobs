@@ -274,4 +274,10 @@ public class UserProfile extends BaseEntity {
      */
     @Column(name = "max_salary")
     private Integer maxSalary;
+
+    /**
+     * 任务开始前是否进行登录检测（全局开关）
+     */
+    @Column(name = "enable_login_check")
+    private Boolean enableLoginCheck;
 }

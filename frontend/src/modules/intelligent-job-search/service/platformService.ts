@@ -1,6 +1,7 @@
 import { type MaybeRef, type Ref, unref } from 'vue';
 import type { usePlatformState } from '../state/platformState';
 import { fetchPlatformConfig, savePlatformConfig, fetchPlatformDicts } from '../api/platformConfigApi';
+import { getLoginCheck, updateLoginCheck as updateLoginCheckApi } from '../api/commonConfigApi';
 import type { PlatformCode } from '../api/platformConfigApi';
 import { submitQuickDelivery } from '@/api/tasks';
 import type { useSnackbarStore } from '@/stores/snackbar';
@@ -57,6 +58,15 @@ export const usePlatformService = (state: PlatformState, snackbar: SnackbarStore
       } else {
         // 如果没有配置数据，使用默认值
         console.info('未找到平台配置，使用默认值');
+      }
+      // 登录检测开关由公共配置接口提供，加载后覆盖本地默认值
+      try {
+        const loginCheckRes = await getLoginCheck();
+        if (loginCheckRes?.success && typeof loginCheckRes.enableLoginCheck === 'boolean') {
+          state.form.enableLoginCheck = loginCheckRes.enableLoginCheck;
+        }
+      } catch (e) {
+        console.warn('加载登录检测配置失败', e);
       }
       state.snapshotForm();
     } catch (error) {
@@ -184,6 +194,24 @@ export const usePlatformService = (state: PlatformState, snackbar: SnackbarStore
     snackbar.show({ message: '已恢复至上次加载的配置', color: 'info' });
   };
 
+  /** 更新「是否进行登录检测」并同步到服务端；失败时回滚开关 */
+  const updateLoginCheck = async (enableLoginCheck: boolean) => {
+    try {
+      const res = await updateLoginCheckApi(enableLoginCheck);
+      if (res?.success) {
+        state.form.enableLoginCheck = enableLoginCheck;
+        snackbar.show({ message: '登录检测配置已更新', color: 'success' });
+      } else {
+        state.form.enableLoginCheck = !enableLoginCheck;
+        snackbar.show({ message: res?.message || '更新失败', color: 'warning' });
+      }
+    } catch (error) {
+      console.error('更新登录检测配置失败', error);
+      state.form.enableLoginCheck = !enableLoginCheck;
+      snackbar.show({ message: '更新登录检测配置失败，请稍后再试', color: 'error' });
+    }
+  };
+
   return {
     loadDicts,
     loadConfig,
@@ -194,6 +222,7 @@ export const usePlatformService = (state: PlatformState, snackbar: SnackbarStore
     handleTerminateTask,
     handleClearTask,
     resetForm,
+    updateLoginCheck,
   };
 };
 

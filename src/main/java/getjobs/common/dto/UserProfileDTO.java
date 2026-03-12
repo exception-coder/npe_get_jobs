@@ -216,4 +216,9 @@ public class UserProfileDTO {
      * 期望最高薪资（单位：K）
      */
     private Integer maxSalary;
+
+    /**
+     * 任务开始前是否进行登录检测（全局开关）
+     */
+    private Boolean enableLoginCheck;
 }
