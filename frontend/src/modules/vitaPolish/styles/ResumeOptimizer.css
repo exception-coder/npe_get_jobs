@@ -1,0 +1,171 @@
+/* ResumeOptimizer 全局样式 */
+
+/* 容器样式 */
+.resume-optimizer-container {
+  padding: 24px;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+/* Card 样式 */
+:deep(.v-card) {
+  border-radius: 16px !important;
+  border: 1px solid #E5E7EB !important;
+  box-shadow: none !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+:deep(.v-card:hover) {
+  border-color: #D1D5DB !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+  transform: translateY(-2px) !important;
+}
+
+:deep(.v-card-title) {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  letter-spacing: -0.02em !important;
+  padding: 24px 28px !important;
+  background: linear-gradient(135deg, #F9FAFB 0%, #FFFFFF 100%) !important;
+  border-bottom: 1px solid #F3F4F6 !important;
+}
+
+:deep(.v-card-subtitle) {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #6B7280 !important;
+  padding: 0 28px 16px !important;
+}
+
+:deep(.v-card-text) {
+  padding: 28px !important;
+}
+
+/* 输入框样式 */
+:deep(.v-text-field .v-field),
+:deep(.v-select .v-field),
+:deep(.v-textarea .v-field),
+:deep(.v-combobox .v-field),
+:deep(.v-autocomplete .v-field) {
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.v-text-field .v-field:hover),
+:deep(.v-select .v-field:hover),
+:deep(.v-textarea .v-field:hover),
+:deep(.v-combobox .v-field:hover),
+:deep(.v-autocomplete .v-field:hover) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+:deep(.v-field--focused) {
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.12) !important;
+}
+
+/* Chip 样式 */
+:deep(.v-chip) {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+}
+
+/* 按钮样式 */
+:deep(.v-btn) {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0.02em !important;
+  transition: all 0.2s ease !important;
+}
+
+:deep(.v-btn:hover) {
+  transform: translateY(-1px) !important;
+}
+
+:deep(.v-btn--size-large) {
+  height: 44px !important;
+  font-size: 14px !important;
+}
+
+:deep(.v-btn--size-small) {
+  height: 32px !important;
+  font-size: 12px !important;
+}
+
+/* Alert 样式 */
+:deep(.v-alert) {
+  border-radius: 10px !important;
+  border-left-width: 3px !important;
+}
+
+/* Expansion Panel 样式 */
+:deep(.v-expansion-panel) {
+  border-radius: 12px !important;
+  margin-bottom: 12px !important;
+  border: 1px solid #E5E7EB !important;
+  overflow: hidden !important;
+}
+
+:deep(.v-expansion-panel:hover) {
+  border-color: #D1D5DB !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+}
+
+:deep(.v-expansion-panel-title) {
+  background: linear-gradient(135deg, #F9FAFB 0%, #FFFFFF 100%) !important;
+  font-weight: 600 !important;
+  padding: 16px 20px !important;
+}
+
+:deep(.v-expansion-panel-text__wrapper) {
+  padding: 20px !important;
+}
+
+/* Sheet 样式 */
+:deep(.v-sheet) {
+  border-radius: 12px !important;
+}
+
+/* Switch 样式 */
+:deep(.v-switch) {
+  margin-top: 8px !important;
+}
+
+/* 分割线样式 */
+:deep(.v-divider) {
+  margin: 24px 0 !important;
+  opacity: 0.12 !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 960px) {
+  .resume-optimizer-container {
+    padding: 16px;
+  }
+
+  :deep(.v-card-title) {
+    font-size: 18px !important;
+    padding: 20px !important;
+  }
+
+  :deep(.v-card-text) {
+    padding: 20px !important;
+  }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+:deep(.v-card) {
+  animation: fadeIn 0.4s ease-out;
+}
