@@ -549,7 +549,7 @@ const showCompany = (record: JobRecord) => {
 const handleReset = async () => {
   if (!meta.value) return;
   try {
-    await resetJobFilter(meta.value.backendName);
+    await resetJobFilter(meta.value.recordsPlatform);
     snackbar.show({ message: '岗位状态已重置', color: 'success' });
     loadData(page.value);
   } catch (error) {
@@ -561,7 +561,7 @@ const handleReset = async () => {
 const handleDelete = async () => {
   if (!meta.value) return;
   try {
-    await deleteAllJobs(meta.value.backendName);
+    await deleteAllJobs(meta.value.recordsPlatform);
     snackbar.show({ message: '岗位记录已清空', color: 'success' });
     loadData(0);
   } catch (error) {

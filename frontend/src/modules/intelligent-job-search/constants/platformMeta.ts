@@ -15,10 +15,15 @@ export interface FieldConfig {
   cascade?: boolean;
 }
 
+/** 岗位记录/删除/重置等接口使用的平台参数值 */
+export type RecordsPlatformParam = 'boss' | 'zhilian' | 'job51' | 'liepin';
+
 export interface PlatformMeta {
   code: PlatformCode;
   displayName: string;
   backendName: string;
+  /** 岗位记录、删除、重置等 API 的 platform 参数 */
+  recordsPlatform: RecordsPlatformParam;
   fields: FieldConfig[];
 }
 
@@ -27,6 +32,7 @@ export const PLATFORM_METAS: Record<PlatformCode, PlatformMeta> = {
     code: 'boss',
     displayName: 'BOSS直聘',
     backendName: 'BOSS直聘',
+    recordsPlatform: 'boss',
     fields: [
       {
         key: 'keywords',
@@ -105,6 +111,7 @@ export const PLATFORM_METAS: Record<PlatformCode, PlatformMeta> = {
     code: 'zhilian',
     displayName: '智联招聘',
     backendName: '智联招聘',
+    recordsPlatform: 'zhilian',
     fields: [
       {
         key: 'keywords',
@@ -183,6 +190,7 @@ export const PLATFORM_METAS: Record<PlatformCode, PlatformMeta> = {
     code: 'job51',
     displayName: '前程无忧',
     backendName: '51job',
+    recordsPlatform: 'job51',
     fields: [
       {
         key: 'keywords',
@@ -268,6 +276,7 @@ export const PLATFORM_METAS: Record<PlatformCode, PlatformMeta> = {
     code: 'liepin',
     displayName: '猎聘',
     backendName: 'LIEPIN',
+    recordsPlatform: 'liepin',
     fields: [
       {
         key: 'keywords',
