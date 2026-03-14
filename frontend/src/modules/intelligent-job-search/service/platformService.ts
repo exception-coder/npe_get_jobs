@@ -3,7 +3,7 @@ import type { usePlatformState } from '../state/platformState';
 import { fetchPlatformConfig, savePlatformConfig, fetchPlatformDicts } from '../api/platformConfigApi';
 import { getLoginCheck, updateLoginCheck as updateLoginCheckApi } from '../api/commonConfigApi';
 import type { PlatformCode } from '../api/platformConfigApi';
-import { submitQuickDelivery } from '@/api/tasks';
+import { submitQuickDelivery, type DeliveryFlowOptions } from '@/api/tasks';
 import type { useSnackbarStore } from '@/stores/snackbar';
 import { fetchTaskStatus, terminateTask, clearTaskStatus } from '../api/taskExecutionApi';
 
@@ -104,7 +104,7 @@ export const usePlatformService = (state: PlatformState, snackbar: SnackbarStore
     }
   };
 
-  const handleQuickDelivery = async () => {
+  const handleQuickDelivery = async (deliveryFlow?: DeliveryFlowOptions) => {
     if (!state.meta.value) return;
     if (!(await validateForm())) {
       snackbar.show({ message: '请先修正表单校验错误', color: 'warning' });
@@ -112,7 +112,15 @@ export const usePlatformService = (state: PlatformState, snackbar: SnackbarStore
     }
     state.quickDeliveryLoading.value = true;
     try {
-      await submitQuickDelivery(getPlatformCode() as any);
+      const options =
+        deliveryFlow != null
+          ? {
+              collect: deliveryFlow.collect ?? true,
+              filter: deliveryFlow.filter ?? true,
+              deliver: deliveryFlow.deliver ?? true,
+            }
+          : undefined;
+      await submitQuickDelivery(getPlatformCode() as any, options);
       snackbar.show({ message: `${state.meta.value.displayName} 一键投递任务已提交`, color: 'success' });
       // 提交成功后立即刷新任务状态
       setTimeout(() => {

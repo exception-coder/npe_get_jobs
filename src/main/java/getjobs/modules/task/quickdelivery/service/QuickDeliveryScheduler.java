@@ -4,10 +4,9 @@ import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.infrastructure.task.domain.Task;
 import getjobs.common.infrastructure.task.enums.TaskStatusEnum;
 import getjobs.common.infrastructure.task.scheduler.TaskSchedulerService;
-import getjobs.modules.task.quickdelivery.domain.BossQuickDeliveryTask;
-import getjobs.modules.task.quickdelivery.domain.Job51QuickDeliveryTask;
-import getjobs.modules.task.quickdelivery.domain.LiepinQuickDeliveryTask;
-import getjobs.modules.task.quickdelivery.domain.ZhilianQuickDeliveryTask;
+import getjobs.modules.task.quickdelivery.domain.ParameterizedQuickDeliveryTask;
+import getjobs.modules.task.quickdelivery.dto.DeliveryFlowOptions;
+import getjobs.service.JobDeliveryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,44 +35,34 @@ import java.util.concurrent.TimeUnit;
 public class QuickDeliveryScheduler {
 
     private final TaskSchedulerService taskSchedulerService;
-    private final BossQuickDeliveryTask bossQuickDeliveryTask;
-    private final ZhilianQuickDeliveryTask zhilianQuickDeliveryTask;
-    private final Job51QuickDeliveryTask job51QuickDeliveryTask;
-    private final LiepinQuickDeliveryTask liepinQuickDeliveryTask;
+    private final JobDeliveryService jobDeliveryService;
 
     /**
      * 提交指定平台的快速投递任务（异步执行）
-     * 
-     * 注意：由于任务涉及浏览器交互和AI接口调用，耗时较久，
-     * 因此采用异步方式执行，接口会立即返回任务提交状态，
-     * 任务将在后台异步执行。
-     * 
-     * @param platform 招聘平台枚举
+     *
+     * @param platform    招聘平台枚举
+     * @param flowOptions 可选，流程控制：collect/filter/deliver 为 false 时跳过对应步骤；null 表示全部执行
      * @return 任务对象，初始状态为PENDING，包含任务ID用于后续查询
-     * @throws IllegalArgumentException 如果平台参数为空或不支持
      */
-    public Task submitQuickDeliveryTask(RecruitmentPlatformEnum platform) {
+    public Task submitQuickDeliveryTask(RecruitmentPlatformEnum platform, DeliveryFlowOptions flowOptions) {
         if (platform == null) {
             throw new IllegalArgumentException("平台参数不能为空");
         }
 
-        log.info("准备异步提交{}的快速投递任务", platform.getPlatformName());
+        log.info("准备异步提交{}的快速投递任务，流程控制: {}", platform.getPlatformName(), flowOptions);
 
-        // 异步提交任务，立即返回Future对象
-        Future<Task> future = switch (platform) {
-            case BOSS_ZHIPIN -> taskSchedulerService.submitTaskAsync(bossQuickDeliveryTask);
-            case ZHILIAN_ZHAOPIN -> taskSchedulerService.submitTaskAsync(zhilianQuickDeliveryTask);
-            case JOB_51 -> taskSchedulerService.submitTaskAsync(job51QuickDeliveryTask);
-            case LIEPIN -> taskSchedulerService.submitTaskAsync(liepinQuickDeliveryTask);
-        };
+        // 使用带流程参数的任务，便于根据 collect/filter/deliver 跳过对应步骤
+        ParameterizedQuickDeliveryTask paramTask =
+                new ParameterizedQuickDeliveryTask(jobDeliveryService, platform, flowOptions);
+        Future<Task> future = taskSchedulerService.submitTaskAsync(paramTask);
 
         try {
             // 快速获取任务对象（不等待任务完成）
             // 设置很短的超时时间（100ms），仅用于获取任务ID和初始状态
-            Task task = future.get(100, TimeUnit.MILLISECONDS);
+            Task submittedTask = future.get(100, TimeUnit.MILLISECONDS);
             log.info("{}快速投递任务已提交，任务ID: {}，状态: {}",
-                    platform.getPlatformName(), task.getExecutionId(), task.getStatus().getDesc());
-            return task;
+                    platform.getPlatformName(), submittedTask.getExecutionId(), submittedTask.getStatus().getDesc());
+            return submittedTask;
         } catch (Exception e) {
             // 如果获取失败（理论上不应该发生），创建一个临时任务对象返回
             log.error("获取{}快速投递任务信息失败，将返回临时任务对象", platform.getPlatformName(), e);
@@ -90,34 +79,34 @@ public class QuickDeliveryScheduler {
      * @return 任务对象
      */
     public Task submitBossQuickDelivery() {
-        return submitQuickDeliveryTask(RecruitmentPlatformEnum.BOSS_ZHIPIN);
+        return submitQuickDeliveryTask(RecruitmentPlatformEnum.BOSS_ZHIPIN, null);
     }
 
     /**
      * 提交智联招聘快速投递任务
-     * 
+     *
      * @return 任务对象
      */
     public Task submitZhilianQuickDelivery() {
-        return submitQuickDeliveryTask(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN);
+        return submitQuickDeliveryTask(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN, null);
     }
 
     /**
      * 提交51job快速投递任务
-     * 
+     *
      * @return 任务对象
      */
     public Task submitJob51QuickDelivery() {
-        return submitQuickDeliveryTask(RecruitmentPlatformEnum.JOB_51);
+        return submitQuickDeliveryTask(RecruitmentPlatformEnum.JOB_51, null);
     }
 
     /**
      * 提交猎聘快速投递任务
-     * 
+     *
      * @return 任务对象
      */
     public Task submitLiepinQuickDelivery() {
-        return submitQuickDeliveryTask(RecruitmentPlatformEnum.LIEPIN);
+        return submitQuickDeliveryTask(RecruitmentPlatformEnum.LIEPIN, null);
     }
 
     /**
@@ -133,7 +122,7 @@ public class QuickDeliveryScheduler {
 
         for (RecruitmentPlatformEnum platform : RecruitmentPlatformEnum.values()) {
             try {
-                Task task = submitQuickDeliveryTask(platform);
+                Task task = submitQuickDeliveryTask(platform, null);
                 log.debug("平台 {} 的任务已提交，任务ID: {}", platform.getPlatformName(), task.getExecutionId());
             } catch (Exception e) {
                 log.error("提交{}快速投递任务失败", platform.getPlatformName(), e);

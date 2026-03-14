@@ -71,8 +71,9 @@ public class JobFilterService {
         Map<String, JobEntity> jobEntityMap = new HashMap<>();
         if (!allJobIds.isEmpty()) {
             List<JobEntity> entities = jobRepository.findAllByEncryptJobIdIn(allJobIds);
+            // 同一 encryptJobId 可能有多条库记录（如不同搜索/列表位出现），toMap 需合并函数否则抛 Duplicate key
             jobEntityMap = entities.stream()
-                    .collect(Collectors.toMap(JobEntity::getEncryptJobId, entity -> entity));
+                    .collect(Collectors.toMap(JobEntity::getEncryptJobId, entity -> entity, (existing, replacement) -> existing));
         }
 
         // 用于收集通过过滤的职位
@@ -93,8 +94,8 @@ public class JobFilterService {
 
             // 更新JobEntity的状态和过滤原因
             if (filterReason == null) {
-                // 通过过滤
-                entity.setStatus(JobStatusEnum.PENDING.getCode());
+                // 通过过滤 → 待投递
+                entity.setStatus(JobStatusEnum.PENDING_DELIVERY.getCode());
                 entity.setFilterReason(null);
                 passedJobs.add(job);
             } else {
@@ -103,7 +104,11 @@ public class JobFilterService {
                 entity.setFilterReason(filterReason);
             }
 
-            // 注意：AI匹配结果已在getFilterReason()中实时更新到数据库，这里只需更新状态
+            // AI 匹配结果在 getFilterReason() 中已写库，但内存中的 entity 仍是旧值，需从 job 同步，避免 saveAll 时覆盖库里的 AI 结果
+            entity.setAiMatched(job.getAiMatched());
+            entity.setAiMatchScore(job.getAiMatchScore());
+            entity.setAiMatchReason(job.getAiMatchReason());
+
             entitiesToUpdate.add(entity);
         }
 
@@ -310,7 +315,10 @@ public class JobFilterService {
         }
 
         try {
-            JobEntity entity = jobRepository.findByEncryptJobId(job.getEncryptJobId());
+            // 历史数据可能同一 encryptJobId 存在多条，取创建时间最新的一条
+            List<JobEntity> candidates = jobRepository.findAllByEncryptJobIdIn(Collections.singletonList(job.getEncryptJobId()));
+            JobEntity entity = candidates.isEmpty() ? null
+                    : candidates.stream().max(Comparator.comparing(JobEntity::getCreatedAt)).orElse(null);
             if (entity != null) {
                 entity.setAiMatched(job.getAiMatched());
                 entity.setAiMatchScore(job.getAiMatchScore());

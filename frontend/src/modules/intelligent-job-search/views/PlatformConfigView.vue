@@ -128,6 +128,74 @@
       </v-col>
 
       <v-col cols="12" lg="5">
+        <!-- 投递流程控制卡片 -->
+        <div class="modern-card delivery-flow-card">
+          <div class="card-header">
+            <div class="header-icon-wrapper flow">
+              <v-icon size="24">mdi-format-list-checks</v-icon>
+            </div>
+            <div class="header-content">
+              <h2 class="card-title">投递流程控制</h2>
+              <p class="card-subtitle">按顺序开启或关闭采集、过滤、投递环节</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <v-row dense>
+              <v-col cols="12">
+                <div class="switch-item">
+                  <div class="switch-info">
+                    <div class="switch-label">
+                      <v-icon size="20" color="primary">mdi-database-search-outline</v-icon>
+                      <span>采集</span>
+                    </div>
+                    <p class="switch-desc">是否执行岗位采集</p>
+                  </div>
+                  <v-switch
+                    v-model="deliveryFlow.collect"
+                    color="primary"
+                    hide-details
+                    inset
+                  />
+                </div>
+              </v-col>
+              <v-col cols="12">
+                <div class="switch-item">
+                  <div class="switch-info">
+                    <div class="switch-label">
+                      <v-icon size="20" color="primary">mdi-filter-outline</v-icon>
+                      <span>过滤</span>
+                    </div>
+                    <p class="switch-desc">是否对采集结果进行条件过滤</p>
+                  </div>
+                  <v-switch
+                    v-model="deliveryFlow.filter"
+                    color="primary"
+                    hide-details
+                    inset
+                  />
+                </div>
+              </v-col>
+              <v-col cols="12">
+                <div class="switch-item">
+                  <div class="switch-info">
+                    <div class="switch-label">
+                      <v-icon size="20" color="primary">mdi-send-check-outline</v-icon>
+                      <span>投递</span>
+                    </div>
+                    <p class="switch-desc">是否执行一键投递</p>
+                  </div>
+                  <v-switch
+                    v-model="deliveryFlow.deliver"
+                    color="primary"
+                    hide-details
+                    inset
+                  />
+                </div>
+              </v-col>
+            </v-row>
+          </div>
+        </div>
+
         <!-- 任务流程卡片 -->
         <div class="modern-card">
           <div class="card-header">
@@ -168,7 +236,7 @@
                   class="delivery-btn"
                   :loading="quickDeliveryLoading"
                   :disabled="taskStatus?.hasTask && !taskStatus?.isTerminated"
-                  @click="service.handleQuickDelivery"
+                  @click="() => service.handleQuickDelivery(deliveryFlow)"
                 >
                   <v-icon start size="24">mdi-send-check</v-icon>
                   <span class="text-h6">一键投递</span>
@@ -293,7 +361,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, toRef, onMounted, onUnmounted } from 'vue';
+import { computed, watch, toRef, reactive, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSnackbarStore } from '@/stores/snackbar';
 import type { PlatformCode } from '../api/platformConfigApi';
@@ -301,9 +369,51 @@ import { usePlatformState } from '../state/platformState';
 import { usePlatformService } from '../service/platformService';
 import CascaderSelect from '@/components/CascaderSelect.vue';
 
+const DELIVERY_FLOW_STORAGE_PREFIX = 'npe_get_jobs.deliveryFlowControl';
+
 const props = defineProps<{ platform: PlatformCode }>();
 const router = useRouter();
 const snackbar = useSnackbarStore();
+
+// 投递流程控制：采集、过滤、投递，仅存浏览器本地
+const deliveryFlow = reactive({
+  collect: true,
+  filter: true,
+  deliver: true,
+});
+
+function getDeliveryFlowStorageKey() {
+  return `${DELIVERY_FLOW_STORAGE_PREFIX}.${props.platform}`;
+}
+
+function loadDeliveryFlowFromStorage() {
+  try {
+    const raw = localStorage.getItem(getDeliveryFlowStorageKey());
+    if (raw) {
+      const o = JSON.parse(raw);
+      if (o && typeof o.collect === 'boolean') deliveryFlow.collect = o.collect;
+      if (o && typeof o.filter === 'boolean') deliveryFlow.filter = o.filter;
+      if (o && typeof o.deliver === 'boolean') deliveryFlow.deliver = o.deliver;
+    }
+  } catch {
+    // 忽略解析错误，使用默认值
+  }
+}
+
+function saveDeliveryFlowToStorage() {
+  try {
+    localStorage.setItem(
+      getDeliveryFlowStorageKey(),
+      JSON.stringify({
+        collect: deliveryFlow.collect,
+        filter: deliveryFlow.filter,
+        deliver: deliveryFlow.deliver,
+      }),
+    );
+  } catch {
+    // 忽略写入错误
+  }
+}
 
 // 使用 toRef 使 platform 响应式，确保 state 和 service 能响应变化
 const platformRef = toRef(props, 'platform');
@@ -396,6 +506,9 @@ if (!state.meta.value) {
   snackbar.show({ message: '未找到对应平台配置', color: 'warning' });
 }
 
+// 投递流程控制变更时写入本地存储
+watch(deliveryFlow, saveDeliveryFlowToStorage, { deep: true });
+
 watch(
   () => props.platform,
   async (newPlatform, oldPlatform) => {
@@ -403,7 +516,7 @@ watch(
     if (newPlatform === oldPlatform && oldPlatform !== undefined) {
       return;
     }
-    
+    loadDeliveryFlowFromStorage();
     if (!state.meta.value) {
       router.replace('/common');
       return;
@@ -526,6 +639,11 @@ onUnmounted(() => {
 .header-icon-wrapper.task {
   background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%);
   color: #4F46E5;
+}
+
+.header-icon-wrapper.flow {
+  background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+  color: #059669;
 }
 
 .modern-card:hover .header-icon-wrapper {

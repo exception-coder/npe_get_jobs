@@ -10,6 +10,7 @@ import getjobs.modules.boss.service.impl.BossRecruitmentServiceImpl;
 import getjobs.modules.job51.service.impl.Job51RecruitmentServiceImpl;
 import getjobs.modules.liepin.service.impl.LiepinRecruitmentServiceImpl;
 import getjobs.modules.zhilian.service.impl.ZhiLianRecruitmentServiceImpl;
+import getjobs.modules.task.quickdelivery.dto.DeliveryFlowOptions;
 import getjobs.modules.task.quickdelivery.dto.QuickDeliveryResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,21 +48,37 @@ public class JobDeliveryService {
     private final UserProfileRepository userProfileRepository;
 
     /**
-     * 执行指定平台的一键投递
-     * 
+     * 执行指定平台的一键投递（默认执行全部步骤）
+     *
      * @param platform 招聘平台枚举
      * @return 投递结果统计
      */
     public QuickDeliveryResult executeQuickDelivery(RecruitmentPlatformEnum platform) {
+        return executeQuickDelivery(platform, null);
+    }
+
+    /**
+     * 执行指定平台的一键投递，可根据 flowOptions 跳过采集/过滤/投递中的某几步
+     *
+     * @param platform    招聘平台枚举
+     * @param flowOptions 流程控制，null 表示全部执行；collect/filter/deliver 为 false 时跳过对应步骤
+     * @return 投递结果统计
+     */
+    public QuickDeliveryResult executeQuickDelivery(RecruitmentPlatformEnum platform,
+            DeliveryFlowOptions flowOptions) {
         if (platform == null) {
             throw new IllegalArgumentException("平台参数不能为空");
         }
 
-        log.info("========== 开始执行{}一键投递 ==========", platform.getPlatformName());
+        boolean doCollect = flowOptions == null || flowOptions.isCollect();
+        boolean doFilter = flowOptions == null || flowOptions.isFilter();
+        boolean doDeliver = flowOptions == null || flowOptions.isDeliver();
+
+        log.info("========== 开始执行{}一键投递 ========== 流程: collect={}, filter={}, deliver={}",
+                platform.getPlatformName(), doCollect, doFilter, doDeliver);
         LocalDateTime startTime = LocalDateTime.now();
 
-        // 初始化任务执行状态
-        TaskExecutionManager.TaskExecutionStatus taskStatus = taskExecutionManager.startTask(platform);
+        taskExecutionManager.startTask(platform);
         taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.INIT, "任务初始化");
 
         QuickDeliveryResult.QuickDeliveryResultBuilder resultBuilder = QuickDeliveryResult.builder()
@@ -70,7 +87,6 @@ public class JobDeliveryService {
                 .success(false);
 
         try {
-            // 获取平台对应的服务
             RecruitmentService recruitmentService = getRecruitmentService(platform);
             if (recruitmentService == null) {
                 String errorMsg = "不支持的平台: " + platform.getPlatformName();
@@ -83,10 +99,8 @@ public class JobDeliveryService {
                         .build();
             }
 
-            // 设置任务执行管理器到RecruitmentService，使其能在循环中检查终止标记
             recruitmentService.setTaskExecutionManager(taskExecutionManager);
 
-            // 加载平台配置
             ConfigDTO config = loadPlatformConfig(platform);
             if (config == null) {
                 String errorMsg = "未找到平台配置: " + platform.getPlatformName();
@@ -99,7 +113,7 @@ public class JobDeliveryService {
                         .build();
             }
 
-            // 步骤1: 登录检查（若用户未启用登录检测则跳过，默认已登录）
+            // 步骤1: 登录检查
             taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.LOGIN_CHECK, "检查登录状态");
             boolean enableLoginCheck = isLoginCheckEnabled();
             boolean loginSuccess;
@@ -122,32 +136,36 @@ public class JobDeliveryService {
                 log.info("✓ {}登录成功", platform.getPlatformName());
             }
 
-            // 步骤2: 触发岗位采集（异步入库）
-            taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.COLLECT_JOBS, "采集搜索岗位");
-            log.info("步骤2: 触发{}岗位采集（异步入库）", platform.getPlatformName());
+            List<JobDTO> collectedJobs;
+            int totalScanned;
 
-            // 触发采集搜索岗位（异步入库，不依赖返回值）
-            // 终止检查在collectJobs内部的循环中进行
-            recruitmentService.collectJobs();
-
-            // 触发采集推荐岗位（如果配置了需要推荐职位）
-            if (config.getRecommendJobs() != null && config.getRecommendJobs()) {
-                taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.COLLECT_RECOMMEND_JOBS, "采集推荐岗位");
-                // 终止检查在collectRecommendJobs内部的循环中进行
-                recruitmentService.collectRecommendJobs();
+            if (doCollect) {
+                // 步骤2: 触发岗位采集（异步入库）
+                taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.COLLECT_JOBS, "采集搜索岗位");
+                log.info("步骤2: 触发{}岗位采集（异步入库）", platform.getPlatformName());
+                recruitmentService.collectJobs();
+                if (config.getRecommendJobs() != null && config.getRecommendJobs()) {
+                    taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.COLLECT_RECOMMEND_JOBS, "采集推荐岗位");
+                    recruitmentService.collectRecommendJobs();
+                }
+                taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.LOAD_JOBS_FROM_DB, "从数据库加载待处理岗位");
+                log.info("从数据库获取{}平台待处理状态的岗位", platform.getPlatformName());
+                collectedJobs = jobService.findPendingJobsAsDTO(platform.getPlatformCode());
+                if (collectedJobs == null) {
+                    collectedJobs = new ArrayList<>();
+                }
+                totalScanned = collectedJobs.size();
+                log.info("✓ {}岗位采集完成，共采集到 {} 个岗位", platform.getPlatformName(), totalScanned);
+            } else {
+                log.info("步骤2: 未开启采集，跳过；从数据库加载待处理岗位");
+                taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.LOAD_JOBS_FROM_DB, "从数据库加载待处理岗位");
+                collectedJobs = jobService.findPendingJobsAsDTO(platform.getPlatformCode());
+                if (collectedJobs == null) {
+                    collectedJobs = new ArrayList<>();
+                }
+                totalScanned = collectedJobs.size();
             }
 
-            // 从数据库获取已入库的待处理岗位数据
-            taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.LOAD_JOBS_FROM_DB, "从数据库加载待处理岗位");
-            log.info("从数据库获取{}平台待处理状态的岗位", platform.getPlatformName());
-
-            List<JobDTO> collectedJobs = jobService.findPendingJobsAsDTO(platform.getPlatformCode());
-            if (collectedJobs == null) {
-                collectedJobs = new ArrayList<>();
-            }
-
-            int totalScanned = collectedJobs.size();
-            log.info("✓ {}岗位采集完成，共采集到 {} 个岗位", platform.getPlatformName(), totalScanned);
             resultBuilder.totalScanned(totalScanned);
             taskExecutionManager.setTaskMetadata(platform, "totalScanned", totalScanned);
 
@@ -164,16 +182,26 @@ public class JobDeliveryService {
                         .build();
             }
 
-            // 步骤3: 过滤岗位
-            taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.FILTER_JOBS,
-                    String.format("过滤岗位（共%d个）", totalScanned));
-            log.info("步骤3: 开始过滤{}岗位", platform.getPlatformName());
+            List<JobDTO> filteredJobs;
+            int filteredCount;
+            int skippedCount;
 
-            List<JobDTO> filteredJobs = recruitmentService.filterJobs(collectedJobs);
-            int filteredCount = filteredJobs.size();
-            int skippedCount = totalScanned - filteredCount;
-            log.info("✓ {}岗位过滤完成，过滤后剩余 {} 个岗位，跳过 {} 个岗位",
-                    platform.getPlatformName(), filteredCount, skippedCount);
+            if (doFilter) {
+                taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.FILTER_JOBS,
+                        String.format("过滤岗位（共%d个）", totalScanned));
+                log.info("步骤3: 开始过滤{}岗位", platform.getPlatformName());
+                filteredJobs = recruitmentService.filterJobs(collectedJobs);
+                filteredCount = filteredJobs.size();
+                skippedCount = totalScanned - filteredCount;
+                log.info("✓ {}岗位过滤完成，过滤后剩余 {} 个岗位，跳过 {} 个岗位",
+                        platform.getPlatformName(), filteredCount, skippedCount);
+            } else {
+                log.info("步骤3: 未开启过滤，跳过；使用全部 {} 个岗位", totalScanned);
+                filteredJobs = collectedJobs;
+                filteredCount = totalScanned;
+                skippedCount = 0;
+            }
+
             resultBuilder.skippedCount(skippedCount);
             taskExecutionManager.setTaskMetadata(platform, "filteredCount", filteredCount);
             taskExecutionManager.setTaskMetadata(platform, "skippedCount", skippedCount);
@@ -190,21 +218,26 @@ public class JobDeliveryService {
                         .build();
             }
 
-            // 步骤4: 执行投递
-            taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.DELIVER_JOBS,
-                    String.format("投递岗位（共%d个）", filteredCount));
-            log.info("步骤4: 开始执行{}岗位投递", platform.getPlatformName());
+            int successCount;
+            int failedCount;
 
-            // 终止检查在deliverJobs内部的循环中进行
-            int successCount = recruitmentService.deliverJobs(filteredJobs);
-            int failedCount = filteredCount - successCount;
-            log.info("✓ {}岗位投递完成，成功 {} 个，失败 {} 个",
-                    platform.getPlatformName(), successCount, failedCount);
+            if (doDeliver) {
+                taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.DELIVER_JOBS,
+                        String.format("投递岗位（共%d个）", filteredCount));
+                log.info("步骤4: 开始执行{}岗位投递", platform.getPlatformName());
+                successCount = recruitmentService.deliverJobs(filteredJobs);
+                failedCount = filteredCount - successCount;
+                log.info("✓ {}岗位投递完成，成功 {} 个，失败 {} 个",
+                        platform.getPlatformName(), successCount, failedCount);
+            } else {
+                log.info("步骤4: 未开启投递，跳过");
+                successCount = 0;
+                failedCount = 0;
+            }
 
             taskExecutionManager.setTaskMetadata(platform, "successCount", successCount);
             taskExecutionManager.setTaskMetadata(platform, "failedCount", failedCount);
 
-            // 构建投递结果
             LocalDateTime endTime = LocalDateTime.now();
             long executionTimeMillis = Duration.between(startTime, endTime).toMillis();
 
@@ -214,10 +247,9 @@ public class JobDeliveryService {
                     .failedCount(failedCount)
                     .endTime(endTime)
                     .executionTimeMillis(executionTimeMillis)
-                    .remark(String.format("成功投递%d个岗位", successCount))
+                    .remark(doDeliver ? String.format("成功投递%d个岗位", successCount) : "已跳过投递步骤")
                     .build();
 
-            // 标记任务完成
             taskExecutionManager.completeTask(platform, true);
 
             log.info("========== {}一键投递完成 ==========", platform.getPlatformName());
@@ -231,10 +263,7 @@ public class JobDeliveryService {
             log.error("{}一键投递执行失败", platform.getPlatformName(), e);
             LocalDateTime endTime = LocalDateTime.now();
             long executionTimeMillis = java.time.Duration.between(startTime, endTime).toMillis();
-
-            // 标记任务失败
             taskExecutionManager.completeTask(platform, false);
-
             return resultBuilder
                     .success(false)
                     .errorMessage("执行异常: " + e.getMessage())

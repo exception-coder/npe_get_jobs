@@ -190,11 +190,11 @@ public class BossTaskService {
             AbstractRecruitmentService bossService = (AbstractRecruitmentService) serviceFactory
                     .getService(RecruitmentPlatformEnum.BOSS_ZHIPIN);
 
-            // 直接从数据库查询所有职位实体
+            // 只查询状态为待处理的职位实体，用于过滤
             List<JobEntity> allJobEntities = jobService
-                    .findAllJobEntitiesByPlatform(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
+                    .findPendingJobEntitiesByPlatform(RecruitmentPlatformEnum.BOSS_ZHIPIN.getPlatformCode());
             if (allJobEntities == null || allJobEntities.isEmpty()) {
-                throw new IllegalArgumentException("数据库中未找到职位数据或职位数据为空");
+                throw new IllegalArgumentException("数据库中未找到待处理状态的职位数据或数据为空");
             }
 
             // 转换为DTO

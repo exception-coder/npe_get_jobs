@@ -2,6 +2,7 @@ package getjobs.modules.task.quickdelivery.web;
 
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.infrastructure.task.domain.Task;
+import getjobs.modules.task.quickdelivery.dto.DeliveryFlowOptions;
 import getjobs.modules.task.quickdelivery.service.QuickDeliveryScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,64 +36,23 @@ public class QuickDeliveryController {
 
     /**
      * 提交指定平台的快速投递任务
-     * 
+     *
      * @param platformCode 平台代码（boss/zhilian/51job/liepin）
+     * @param flowOptions  可选，流程控制：collect/filter/deliver 为 false 时跳过对应步骤
      * @return 任务对象
      */
     @PostMapping("/submit/{platformCode}")
-    public Task submitQuickDelivery(@PathVariable String platformCode) {
-        log.info("接收到快速投递任务请求，平台: {}", platformCode);
+    public Task submitQuickDelivery(
+            @PathVariable String platformCode,
+            @RequestBody(required = false) DeliveryFlowOptions flowOptions) {
+        log.info("接收到快速投递任务请求，平台: {}，流程控制: {}", platformCode, flowOptions);
 
         RecruitmentPlatformEnum platform = RecruitmentPlatformEnum.getByCode(platformCode);
         if (platform == null) {
             throw new IllegalArgumentException("不支持的平台代码: " + platformCode);
         }
 
-        return quickDeliveryScheduler.submitQuickDeliveryTask(platform);
-    }
-
-    /**
-     * 提交Boss直聘快速投递任务
-     * 
-     * @return 任务对象
-     */
-    @PostMapping("/submit/boss")
-    public Task submitBossQuickDelivery() {
-        log.info("接收到Boss直聘快速投递任务请求");
-        return quickDeliveryScheduler.submitBossQuickDelivery();
-    }
-
-    /**
-     * 提交智联招聘快速投递任务
-     * 
-     * @return 任务对象
-     */
-    @PostMapping("/submit/zhilian")
-    public Task submitZhilianQuickDelivery() {
-        log.info("接收到智联招聘快速投递任务请求");
-        return quickDeliveryScheduler.submitZhilianQuickDelivery();
-    }
-
-    /**
-     * 提交51job快速投递任务
-     * 
-     * @return 任务对象
-     */
-    @PostMapping("/submit/51job")
-    public Task submitJob51QuickDelivery() {
-        log.info("接收到51job快速投递任务请求");
-        return quickDeliveryScheduler.submitJob51QuickDelivery();
-    }
-
-    /**
-     * 提交猎聘快速投递任务
-     * 
-     * @return 任务对象
-     */
-    @PostMapping("/submit/liepin")
-    public Task submitLiepinQuickDelivery() {
-        log.info("接收到猎聘快速投递任务请求");
-        return quickDeliveryScheduler.submitLiepinQuickDelivery();
+        return quickDeliveryScheduler.submitQuickDeliveryTask(platform, flowOptions);
     }
 
     /**

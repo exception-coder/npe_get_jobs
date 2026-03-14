@@ -29,7 +29,13 @@ const routes: RouteRecordRaw[] = [
     path: '/resume-optimizer',
     name: 'resume-optimizer',
     component: () => import('@/modules/vitaPolish/views/ResumeOptimizer.vue'),
-    meta: { public: true }, 
+    meta: { public: true },
+  },
+  {
+    path: '/company-evaluation',
+    name: 'company-evaluation',
+    component: () => import('@/modules/intelligent-job-search/views/CompanyEvaluationView.vue'),
+    meta: { public: true },
   },
   {
     path: '/login',

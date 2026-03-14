@@ -17,8 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.annotation.PostConstruct;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -220,8 +219,13 @@ public class BossApiMonitorService {
                     .collect(Collectors.toList());
 
             if (!jobEntities.isEmpty()) {
-                // 检查是否已存在相同的职位（基于encryptJobId）
-                List<JobEntity> newJobs = jobEntities.stream()
+                // 同一次 API 响应中同一职位可能出现多次（不同 itemId/searchId），先按 encryptJobId 去重，避免本批内重复插入
+                List<JobEntity> distinctEntities = new ArrayList<>(
+                        jobEntities.stream()
+                                .collect(Collectors.toMap(JobEntity::getEncryptJobId, e -> e, (a, b) -> a))
+                                .values());
+                // 再过滤掉库里已存在的
+                List<JobEntity> newJobs = distinctEntities.stream()
                         .filter(entity -> !isJobExists(entity.getEncryptJobId()))
                         .collect(Collectors.toList());
 
@@ -302,8 +306,10 @@ public class BossApiMonitorService {
     @Transactional
     protected void parseAndUpdateJobDetail(JSONObject jsonResponse, String encryptJobId) {
         try {
-            // 根据encryptJobId查找对应的JobEntity
-            JobEntity jobEntity = jobRepository.findByEncryptJobId(encryptJobId);
+            // 历史数据可能同一 encryptJobId 存在多条，取创建时间最新的一条
+            List<JobEntity> candidates = jobRepository.findAllByEncryptJobIdIn(Collections.singletonList(encryptJobId));
+            JobEntity jobEntity = candidates.isEmpty() ? null
+                    : candidates.stream().max(Comparator.comparing(JobEntity::getCreatedAt)).orElse(null);
             if (jobEntity == null) {
                 log.warn("未找到encryptJobId为 {} 的职位记录", encryptJobId);
                 return;

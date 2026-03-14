@@ -4,6 +4,7 @@ import getjobs.repository.entity.JobEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -73,6 +74,22 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
     List<JobEntity> findAllByEncryptJobIdIn(List<String> encryptJobIds);
 
     /**
+     * 按 encryptJobId 查询，按创建时间倒序（用于去重时保留最新一条）
+     *
+     * @param encryptJobId 加密职位ID
+     * @return 该 ID 下的所有记录，按 createdAt 降序
+     */
+    List<JobEntity> findAllByEncryptJobIdOrderByCreatedAtDesc(String encryptJobId);
+
+    /**
+     * 查询存在重复的 encryptJobId 列表（同 ID 多条记录）
+     *
+     * @return 有重复的 encrypt_job_id 列表
+     */
+    @Query("SELECT j.encryptJobId FROM JobEntity j WHERE j.encryptJobId IS NOT NULL GROUP BY j.encryptJobId HAVING COUNT(j.id) > 1")
+    List<String> findEncryptJobIdsWithDuplicates();
+
+    /**
      * 统计指定时间范围内新增的岗位数量
      *
      * @param startTime 开始时间
@@ -114,4 +131,14 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
      * @param platform 平台名称
      */
     void deleteByPlatform(String platform);
+
+    /**
+     * 删除指定平台下岗位描述（jobPostDescription）为空的记录（监控接口额外拉取、非点击岗位卡搜索的数据）
+     *
+     * @param platform 平台名称
+     * @return 删除条数
+     */
+    @Modifying
+    @Query("DELETE FROM JobEntity j WHERE j.platform = :platform AND (j.jobPostDescription IS NULL OR j.jobPostDescription = '')")
+    int deleteByPlatformAndJobRequirementsEmpty(@Param("platform") String platform);
 }

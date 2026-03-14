@@ -123,36 +123,48 @@
               {{ statusText(item.status) }}
             </v-chip>
           </template>
+          <template #item.filterReason="{ item }">
+            <v-tooltip v-if="item.filterReason" location="bottom" max-width="320">
+              <template #activator="{ props: tooltipProps }">
+                <span v-bind="tooltipProps" class="filter-reason-text">{{ item.filterReason }}</span>
+              </template>
+              <span>{{ item.filterReason }}</span>
+            </v-tooltip>
+            <span v-else class="text-medium-emphasis">-</span>
+          </template>
           <template #item.aiMatched="{ item }">
-            <div v-if="item.aiMatched !== null && item.aiMatched !== undefined">
-              <v-tooltip location="bottom">
+            <div class="ai-match-cell">
+              <v-tooltip location="bottom" max-width="360">
                 <template #activator="{ props: tooltipProps }">
-                  <v-chip
-                    v-bind="tooltipProps"
-                    :color="aiMatchColor(item.aiMatched)"
-                    variant="flat"
-                    size="small"
-                    class="ai-chip"
-                  >
-                    <v-icon start size="16">{{ aiMatchIcon(item.aiMatched) }}</v-icon>
-                    {{ aiMatchText(item.aiMatched) }}
-                  </v-chip>
+                  <span v-bind="tooltipProps">
+                    <v-chip
+                      :color="aiMatchChipColor(item.aiMatched)"
+                      variant="flat"
+                      size="small"
+                      class="ai-chip"
+                    >
+                      <v-icon v-if="item.aiMatched === true" start size="16">mdi-check-circle</v-icon>
+                      <v-icon v-else-if="item.aiMatched === false" start size="16">mdi-close-circle</v-icon>
+                      {{ aiMatchLabel(item.aiMatched) }}
+                    </v-chip>
+                  </span>
                 </template>
-                <div class="ai-tooltip">
-                  <div class="tooltip-row">
-                    <v-icon size="16" class="mr-1">mdi-chart-line</v-icon>
-                    <strong>置信度:</strong> {{ item.aiMatchScore || 'N/A' }}
-                  </div>
-                  <div class="tooltip-row">
-                    <v-icon size="16" class="mr-1">mdi-information</v-icon>
-                    {{ item.aiMatchReason || '无详细信息' }}
-                  </div>
+                <div v-if="item.aiMatchScore || item.aiMatchReason" class="ai-match-tooltip">
+                  <div v-if="item.aiMatchScore" class="tooltip-line"><strong>分数：</strong>{{ item.aiMatchScore }}</div>
+                  <div v-if="item.aiMatchReason" class="tooltip-line"><strong>原因：</strong>{{ item.aiMatchReason }}</div>
                 </div>
+                <span v-else>无详情</span>
               </v-tooltip>
             </div>
-            <v-chip v-else color="grey" variant="flat" size="small" class="ai-chip">
-              未检测
-            </v-chip>
+          </template>
+          <template #item.aiMatchReason="{ item }">
+            <v-tooltip v-if="item.aiMatchReason" location="bottom" max-width="360">
+              <template #activator="{ props: tooltipProps }">
+                <span v-bind="tooltipProps" class="ai-match-desc-text">{{ item.aiMatchReason }}</span>
+              </template>
+              <span>{{ item.aiMatchReason }}</span>
+            </v-tooltip>
+            <span v-else class="text-medium-emphasis">-</span>
           </template>
           <template #item.publishTime="{ item }">
             <span class="time-text">{{ formatDate(item.publishTime) }}</span>
@@ -372,7 +384,9 @@ const headers = [
   { title: '公司', key: 'companyName', sortable: false },
   { title: 'HR', key: 'hrName', sortable: false },
   { title: '状态', key: 'status', sortable: false },
+  { title: '过滤原因', key: 'filterReason', sortable: false },
   { title: 'AI匹配', key: 'aiMatched', sortable: false },
+  { title: 'AI匹配说明', key: 'aiMatchReason', sortable: false },
   { title: '城市', key: 'workCity', sortable: false },
   { title: '发布时间', key: 'publishTime', sortable: false },
   { title: '操作', key: 'actions', sortable: false },
@@ -407,9 +421,10 @@ const loadData = async (targetPage = page.value) => {
   if (!meta.value) return;
   loading.value = true;
   try {
+    const kw = keyword.value != null ? String(keyword.value).trim() : '';
     const response = await fetchJobRecords({
       platform: props.platform,
-      keyword: keyword.value.trim(),
+      ...(kw !== '' ? { keyword: kw } : {}),
       page: targetPage,
       size: pageSize.value,
     });
@@ -436,7 +451,7 @@ const onOptionsUpdate = (options: { page: number; itemsPerPage: number }) => {
 const statusText = (status?: number) => {
   const map: Record<number, string> = {
     0: '待处理',
-    1: '待处理',
+    1: '待投递',
     2: '已过滤',
     3: '投递成功',
     4: '投递失败',
@@ -455,23 +470,18 @@ const statusColor = (status?: number) => {
   return map[status ?? 0] ?? 'secondary';
 };
 
-const aiMatchText = (matched?: boolean) => {
-  if (matched === true) return '匹配';
-  if (matched === false) return '不匹配';
+/** AI 匹配展示：null/undefined=未检测，false=不匹配，true=匹配 */
+function aiMatchLabel(aiMatched: boolean | null | undefined): string {
+  if (aiMatched === true) return '匹配';
+  if (aiMatched === false) return '不匹配';
   return '未检测';
-};
+}
 
-const aiMatchColor = (matched?: boolean) => {
-  if (matched === true) return 'success';
-  if (matched === false) return 'error';
+function aiMatchChipColor(aiMatched: boolean | null | undefined): string {
+  if (aiMatched === true) return 'success';
+  if (aiMatched === false) return 'error';
   return 'grey';
-};
-
-const aiMatchIcon = (matched?: boolean) => {
-  if (matched === true) return 'mdi-check-circle';
-  if (matched === false) return 'mdi-close-circle';
-  return 'mdi-help-circle';
-};
+}
 
 const formatDate = (value?: string) => {
   if (!value) return '-';
@@ -821,6 +831,20 @@ watch(
   font-size: 12px;
 }
 
+.ai-match-cell {
+  display: inline-block;
+}
+
+.ai-match-tooltip .tooltip-line {
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.ai-match-tooltip .tooltip-line:last-child {
+  margin-bottom: 0;
+}
+
 .ai-tooltip {
   padding: 8px;
   max-width: 400px;
@@ -841,6 +865,26 @@ watch(
 
 /* 时间文本 */
 .time-text {
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.filter-reason-text {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.ai-match-desc-text {
+  display: inline-block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
   color: #6B7280;
 }

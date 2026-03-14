@@ -53,8 +53,22 @@ export async function checkLogin(platform: PlatformCode) {
   return http<{ loggedIn: boolean }>(`${prefix}/task/login-status`);
 }
 
-export async function submitQuickDelivery(platform: PlatformCode) {
-  return http(`/api/task/quick-delivery/submit/${platform}`, {
+/** 一键投递时的流程控制：采集、过滤、投递是否启用 */
+export interface DeliveryFlowOptions {
+  collect?: boolean;
+  filter?: boolean;
+  deliver?: boolean;
+}
+
+/** 一键投递提交：POST /api/task/quick-delivery/submit/{platformCode}，body 为流程控制 collect/filter/deliver */
+export async function submitQuickDelivery(
+  platform: PlatformCode,
+  options?: DeliveryFlowOptions,
+) {
+  const url = `/api/task/quick-delivery/submit/${platform}`;
+  const body = options ?? { collect: true, filter: true, deliver: true };
+  return httpJson<{ id?: string; status?: string; [key: string]: unknown }>(url, {
     method: 'POST',
+    body: JSON.stringify(body),
   });
 }

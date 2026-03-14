@@ -343,7 +343,10 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
             if (jobDTO == null || jobDTO.getEncryptJobId() == null) {
                 return;
             }
-            JobEntity entity = jobRepository.findByEncryptJobId(jobDTO.getEncryptJobId());
+            // 历史数据可能同一 encryptJobId 存在多条，取创建时间最新的一条
+            List<JobEntity> candidates = jobRepository.findAllByEncryptJobIdIn(Collections.singletonList(jobDTO.getEncryptJobId()));
+            JobEntity entity = candidates.isEmpty() ? null
+                    : candidates.stream().max(Comparator.comparing(JobEntity::getCreatedAt)).orElse(null);
             if (entity == null) {
                 return;
             }

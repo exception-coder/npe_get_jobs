@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -325,9 +326,9 @@ public class JobService {
 
             List<JobEntity> jobEntities = jobRepository.findAllByEncryptJobIdIn(encryptJobIds);
 
-            // 创建一个Map方便快速查找
+            // 创建一个Map方便快速查找（同一职位可能多次出现，合并时保留第一个）
             java.util.Map<String, JobDTO> dtoMap = jobDTOs.stream()
-                    .collect(Collectors.toMap(JobDTO::getEncryptJobId, dto -> dto));
+                    .collect(Collectors.toMap(JobDTO::getEncryptJobId, dto -> dto, (existing, replacement) -> existing));
 
             for (JobEntity entity : jobEntities) {
                 JobDTO dto = dtoMap.get(entity.getEncryptJobId());
@@ -372,21 +373,46 @@ public class JobService {
     }
 
     /**
+     * 根据平台查询状态为待处理的职位实体（用于过滤步骤只处理未过滤的岗位）
+     *
+     * @param platform 平台名称
+     * @return 待处理状态的职位实体列表
+     */
+    public List<JobEntity> findPendingJobEntitiesByPlatform(String platform) {
+        try {
+            if (platform == null || platform.trim().isEmpty()) {
+                return Collections.emptyList();
+            }
+            return jobRepository.findByStatusAndPlatform(JobStatusEnum.PENDING.getCode(), platform);
+        } catch (Exception e) {
+            log.error("查询平台 {} 待处理职位实体失败", platform, e);
+            throw new RuntimeException("查询待处理职位实体失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * 查询指定平台待处理状态的职位并转换为JobDTO列表
      * 
      * @param platform 平台代码（platformCode）
      * @return 待处理状态的JobDTO列表
      */
+    @Transactional
     public List<JobDTO> findPendingJobsAsDTO(String platform) {
         try {
             if (platform == null || platform.trim().isEmpty()) {
                 throw new IllegalArgumentException("平台参数不能为空");
             }
 
+            // 先删除该平台下岗位描述（jobPostDescription）为空的记录（监控接口额外获取，非点击岗位卡实际搜索的数据）
+            int deleted = jobRepository.deleteByPlatformAndJobRequirementsEmpty(platform);
+            if (deleted > 0) {
+                log.debug("平台 {} 已删除岗位描述为空的记录数: {}", platform, deleted);
+            }
+
             // 查询指定平台的所有职位
             List<JobEntity> jobEntities = jobRepository.findByPlatform(platform);
 
-            // 过滤出待处理状态的职位并转换为DTO
+            // 过滤出待投递状态的职位并转换为DTO
             return jobEntities.stream()
                     .filter(job -> JobStatusEnum.PENDING.getCode() == job.getStatus())
                     .map(this::convertToDTO)
