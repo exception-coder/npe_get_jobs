@@ -1,5 +1,12 @@
 # 开发日志（按时间倒序，最新在上）
 
+## 2026-03-13 - 启动时确保用户目录下 getjobs 目录存在
+
+- 任务：应用启动时若 `${user.home}/getjobs` 不存在则自动创建，避免后续写配置/数据到用户目录时因目录缺失失败。
+- 变更文件：新增 `src/main/java/getjobs/bootstrap/GetJobsDirectoryBootstrapRunner.java`（实现 `ApplicationRunner`，在 `run` 中读取 `user.home`、构造路径、不存在则 `Files.createDirectories`，并设置 `Ordered.HIGHEST_PRECEDENCE` 优先执行）。
+- 设计决策：使用 Spring Boot 标准的 `ApplicationRunner` 在应用就绪后执行；用 `java.nio.file.Path/Files` 创建目录；`user.home` 为空时仅打日志并跳过；创建失败只记录错误不中断启动。
+- 变更原因：统一在用户目录下使用 getjobs 子目录存放数据或配置时，无需用户手动创建该目录，提升首次使用体验。
+
 ## 2026-03-13 - 岗位明细删除/重置 platform 参数适配后端（Bug 修复）
 
 - 任务：修复岗位明细页「删除全部」「重置状态」请求的 platform 参数与后端接口不一致的问题，使传参与后端约定一致。

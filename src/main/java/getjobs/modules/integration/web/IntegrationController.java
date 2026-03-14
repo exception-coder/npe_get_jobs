@@ -1,8 +1,6 @@
 package getjobs.modules.integration.web;
 
 import getjobs.modules.integration.config.IntegrationProperties;
-import getjobs.modules.integration.dto.ThirdPartyCallRequest;
-import getjobs.modules.integration.dto.ThirdPartyCallResponse;
 import getjobs.modules.integration.service.IntegrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +20,6 @@ public class IntegrationController {
 
     private final IntegrationService integrationService;
 
-
     /**
      * 获取服务配置
      */
@@ -30,14 +27,13 @@ public class IntegrationController {
     public ResponseEntity<IntegrationProperties.ThirdPartyServiceConfig> getServiceConfig(
             @PathVariable String serviceName) {
         log.info("查询服务配置: {}", serviceName);
-        
-        IntegrationProperties.ThirdPartyServiceConfig config = 
-                integrationService.getServiceConfig(serviceName);
-        
+
+        IntegrationProperties.ThirdPartyServiceConfig config = integrationService.getServiceConfig(serviceName);
+
         if (config == null) {
             return ResponseEntity.notFound().build();
         }
-        
+
         return ResponseEntity.ok(config);
     }
 
@@ -48,14 +44,13 @@ public class IntegrationController {
     public ResponseEntity<Map<String, Object>> checkServiceStatus(
             @PathVariable String serviceName) {
         log.info("检查服务状态: {}", serviceName);
-        
+
         boolean available = integrationService.isServiceAvailable(serviceName);
-        
+
         return ResponseEntity.ok(Map.of(
                 "serviceName", serviceName,
                 "available", available,
-                "timestamp", System.currentTimeMillis()
-        ));
+                "timestamp", System.currentTimeMillis()));
     }
 
     /**
@@ -65,17 +60,6 @@ public class IntegrationController {
     public ResponseEntity<Map<String, String>> health() {
         return ResponseEntity.ok(Map.of(
                 "status", "UP",
-                "service", "integration-service"
-        ));
+                "service", "integration-service"));
     }
 }
-
-
-
-
-
-
-
-
-
-
