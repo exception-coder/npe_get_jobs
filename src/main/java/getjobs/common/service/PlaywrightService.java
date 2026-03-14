@@ -193,6 +193,8 @@ public class PlaywrightService {
                 return t;
             });
     private final Map<RecruitmentPlatformEnum, ScheduledFuture<?>> cookieBackupTasks = new ConcurrentHashMap<>();
+    /** 定时关闭 about:blank 页签任务的句柄，用于 PreDestroy 时取消 */
+    private volatile ScheduledFuture<?> closeAboutBlankTask;
 
     public PlaywrightService(ConfigService configService) {
         this.configService = configService;
@@ -329,6 +331,14 @@ public class PlaywrightService {
                     log.warn("关闭默认页面失败", e);
                 }
             }
+
+            // 定时关闭 about:blank 页签（避免运行时新开的空白页积累）
+            closeAboutBlankTask = cookieBackupScheduler.scheduleAtFixedRate(
+                    this::closeAboutBlankPages,
+                    60,
+                    60,
+                    TimeUnit.SECONDS);
+            log.info("✓ 已启动定时任务：每 60 秒检查并关闭 about:blank 页签");
 
             log.info("✓ Playwright 服务初始化成功（已加载Chrome扩展）");
             log.info("=== Playwright 服务初始化完成 ===");
@@ -900,6 +910,9 @@ public class PlaywrightService {
                 future.cancel(false);
             }
         });
+        if (closeAboutBlankTask != null && !closeAboutBlankTask.isCancelled()) {
+            closeAboutBlankTask.cancel(false);
+        }
         cookieBackupScheduler.shutdownNow();
 
         pageMap.values().forEach(Page::close);
@@ -919,6 +932,40 @@ public class PlaywrightService {
         cleanupTempDirectories();
 
         log.info("Playwright service closed.");
+    }
+
+    /**
+     * 定期获取浏览器中的 about:blank 页签并关闭（不关闭各平台主页签）。
+     * 由定时任务调用，避免运行时新开的空白页积累。
+     */
+    private void closeAboutBlankPages() {
+        if (context == null) {
+            return;
+        }
+        try {
+            Set<Page> mainPages = new HashSet<>(pageMap.values());
+            List<Page> pages = new ArrayList<>(context.pages());
+            int closed = 0;
+            for (Page p : pages) {
+                if (mainPages.contains(p)) {
+                    continue;
+                }
+                String url = p.url();
+                if (url == null || url.isEmpty() || "about:blank".equals(url)) {
+                    try {
+                        p.close();
+                        closed++;
+                    } catch (Exception e) {
+                        log.warn("关闭 about:blank 页签失败: {}", e.getMessage());
+                    }
+                }
+            }
+            if (closed > 0) {
+                log.debug("已关闭 {} 个 about:blank 页签", closed);
+            }
+        } catch (Exception e) {
+            log.warn("检查/关闭 about:blank 页签时异常", e);
+        }
     }
 
     /**

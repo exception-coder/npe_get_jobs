@@ -1,5 +1,12 @@
 # 开发日志（按时间倒序，最新在上）
 
+## 2026-03-15 - Playwright 定时关闭 about:blank 页签
+
+- 任务：定期获取浏览器中的 about:blank 页签并关闭，避免运行时新开的空白页积累；不关闭各平台主工作页签（pageMap 中的页面）。
+- 变更文件：`PlaywrightService.java`（新增 `closeAboutBlankPages()`：遍历 context.pages()，排除 pageMap 中的页签，对 URL 为 about:blank 或空的执行 close；新增 `closeAboutBlankTask` 字段；init 中用 cookieBackupScheduler 每 60 秒执行一次该任务；close() 中取消该任务）。
+- 设计决策：定时任务内异常自行捕获并仅打错误/警告日志，不向外抛出，不影响原有程序与调度器后续执行。
+- 变更原因：减少空白页签堆积，保持浏览器页签列表干净。
+
 ## 2026-03-15 - 查询待处理职位前删除岗位描述为空的记录
 
 - 任务：查询对应平台岗位记录前需删除「岗位描述为空」的数据；该类数据来自监控接口额外拉取，并非点击岗位卡实际搜索所得，不应参与待投递等后续流程。
