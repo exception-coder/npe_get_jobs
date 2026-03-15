@@ -1,5 +1,27 @@
 # 开发日志（按时间倒序，最新在上）
 
+## 2026-03-16 - 基础设施包结构重构：common/infrastructure → infrastructure/
+
+- 任务：将 `common/infrastructure/` 下所有基础设施代码迁移到顶层 `infrastructure/` 包，统一归集，符合 DDD-lite 规范。
+- 变更范围：10 个子包（accesslog/asyncexecutor/auth/datasource/health/queue/repository/task/tomcat/webclient）从 `getjobs.common.infrastructure.*` 迁移到 `getjobs.infrastructure.*`，涉及 ~150 个文件的 package 声明、import 语句、全限定类名引用批量替换。
+- 执行步骤：
+  1. `git mv` 批量移动包目录，保留 git 历史
+  2. `sed` 批量替换所有 Java 文件的 `package getjobs.common.infrastructure.` → `package getjobs.infrastructure.`
+  3. `sed` 批量替换全项目 `import getjobs.common.infrastructure.` → `import getjobs.infrastructure.`
+  4. `sed` 批量替换代码中的全限定类名引用（非 import 行）`getjobs.common.infrastructure.` → `getjobs.infrastructure.`
+  5. 删除空目录 `common/infrastructure/`，保留 `common/` 下的 `dto/enums/service/util`（非基础设施）
+  6. 更新 `backend.md` 规范说明，新增 `infrastructure/` 节点，列出所有子包
+- 设计决策：`infrastructure/` 统一归集所有技术实现（AI 平台适配、访问日志、异步执行器、认证拦截器、数据源配置、健康检查、队列任务、通用仓储、定时任务、Tomcat 配置、HTTP 客户端）；`common/` 仅保留业务无关的通用模块（dto/enums/service/util）。
+- 验证：Maven 编译通过，所有变更已提交推送（commit `3cefe236`）。
+- 变更原因：历史遗留的 `common/infrastructure/` 与新建的 `infrastructure/ai/` 并存，导致基础设施代码分散在两处，不符合 DDD-lite 规范；统一归集后便于查找与维护。
+
+## 2026-03-16 - 修复 RestClient.Builder 多 Bean 歧义导致应用启动失败
+
+- 任务：Spring AI `OpenAiAutoConfiguration` 按类型注入 `RestClient.Builder` 时发现两个 Bean（`deepseekApiRestClientBuilder`、`qwenApiRestClientBuilder`），抛出 `NoUniqueBeanDefinitionException` 导致应用启动失败。
+- 变更文件：`WebClientInfrastructureConfig.java`（新增 `@Primary RestClient.Builder restClientBuilder()` Bean，作为 Spring 自动配置的默认注入点）；删除放错位置的 `DefaultHttpClientConfig.java`（原建于 `infrastructure/ai/config`）。
+- 设计决策：`@Primary` 让 Spring 自动配置按类型注入时优先拿到干净的默认 Bean；Deepseek/Qwen 专用 Builder 通过 `@Qualifier` 显式注入，不受影响；`WebClientInfrastructureConfig` 已有 `@Primary WebClient.Builder webClientBuilderDefault()`，RestClient.Builder 同样设为 primary 保持一致。
+- 变更原因：用户反馈启动报错，根因是多个平台专用 RestClient.Builder Bean 导致 Spring 自动配置无法选择；按 Spring 最佳实践，通用 HTTP 客户端 Builder 应放在 `infrastructure/webclient/` 包下，设为 `@Primary` 作为默认注入点。
+
 ## 2026-03-16 - 公司评估前端平台选择适配
 
 - 任务：评估按钮旁新增平台切换（Deepseek / 千问），前后端全链路传递 platform 参数。
