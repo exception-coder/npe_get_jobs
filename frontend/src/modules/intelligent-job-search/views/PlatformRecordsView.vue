@@ -123,6 +123,19 @@
               {{ statusText(item.status) }}
             </v-chip>
           </template>
+          <template #item.isContacted="{ item }">
+            <v-tooltip text="双击切换「是否联系过」" location="top">
+              <template #activator="{ props: tooltipProps }">
+                <span
+                  v-bind="tooltipProps"
+                  class="is-contacted-cell"
+                  @dblclick="toggleContactedItem(item)"
+                >
+                  {{ item.isContacted ? '是' : '否' }}
+                </span>
+              </template>
+            </v-tooltip>
+          </template>
           <template #item.filterReason="{ item }">
             <v-tooltip v-if="item.filterReason" location="bottom" max-width="320">
               <template #activator="{ props: tooltipProps }">
@@ -361,7 +374,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import { fetchJobRecords, toggleFavorite, resetJobFilter, deleteAllJobs, type JobRecord } from '../api/jobRecordsApi';
+import { fetchJobRecords, toggleFavorite, updateContacted, resetJobFilter, deleteAllJobs, type JobRecord } from '../api/jobRecordsApi';
 import type { PlatformCode } from '../api/platformConfigApi';
 import { PLATFORM_METAS } from '../constants/platformMeta';
 import { useSnackbarStore } from '@/stores/snackbar';
@@ -384,6 +397,7 @@ const headers = [
   { title: '公司', key: 'companyName', sortable: false },
   { title: 'HR', key: 'hrName', sortable: false },
   { title: '状态', key: 'status', sortable: false },
+  { title: '是否联系过', key: 'isContacted', sortable: false },
   { title: '过滤原因', key: 'filterReason', sortable: false },
   { title: 'AI匹配', key: 'aiMatched', sortable: false },
   { title: 'AI匹配说明', key: 'aiMatchReason', sortable: false },
@@ -536,6 +550,23 @@ const toggleFavoriteItem = async (item: JobRecord) => {
   } catch (error) {
     console.error('收藏失败', error);
     snackbar.show({ message: '收藏状态更新失败', color: 'error' });
+  }
+};
+
+const toggleContactedItem = async (item: JobRecord) => {
+  const jobId = item.id != null ? String(item.id) : '';
+  if (!jobId) {
+    snackbar.show({ message: '无法识别岗位 ID', color: 'warning' });
+    return;
+  }
+  const next = !item.isContacted;
+  try {
+    await updateContacted(jobId, next);
+    item.isContacted = next;
+    snackbar.show({ message: next ? '已标记为联系过' : '已标记为未联系', color: 'success' });
+  } catch (error) {
+    console.error('更新联系状态失败', error);
+    snackbar.show({ message: '联系状态更新失败', color: 'error' });
   }
 };
 
@@ -823,6 +854,16 @@ watch(
 .status-chip {
   font-weight: 600;
   font-size: 12px;
+}
+
+.is-contacted-cell {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  user-select: none;
+}
+.is-contacted-cell:hover {
+  background: rgba(var(--v-theme-primary), 0.08);
 }
 
 /* AI 芯片 */

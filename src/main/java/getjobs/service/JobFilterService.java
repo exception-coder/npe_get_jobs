@@ -148,6 +148,11 @@ public class JobFilterService {
             return "招聘者包含黑名单关键词";
         }
 
+        // 已联系过的职位直接跳过
+        if (Boolean.TRUE.equals(job.getIsContacted())) {
+            return "已联系过";
+        }
+
         if (salaryExpected) {
             // 检查薪资
             if (!salaryFilterService.isSalaryExpected(job, config)) {

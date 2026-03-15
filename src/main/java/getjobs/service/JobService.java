@@ -373,6 +373,27 @@ public class JobService {
     }
 
     /**
+     * 更新职位的「是否联系过」状态
+     *
+     * @param id           职位主键 ID
+     * @param isContacted 是否已联系
+     * @return 是否更新成功
+     */
+    @Transactional
+    public boolean updateContacted(Long id, Boolean isContacted) {
+        if (id == null) {
+            return false;
+        }
+        return jobRepository.findById(id)
+                .map(entity -> {
+                    entity.setIsContacted(Boolean.TRUE.equals(isContacted));
+                    jobRepository.save(entity);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    /**
      * 根据平台查询状态为待处理的职位实体（用于过滤步骤只处理未过滤的岗位）
      *
      * @param platform 平台名称

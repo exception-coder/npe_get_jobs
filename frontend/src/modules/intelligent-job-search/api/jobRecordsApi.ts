@@ -25,6 +25,7 @@ export interface JobRecord {
   aiMatchScore?: string;
   aiMatchReason?: string;
   filterReason?: string;
+  isContacted?: boolean;
   [key: string]: unknown;
 }
 
@@ -60,6 +61,13 @@ export async function toggleFavorite(jobId: string, isFavorite: boolean) {
   return httpJson<{ success: boolean }>(`/api/jobs/${jobId}/favorite`, {
     method: 'PUT',
     body: JSON.stringify({ isFavorite }),
+  });
+}
+
+export async function updateContacted(jobId: string, isContacted: boolean) {
+  return httpJson<{ success: boolean }>(`/api/jobs/${jobId}/contacted`, {
+    method: 'PUT',
+    body: JSON.stringify({ isContacted }),
   });
 }
 

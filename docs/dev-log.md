@@ -1,5 +1,32 @@
 # 开发日志（按时间倒序，最新在上）
 
+## 2026-03-15 - Cookie 注入顺序调整：先导航再注入再刷新，确保带入页面
+
+- 任务：修复「Cookie 似乎并没有加载到页面中」的问题。根因是 Playwright 在首次 navigate 前通过 context.addCookies 添加的 cookie，首次请求可能不会随请求发送（已知行为）。
+- 变更文件：`PlaywrightService.java`（初始化平台页时改为：先 `page.navigate(homeUrl)` 并 `waitForLoadState(DOMCONTENTLOADED)`，再 `loadPlatformCookies`，再 `page.reload()`；`loadCookiesFromJson` 注释更新为说明应在已导航到目标域后调用并执行一次 reload）。
+- 设计决策：采用「先导航到目标域 → 再 addCookies → 再 reload」的顺序，使第二次请求（reload）带上注入的 cookie；等待 DOMCONTENTLOADED 避免在空白或未就绪时注入。
+- 变更原因：确保恢复的 Cookie 在后续请求中生效，登录态可被页面使用。
+
+## 2026-03-15 - Cookie 加载时设置 url 与默认 path，修复“缓存后仍要登录”
+
+- 任务：修复已缓存 Cookie 但下次打开页面仍需登录的问题。根因是 Playwright 的 addCookies 要求每条 Cookie 必须提供 url，或同时提供 domain 与 path；原先加载时未设置 url，且 path 可能为空，导致部分 Cookie 未被正确应用。
+- 变更文件：`PlaywrightService.java`（`loadPlatformCookies` 调用 `loadCookiesFromJson` 时传入 `platform.getHomeUrl()`；`loadCookiesFromJson` 增加参数 `targetUrl`，对每条 Cookie 设置 `cookie.url = targetUrl`，当 domain 存在但 path 为空时默认 `path = "/"`，并增加空 targetUrl 校验与注释）。
+- 变更原因：满足 Playwright 对 addCookies 的要求，确保恢复的 Cookie 作用域正确，登录态可持久生效。
+
+## 2026-03-15 - 移除登录状态检查定时任务（避免 SQLite 写锁）
+
+- 任务：移除「每 15 秒检查各平台登录状态」的定时任务，避免对 SQLite 的频繁写操作导致写锁，影响岗位、公司评估等业务。
+- 变更文件：`LoginStatusCheckScheduler.java`（去掉 `@Scheduled(fixedRate = 15000)` 及对应 import；类注释补充写锁原因说明；`checkLoginStatus()` 保留供手动或接口触发）。
+- 写锁原因：该定时任务每次执行会对需要检查的平台调用 `PlaywrightService.savePlatformCookieToConfig()`，其内部执行 `configService.loadByPlatformType()` + `configService.save(config)`，即对主数据源 SQLite（npe_get_jobs.db）的 config 表进行读+写。SQLite 同一时刻仅允许一个写连接，定时任务每 15 秒、最多 4 个平台各写一次 config，与业务请求的写操作争抢写锁，导致 "database is locked" 或阻塞。
+- 变更原因：消除定时任务造成的 SQLite 写锁，保证业务写库正常；登录状态检查仍可通过手动或接口调用 `checkLoginStatus()` 执行。
+
+## 2026-03-15 - 公司评估评分改为动态权重
+
+- 任务：评分标准改为用户可配置的维度权重，通过权重配置计算总分与推荐等级，而非固定「八维平均×10」。
+- 变更文件：`company-evaluation-v1.yml`（第八步改为「动态权重」说明，各维度仍 1–10 分，总评与推荐由系统按权重计算；新增占位 `{{{dimension_weights_config}}}`）；`CompanyEvaluationRequest.java`（新增可选 `dimensionWeights` Map）；`CompanyPromptVariables.java`（新增 `DIMENSION_WEIGHTS_CONFIG`）；`CompanyEvaluationPromptAssembler.java`（重载 `assemble(templateId, companyInfo, dimensionWeights)`，生成权重说明文案）；`CompanyEvaluationAiService.java`（支持权重入参，解析 AI 结果后按权重计算 total_score 并设置 recommendation；自定义权重时不使用缓存、不落库）；`CompanyEvaluationController.java`（将 request 的 dimensionWeights 传入 service）；`companyEvaluationApi.ts`（`evaluateCompany` 支持可选 `dimensionWeights`）；`CompanyEvaluationView.vue`（折叠面板「维度权重」、8 个维度输入、恢复等权、请求时携带权重）。
+- 设计决策：权重 key 与 JSON 维度字段名一致（如 company_stability）；未传或空权重按等权；总评公式为加权平均×10（0–100），再按分数段映射推荐等级；自定义权重评估不写缓存，避免等权请求命中带权结果。
+- 变更原因：满足用户按自身偏好调节各维度重要性（如更看重工作制度、薪资福利）的需求。
+
 ## 2026-03-15 - Playwright 定时关闭 about:blank 页签
 
 - 任务：定期获取浏览器中的 about:blank 页签并关闭，避免运行时新开的空白页积累；不关闭各平台主工作页签（pageMap 中的页面）。
@@ -188,6 +215,15 @@
   - 前端：`commonConfigApi.ts`（新增 `getLoginCheck`、`updateLoginCheck`）、`platformState.ts`（enableLoginCheck 不再随平台配置 payload 提交）、`platformService.ts`（loadConfig 后拉取登录检测配置并 snapshot，新增 `updateLoginCheck`）、`PlatformConfigView.vue`（开关绑定并 `@update:model-value` 调用更新接口）。
 - 设计决策：登录检测开关存于公共配置（UserProfile），全局一份、各平台共用；平台配置保存不再包含该字段，由单独接口维护；开关变更失败时回滚 UI 并提示。
 - 变更原因：支持用户选择任务开始前是否进行平台登录状态检测，并需将选项持久化与即时更新到服务端。
+
+## 2026-03-15 - 岗位记录表「是否联系过」列及双击修改
+
+- 任务：在平台岗位明细表中增加「是否联系过」列（对应 `isContacted`），支持在表格中双击该单元格切换状态并持久化到后端。
+- 变更文件：
+  - 后端：`JobService.java`（新增 `updateContacted(Long id, Boolean isContacted)`）、`JobController.java`（新增 `PUT /api/jobs/{id}/contacted`，请求体 `{ isContacted }`）。
+  - 前端：`jobRecordsApi.ts`（`JobRecord` 增加 `isContacted`，新增 `updateContacted(jobId, isContacted)`）、`PlatformRecordsView.vue`（表头增加「是否联系过」列，`#item.isContacted` 模板展示是/否并支持双击调用 `toggleContactedItem` 调用接口后乐观更新）。
+- 设计决策：与收藏类似，采用单条更新接口；双击即切换布尔值，无需弹窗；单元格增加 tooltip「双击切换」和 hover 样式提示可编辑。
+- 变更原因：方便用户在记录中直接维护「是否联系过」状态，并与过滤逻辑（已联系过则跳过）配合使用。
 
 ## 2026-03-11 - 忽略本地 GPT 配置文件
 
