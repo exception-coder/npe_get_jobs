@@ -1,6 +1,6 @@
-package getjobs.modules.ai.common.factory;
+package getjobs.infrastructure.ai.factory;
 
-import getjobs.modules.ai.common.enums.AiPlatform;
+import getjobs.infrastructure.ai.enums.AiPlatform;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Component;
 

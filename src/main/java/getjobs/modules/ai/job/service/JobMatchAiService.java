@@ -1,10 +1,10 @@
 package getjobs.modules.ai.job.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import getjobs.infrastructure.ai.llm.LlmClient;
+import getjobs.infrastructure.ai.llm.LlmMessage;
 import getjobs.modules.ai.job.assembler.JobPromptAssembler;
 import getjobs.modules.ai.job.dto.JobMatchResult;
-import getjobs.modules.ai.infrastructure.llm.LlmClient;
-import getjobs.modules.ai.infrastructure.llm.LlmMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

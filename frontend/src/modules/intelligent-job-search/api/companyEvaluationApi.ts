@@ -75,14 +75,18 @@ export interface CompanyEvaluationEvaluateResponse {
   result: CompanyEvaluationResult;
 }
 
-/** 发起评估（可选传入本次使用的模型），结果会入库并返回 record_id */
+/** 发起评估（可选传入本次使用的平台和模型），结果会入库并返回 record_id */
 export async function evaluateCompany(
   companyName: string,
+  platform?: string | null,
   model?: string | null
 ): Promise<CompanyEvaluationEvaluateResponse> {
-  const body: { companyName: string; model?: string } = {
+  const body: { companyName: string; platform?: string; model?: string } = {
     companyName: companyName.trim(),
   };
+  if (platform?.trim()) {
+    body.platform = platform.trim();
+  }
   if (model?.trim()) {
     body.model = model.trim();
   }

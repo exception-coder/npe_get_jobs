@@ -54,9 +54,13 @@ logging:
   level:
     root: INFO
     ai: DEBUG
+    # 包路径：本包内代码的 debug 日志（如 DeepseekApiHttpClientConfig）
+    getjobs.infrastructure.ai: DEBUG
+    # wiretap 使用的 logger 名（与 DeepseekApiHttpClientConfig.DEEPSEEK_HTTP_LOGGER 一致），用于完整 HTTP 请求/响应
+    DeepseekApiHttp: DEBUG
     getjobs.common.infrastructure.tomcat: DEBUG  # 启用 NonHttpProbeValve 的 DEBUG 日志
-    logging.level.org.apache.coyote: DEBUG
-    logging.level.org.apache.tomcat.util.net: INFO
+    org.apache.coyote: DEBUG
+    org.apache.tomcat.util.net: INFO
 #    org.hibernate.SQL: debug
 #    org.hibernate.orm.jdbc.bind: trace
 #    org.hibernate.type.descriptor.sql.BasicBinder: trace

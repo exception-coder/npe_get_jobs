@@ -28,6 +28,23 @@
               <v-icon color="primary">mdi-domain</v-icon>
             </template>
           </v-text-field>
+          <v-btn-toggle
+            v-model="selectedPlatform"
+            mandatory
+            density="comfortable"
+            color="primary"
+            class="platform-toggle"
+            :disabled="evaluating"
+          >
+            <v-btn
+              v-for="opt in platformOptions"
+              :key="opt.value"
+              :value="opt.value"
+              size="large"
+            >
+              {{ opt.title }}
+            </v-btn>
+          </v-btn-toggle>
           <v-btn
             color="primary"
             size="large"
@@ -209,6 +226,12 @@ const evaluating = ref(false);
 const evaluateError = ref('');
 const lastResult = ref<CompanyEvaluationResult | null>(null);
 
+const platformOptions = [
+  { title: 'Deepseek', value: 'DEEPSEEK' },
+  { title: '千问 (Qwen)', value: 'QWEN' },
+];
+const selectedPlatform = ref('DEEPSEEK');
+
 const listItems = ref<CompanyEvaluationListItem[]>([]);
 const totalElements = ref(0);
 const totalPages = ref(0);
@@ -260,7 +283,7 @@ async function runEvaluate() {
   evaluateError.value = '';
   lastResult.value = null;
   try {
-    const res = await evaluateCompany(name);
+    const res = await evaluateCompany(name, selectedPlatform.value);
     lastResult.value = res.result;
     if (res.record_id != null) {
       snackbar.show({ message: `已入库，记录 #${res.record_id}`, color: 'success' });
@@ -420,6 +443,11 @@ onMounted(() => {
   gap: 12px;
   align-items: flex-start;
   flex-wrap: wrap;
+}
+
+.platform-toggle {
+  flex-shrink: 0;
+  height: 48px;
 }
 
 .eval-input { flex: 1; min-width: 260px; }

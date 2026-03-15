@@ -1,7 +1,7 @@
 package getjobs.modules.ai.job_skill.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import getjobs.modules.ai.infrastructure.llm.LlmClient;
+import getjobs.infrastructure.ai.llm.LlmClient;
 import getjobs.modules.ai.job_skill.assembler.JobSkillPromptAssembler;
 import getjobs.modules.ai.job_skill.dto.JobSkillRequest;
 import getjobs.modules.ai.job_skill.dto.JobSkillResponse;

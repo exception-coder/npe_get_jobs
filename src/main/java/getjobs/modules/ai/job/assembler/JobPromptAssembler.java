@@ -1,6 +1,6 @@
 package getjobs.modules.ai.job.assembler;
 
-import getjobs.modules.ai.infrastructure.llm.LlmMessage;
+import getjobs.infrastructure.ai.llm.LlmMessage;
 import getjobs.modules.ai.infrastructure.template.PromptRenderer;
 import getjobs.modules.ai.infrastructure.template.PromptTemplate;
 import getjobs.modules.ai.infrastructure.template.TemplateRepository;

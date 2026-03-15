@@ -1,6 +1,6 @@
 package getjobs.modules.ai.project.service;
 
-import getjobs.modules.ai.infrastructure.llm.LlmClient;
+import getjobs.infrastructure.ai.llm.LlmClient;
 import getjobs.modules.ai.project.assembler.ProjectPromptAssembler;
 import getjobs.modules.ai.project.dto.BaseProjectOptimizeRequest;
 import getjobs.modules.ai.project.dto.ProjectAchievementOptimizeRequest;

@@ -1,171 +1,42 @@
 <template>
   <v-app :style="themeStyles">
     <GlobalSnackbar />
-    
-    <!-- 侧边导航栏 -->
-    <v-navigation-drawer
+
+    <!-- 侧边栏：vue-sidebar-menu，折叠时点击父项会弹出子菜单 -->
+    <sidebar-menu
       v-if="showDrawer"
-      v-model="drawer"
-      :rail="rail"
-      permanent
-      app
-      class="nav-drawer"
-      :color="currentTheme.drawerBg"
+      v-model:collapsed="sidebarCollapsed"
+      :menu="navMenu"
+      :width="sidebarWidth"
+      :width-collapsed="sidebarWidthCollapsed"
+      :hide-toggle="true"
+      class="app-sidebar"
+      theme="white-theme"
+      @update:collapsed="onSidebarCollapsed"
     >
-      <!-- 导航栏头部 -->
-      <div class="drawer-header">
-        <transition name="fade" mode="out-in">
-          <div v-if="!rail" class="header-content">
-            <div class="logo-wrapper">
-              <v-icon :color="currentTheme.primary" size="32">mdi-briefcase-search</v-icon>
-            </div>
-            <div class="brand-text">
-              <div class="brand-title">智能求职</div>
-              <div class="brand-subtitle">AI Career Assistant</div>
-            </div>
+      <template #header>
+        <div class="sidebar-header" :class="{ 'sidebar-header--collapsed': sidebarCollapsed }">
+          <div class="logo-wrapper">
+            <i class="mdi mdi-briefcase-search logo-icon" />
           </div>
-          <div v-else class="header-content-mini">
-            <v-icon :color="currentTheme.primary" size="28">mdi-briefcase-search</v-icon>
-          </div>
-        </transition>
-      </div>
-
-      <v-divider class="my-2" :color="currentTheme.divider" />
-
-      <!-- 导航菜单 -->
-      <v-list density="compact" nav class="nav-list">
-        <v-list-group value="ai-job-search">
-          <template #activator="{ props: groupProps }">
-            <v-list-item
-              v-bind="groupProps"
-              class="nav-item-main"
-              :class="{ 'rail-mode': rail }"
-            >
-              <template #prepend>
-                <div class="nav-icon-wrapper">
-                  <v-icon :color="currentTheme.primary">mdi-robot-outline</v-icon>
-                </div>
-              </template>
-              <v-list-item-title class="nav-title">AI智能求职</v-list-item-title>
-            </v-list-item>
+          <template v-if="!sidebarCollapsed">
+            <div class="brand-title">智能求职</div>
+            <div class="brand-subtitle">AI Career Assistant</div>
           </template>
-
-          <!-- 公共配置 -->
-          <v-list-item
-            to="/common"
-            class="nav-item-sub"
-            :class="{ 'rail-mode': rail }"
-          >
-            <template #prepend>
-              <v-icon size="20" :color="currentTheme.iconColor">mdi-cog-outline</v-icon>
-            </template>
-            <v-list-item-title>公共配置</v-list-item-title>
-          </v-list-item>
-
-          <!-- 平台配置（二级分组） -->
-          <v-list-group value="platform-config-group" class="nav-subgroup">
-            <template #activator="{ props: subProps }">
-              <v-list-item
-                v-bind="subProps"
-                class="nav-item-sub nav-item-subgroup"
-                :class="{ 'rail-mode': rail }"
-              >
-                <template #prepend>
-                  <v-icon size="20" :color="currentTheme.iconColor">mdi-tune-variant</v-icon>
-                </template>
-                <v-list-item-title>平台配置</v-list-item-title>
-              </v-list-item>
-            </template>
-
-            <v-list-item
-              v-for="item in platformItems"
-              :key="item.platform"
-              :to="`/platform/${item.platform}/config`"
-              class="nav-item-sub nav-item-child"
-              :class="{ 'rail-mode': rail }"
-            >
-              <template #prepend>
-                <v-icon size="18" :color="item.color">{{ item.icon }}</v-icon>
-              </template>
-              <v-list-item-title>{{ item.title }}</v-list-item-title>
-            </v-list-item>
-          </v-list-group>
-
-          <!-- 岗位明细（二级分组） -->
-          <v-list-group value="platform-records-group" class="nav-subgroup">
-            <template #activator="{ props: subProps }">
-              <v-list-item
-                v-bind="subProps"
-                class="nav-item-sub nav-item-subgroup"
-                :class="{ 'rail-mode': rail }"
-              >
-                <template #prepend>
-                  <v-icon size="20" :color="currentTheme.iconColor">mdi-table-large</v-icon>
-                </template>
-                <v-list-item-title>岗位明细</v-list-item-title>
-              </v-list-item>
-            </template>
-
-            <v-list-item
-              v-for="item in platformItems"
-              :key="`${item.platform}-records`"
-              :to="`/platform/${item.platform}/records`"
-              class="nav-item-sub nav-item-child"
-              :class="{ 'rail-mode': rail }"
-            >
-              <template #prepend>
-                <v-icon size="18" :color="item.color">{{ item.icon }}</v-icon>
-              </template>
-              <v-list-item-title>{{ item.title }}岗位</v-list-item-title>
-            </v-list-item>
-          </v-list-group>
-
-          <!-- 企业评估 -->
-          <v-list-item
-            to="/company-evaluation"
-            class="nav-item-sub"
-            :class="{ 'rail-mode': rail }"
-          >
-            <template #prepend>
-              <v-icon size="20" :color="currentTheme.iconColor">mdi-office-building-cog-outline</v-icon>
-            </template>
-            <v-list-item-title>企业评估</v-list-item-title>
-          </v-list-item>
-        </v-list-group>
-
-        <!-- 简历优化 -->
-        <v-list-item
-          to="/resume-optimizer"
-          class="nav-item-main"
-          :class="{ 'rail-mode': rail }"
-        >
-          <template #prepend>
-            <div class="nav-icon-wrapper">
-              <v-icon :color="currentTheme.accent">mdi-file-document-edit-outline</v-icon>
-            </div>
-          </template>
-          <v-list-item-title class="nav-title">简历优化</v-list-item-title>
-        </v-list-item>
-      </v-list>
-
-      <!-- 导航栏底部 -->
-      <template #append>
-        <div class="drawer-footer">
-          <v-divider class="mb-2" :color="currentTheme.divider" />
-          <v-btn
-            :icon="rail"
-            :block="!rail"
-            variant="text"
-            @click="rail = !rail"
-            class="toggle-btn"
-          >
-            <v-icon>{{ rail ? 'mdi-chevron-right' : 'mdi-chevron-left' }}</v-icon>
-            <span v-if="!rail" class="ml-2">收起菜单</span>
-          </v-btn>
         </div>
       </template>
-    </v-navigation-drawer>
+      <template #footer>
+        <div class="sidebar-footer">
+          <button type="button" class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed">
+            <i :class="sidebarCollapsed ? 'mdi mdi-chevron-right' : 'mdi mdi-chevron-left'" />
+            <span v-if="!sidebarCollapsed">收起菜单</span>
+          </button>
+        </div>
+      </template>
+    </sidebar-menu>
 
+    <!-- 主内容区：根据侧边栏宽度留出 margin -->
+    <div v-if="showDrawer" class="app-body" :style="appBodyStyle">
     <!-- 顶部应用栏 -->
     <v-app-bar
       v-if="showAppBar"
@@ -248,17 +119,47 @@
         </router-view>
       </div>
     </v-main>
+    </div>
+
+    <!-- 无侧边栏时（如登录页）直接渲染主内容 -->
+    <template v-if="!showDrawer">
+      <v-main class="main-content">
+        <div class="content-wrapper">
+          <router-view v-slot="{ Component }">
+            <transition name="page" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
+        </div>
+      </v-main>
+    </template>
   </v-app>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import { SidebarMenu } from 'vue-sidebar-menu';
+import 'vue-sidebar-menu/dist/vue-sidebar-menu.css';
 import GlobalSnackbar from '@/components/GlobalSnackbar.vue';
 
-const drawer = ref(true);
-const rail = ref(false);
 const route = useRoute();
+const sidebarCollapsed = ref(false);
+
+const sidebarWidth = '280px';
+const sidebarWidthCollapsed = '80px';
+
+function onSidebarCollapsed(collapsed: boolean) {
+  sidebarCollapsed.value = collapsed;
+}
+
+const appBodyStyle = computed(() => ({
+  marginLeft: sidebarCollapsed.value ? sidebarWidthCollapsed : sidebarWidth,
+}));
+
+// 侧边栏宽度：展开 280px，收起 80px（保证图标完整不裁切）
+const drawerWidth = 280;
+const railWidth = 80;
 
 // 白名单：只有求职模块的路由才显示顶部栏
 const showAppBar = computed(() => {
@@ -293,11 +194,46 @@ const pageSubtitle = computed(() => {
 
 // 平台配置
 const platformItems = [
-  { platform: 'boss', title: 'BOSS直聘', icon: 'mdi-briefcase-account', color: '#00B96B' },
-  { platform: 'zhilian', title: '智联招聘', icon: 'mdi-city', color: '#1677FF' },
-  { platform: 'job51', title: '前程无忧', icon: 'mdi-account-tie', color: '#FF6B00' },
-  { platform: 'liepin', title: '猎聘', icon: 'mdi-target-account', color: '#722ED1' },
+  { platform: 'boss', title: 'BOSS直聘', icon: 'mdi mdi-briefcase-account', color: '#00B96B' },
+  { platform: 'zhilian', title: '智联招聘', icon: 'mdi mdi-city', color: '#1677FF' },
+  { platform: 'job51', title: '前程无忧', icon: 'mdi mdi-account-tie', color: '#FF6B00' },
+  { platform: 'liepin', title: '猎聘', icon: 'mdi mdi-target-account', color: '#722ED1' },
 ];
+
+// vue-sidebar-menu 菜单数据（折叠时点击父项会弹出子菜单）
+const navMenu = computed(() => [
+  {
+    title: 'AI智能求职',
+    icon: 'mdi mdi-robot-outline',
+    child: [
+      { href: '/common', title: '公共配置', icon: 'mdi mdi-cog-outline' },
+      {
+        title: '平台配置',
+        icon: 'mdi mdi-tune-variant',
+        child: platformItems.map((p) => ({
+          href: `/platform/${p.platform}/config`,
+          title: p.title,
+          icon: p.icon,
+        })),
+      },
+      {
+        title: '岗位明细',
+        icon: 'mdi mdi-table-large',
+        child: platformItems.map((p) => ({
+          href: `/platform/${p.platform}/records`,
+          title: `${p.title}岗位`,
+          icon: p.icon,
+        })),
+      },
+      { href: '/company-evaluation', title: '企业评估', icon: 'mdi mdi-office-building-cog-outline' },
+    ],
+  },
+  {
+    href: '/resume-optimizer',
+    title: '简历优化',
+    icon: 'mdi mdi-file-document-edit-outline',
+  },
+]);
 
 // 主题配置
 const themes = [
@@ -370,34 +306,36 @@ const themeStyles = computed(() => ({
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* 导航栏样式 */
-.nav-drawer {
-  border-right: 1px solid v-bind('currentTheme.divider') !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* vue-sidebar-menu 覆盖：与当前主题一致 */
+.app-sidebar {
+  --vsm-primary-color: v-bind('currentTheme.primary');
+  --vsm-base-bg: v-bind('currentTheme.drawerBg');
+  --vsm-item-color: v-bind('currentTheme.textPrimary');
+  --vsm-item-active-bg: rgba(0, 0, 0, 0.06);
+  --vsm-item-active-line-color: v-bind('currentTheme.primary');
+  --vsm-item-hover-bg: rgba(0, 0, 0, 0.04);
+  --vsm-icon-color: v-bind('currentTheme.primary');
+  --vsm-dropdown-bg: v-bind('currentTheme.drawerBg');
+  --vsm-toggle-btn-color: v-bind('currentTheme.textSecondary');
+  border-right: 1px solid v-bind('currentTheme.divider');
 }
 
-.drawer-header {
+.sidebar-header {
   padding: 20px 16px;
-  min-height: 80px;
+  min-height: 72px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: center;
+  gap: 4px;
 }
 
-.header-content {
-  display: flex;
+.sidebar-header--collapsed {
   align-items: center;
-  gap: 12px;
-  width: 100%;
+  padding: 16px 8px;
 }
 
-.header-content-mini {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.logo-wrapper {
+.sidebar-header .logo-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -408,157 +346,69 @@ const themeStyles = computed(() => ({
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.brand-text {
-  flex: 1;
+.sidebar-header--collapsed .logo-wrapper {
+  width: 40px;
+  height: 40px;
 }
 
-.brand-title {
+.sidebar-header .logo-icon {
+  font-size: 28px;
+  color: #fff;
+}
+
+.sidebar-header .brand-title {
   font-size: 18px;
   font-weight: 700;
   color: v-bind('currentTheme.textPrimary');
   letter-spacing: -0.02em;
-  line-height: 1.2;
 }
 
-.brand-subtitle {
+.sidebar-header .brand-subtitle {
   font-size: 11px;
   font-weight: 500;
   color: v-bind('currentTheme.textSecondary');
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-top: 2px;
 }
 
-/* 导航列表：覆盖 Vuetify 一二级水平间距（默认 16px base + 16px/层 indent） */
-.nav-list {
-  padding: 8px;
-  /* 每层缩进减半，否则 .v-list-group__items 会用 --list-indent-size 默认 16px */
-  --list-indent-size: 8px;
-}
-/* 覆盖 .v-list-group__items .v-list-item 的 padding-inline-start，base 从 16px 改为 8px */
-.nav-list :deep(.v-list-group__items .v-list-item) {
-  padding-inline-start: calc(8px + var(--indent-padding, 0px)) !important;
+.app-body {
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.nav-item-main {
-  margin-bottom: 4px;
-  border-radius: 10px !important;
-  transition: all 0.2s ease;
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid v-bind('currentTheme.divider');
 }
 
-.nav-item-main:hover {
-  background: rgba(0, 0, 0, 0.04) !important;
-  transform: translateX(2px);
-}
-
-.nav-item-main.rail-mode {
-  justify-content: center;
-}
-
-.nav-icon-wrapper {
+.sidebar-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.02);
-  transition: all 0.2s ease;
-}
-
-.nav-item-main:hover .nav-icon-wrapper {
-  background: v-bind('currentTheme.primary');
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-.nav-item-main:hover .nav-icon-wrapper :deep(.v-icon) {
-  color: white !important;
-}
-
-.nav-title {
-  font-weight: 600;
-  font-size: 14px;
-  color: v-bind('currentTheme.textPrimary');
-}
-
-.nav-section {
-  margin: 8px 0;
-}
-
-.section-header {
-  font-size: 11px;
-  font-weight: 600;
   color: v-bind('currentTheme.textSecondary');
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 8px 16px 4px;
-  opacity: 0.8;
-}
-
-/* 一级与二级间距缩小为一半：子项上下 margin 1px，主分组内容区减少顶部留白 */
-.nav-list :deep(.v-list-group__items) {
-  padding-top: 4px;
-  padding-bottom: 2px;
-}
-
-/* 二级与一级图标位水平间距缩为一半 */
-.nav-item-sub {
-  margin: 1px 0;
-  border-radius: 8px !important;
-  padding-left: 8px !important;
-  transition: all 0.2s ease;
-}
-
-.nav-item-sub:hover {
-  background: rgba(0, 0, 0, 0.03) !important;
-  padding-left: 10px !important;
-}
-
-.nav-item-sub.rail-mode {
-  padding-left: 8px !important;
-}
-
-.nav-item-sub :deep(.v-list-item-title) {
   font-size: 13px;
   font-weight: 500;
-  color: v-bind('currentTheme.textSecondary');
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.nav-item-sub:hover :deep(.v-list-item-title) {
-  color: v-bind('currentTheme.textPrimary');
+.sidebar-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
 }
 
-/* 二级分组（平台配置 / 岗位明细）- 左侧留白与一级图标间距缩半 */
-.nav-subgroup :deep(.v-list-group__items) {
-  margin-left: 0;
-  padding-left: 3px;
-  border-left: 2px solid v-bind('currentTheme.divider');
+.sidebar-toggle .mdi {
+  font-size: 20px;
 }
 
-.nav-item-subgroup :deep(.v-list-item-title) {
-  font-weight: 600;
-  color: v-bind('currentTheme.textPrimary');
-}
-
-.nav-item-child {
-  padding-left: 7px !important;
-}
-
-.nav-item-child:hover {
-  padding-left: 8px !important;
-}
-
-/* 导航栏底部 */
-.drawer-footer {
-  padding: 12px;
-}
-
-.toggle-btn {
-  color: v-bind('currentTheme.textSecondary') !important;
-  font-size: 13px;
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
+.sidebar-toggle span {
+  margin-left: 8px;
 }
 
 /* 顶部应用栏 */

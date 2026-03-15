@@ -5,8 +5,9 @@ import getjobs.modules.ai.company.assembler.CompanyEvaluationPromptAssembler;
 import getjobs.modules.ai.company.dto.CompanyEvaluationEvaluateResponse;
 import getjobs.modules.ai.company.dto.CompanyEvaluationResult;
 import getjobs.modules.ai.company.dto.RecommendationCode;
-import getjobs.modules.ai.infrastructure.llm.LlmClient;
-import getjobs.modules.ai.infrastructure.llm.LlmMessage;
+import getjobs.infrastructure.ai.enums.AiPlatform;
+import getjobs.infrastructure.ai.llm.LlmClient;
+import getjobs.infrastructure.ai.llm.LlmMessage;
 import getjobs.repository.CompanyEvaluationRepository;
 import getjobs.repository.entity.CompanyEvaluationEntity;
 import lombok.RequiredArgsConstructor;
@@ -45,16 +46,21 @@ public class CompanyEvaluationAiService {
         return evaluate(companyInfo, DEFAULT_TEMPLATE_ID, null);
     }
 
+    public CompanyEvaluationEvaluateResponse evaluate(String companyInfo, String templateId, String modelOverride) {
+        return evaluate(companyInfo, templateId, modelOverride, null);
+    }
+
     /**
-     * 根据公司信息进行求职风险评估，支持指定模板与模型。
+     * 根据公司信息进行求职风险评估，支持指定模板、模型与平台。
      * 命中缓存时直接返回缓存结果与记录 ID；否则调 AI、派生字段、入库后返回。
      *
      * @param companyInfo   公司信息文本
      * @param templateId    提示词模板 ID
      * @param modelOverride 本次使用的模型（如 deepseek-reasoner），null 时用默认配置
+     * @param platform      AI 平台，null 时使用默认平台（DEEPSEEK）
      * @return 含 recordId 与 result 的响应（新评估会写入库并返回 recordId）
      */
-    public CompanyEvaluationEvaluateResponse evaluate(String companyInfo, String templateId, String modelOverride) {
+    public CompanyEvaluationEvaluateResponse evaluate(String companyInfo, String templateId, String modelOverride, AiPlatform platform) {
         String normalizedInput = companyInfo != null ? companyInfo.trim() : "";
         if (!StringUtils.hasText(normalizedInput)) {
             throw new IllegalArgumentException("公司信息不能为空");
@@ -62,14 +68,14 @@ public class CompanyEvaluationAiService {
 
         Optional<CompanyEvaluationEntity> cached = companyEvaluationRepository
                 .findFirstByCompanyInfoAndIsDeletedFalseOrderByCreatedAtDesc(normalizedInput);
-        if (cached.isPresent() && !StringUtils.hasText(modelOverride)) {
+        if (cached.isPresent()) {
             CompanyEvaluationResult fromDb = deserializeResult(cached.get().getResultJson());
             log.info("Company evaluation cache hit - companyInfo length={}", normalizedInput.length());
             return new CompanyEvaluationEvaluateResponse(cached.get().getId(), fromDb);
         }
 
         List<LlmMessage> messages = assembler.assemble(templateId, normalizedInput);
-        String rawResponse = llmClient.chat(messages, modelOverride).trim();
+        String rawResponse = llmClient.chat(platform, messages, modelOverride, 0.0).trim();
 
         CompanyEvaluationResult result = parseEvaluationResult(rawResponse);
         fillDerivedFromRiskScore(result);

@@ -1,6 +1,6 @@
 package getjobs.controller;
 
-import getjobs.config.ai.DeepseekConfigRefreshService;
+import getjobs.infrastructure.ai.config.DeepseekConfigRefreshService;
 import lombok.Data;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;

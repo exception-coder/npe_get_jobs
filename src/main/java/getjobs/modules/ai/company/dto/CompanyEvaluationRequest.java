@@ -21,4 +21,9 @@ public class CompanyEvaluationRequest {
      * 本次调用使用的模型名（如 deepseek-chat、deepseek-reasoner）。未传或为空时使用默认配置模型。
      */
     private String model;
+
+    /**
+     * AI 平台（DEEPSEEK / QWEN / OPENAI）。未传或为空时使用默认平台（DEEPSEEK）。
+     */
+    private String platform;
 }

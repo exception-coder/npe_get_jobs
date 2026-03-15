@@ -5,6 +5,7 @@ import getjobs.modules.ai.company.dto.CompanyEvaluationDeleteResponse;
 import getjobs.modules.ai.company.dto.CompanyEvaluationEvaluateResponse;
 import getjobs.modules.ai.company.dto.CompanyEvaluationListItem;
 import getjobs.modules.ai.company.dto.CompanyEvaluationPageResponse;
+import getjobs.infrastructure.ai.enums.AiPlatform;
 import getjobs.modules.ai.company.dto.CompanyEvaluationRequest;
 import getjobs.modules.ai.company.dto.CompanyEvaluationResult;
 import getjobs.modules.ai.company.service.CompanyEvaluationAiService;
@@ -65,10 +66,12 @@ public class CompanyEvaluationController {
             return ResponseEntity.badRequest().build();
         }
         String model = request != null && StringUtils.hasText(request.getModel()) ? request.getModel().trim() : null;
+        AiPlatform platform = parsePlatform(request != null ? request.getPlatform() : null);
         CompanyEvaluationEvaluateResponse response = companyEvaluationAiService.evaluate(
                 trimmed,
                 "company-evaluation-v1",
-                model
+                model,
+                platform
         );
         return ResponseEntity.ok(response);
     }
@@ -130,6 +133,15 @@ public class CompanyEvaluationController {
                 entityPage.getSize()
         );
         return ResponseEntity.ok(response);
+    }
+
+    private static AiPlatform parsePlatform(String platform) {
+        if (!StringUtils.hasText(platform)) return null;
+        try {
+            return AiPlatform.valueOf(platform.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private CompanyEvaluationListItem toListItem(CompanyEvaluationEntity entity) {

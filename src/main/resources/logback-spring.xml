@@ -132,6 +132,23 @@
             <appender-ref ref="FILE" />
         </logger>
 
+        <!-- AI 基础设施包：本包内代码的 debug 日志 -->
+        <logger name="getjobs.infrastructure.ai" additivity="false" level="${logging.level.getjobs.infrastructure.ai:-DEBUG}">
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="FILE" />
+        </logger>
+
+        <!-- Deepseek API 完整 HTTP 请求/响应（wiretap 使用的 logger 名，须与 DeepseekApiHttpClientConfig.DEEPSEEK_HTTP_LOGGER 一致） -->
+        <logger name="DeepseekApiHttp" additivity="false" level="DEBUG">
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="FILE" />
+        </logger>
+        <!-- reactor-netty 部分版本 wiretap 可能落在此 logger 下 -->
+        <logger name="reactor.netty.http.client" additivity="false" level="INFO">
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="FILE" />
+        </logger>
+
         <root level="${logging.level.root:-INFO}">
             <appender-ref ref="STDOUT"/>
             <appender-ref ref="FILE"/>

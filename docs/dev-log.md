@@ -1,5 +1,83 @@
 # 开发日志（按时间倒序，最新在上）
 
+## 2026-03-16 - 公司评估前端平台选择适配
+
+- 任务：评估按钮旁新增平台切换（Deepseek / 千问），前后端全链路传递 platform 参数。
+- 变更文件：`CompanyEvaluationRequest.java`（新增 `platform` 字段）；`CompanyEvaluationController.java`（新增 `parsePlatform()` 将字符串解析为 `AiPlatform`，传入 service；默认 model override 改为 null，使用各平台默认模型）；`CompanyEvaluationAiService.java`（新增 `evaluate(..., AiPlatform platform)` 四参重载，调用 `llmClient.chat(platform, messages, modelOverride, 0.0)`，原三参重载委托调新重载）；`companyEvaluationApi.ts`（`evaluateCompany` 新增 `platform` 参数，序列化到请求体）；`CompanyEvaluationView.vue`（新增 `selectedPlatform` ref 默认 `DEEPSEEK`、`platformOptions` 常量、`v-btn-toggle` 平台切换 UI，`runEvaluate` 传入 `selectedPlatform.value`）。
+- 设计决策：platform 为可选字符串，controller 解析时非法值静默回退 null（使用默认 DEEPSEEK），前端 toggle 设置 mandatory 保证始终有选中项；不传 model 时各平台使用其默认配置模型。
+- 变更原因：用户需要在评估界面直接切换调用平台（Deepseek/千问）以对比不同平台效果。
+
+## 2026-03-16 - 阿里千问（Qwen）平台接入
+
+- 任务：新增阿里云千问作为第三个 AI 平台，与 Deepseek/OpenAI 并列可选。
+- 变更文件：新增 `QwenGptConfig.java`（`qwenChatModel`、`qwenStreamingChatModel` Beans，使用 dashscope compatible-mode endpoint）；新增 `QwenApiHttpClientConfig.java`（`qwenApiWebClientBuilder`、`qwenApiRestClientBuilder` Beans，含 `QwenHttpLoggingInterceptor` 拦截器，注入 `enable_search:true` 并覆盖 `Content-Length`，与 Deepseek 相同机制）；`AiPlatform.java`（新增 `QWEN` 枚举值与 `QWEN_BEAN_NAME = "qwenChatModel"`）；`application-gpt.yml`（新增 `spring.ai.qwen` 配置块，含 `QWEN_API_KEY`、`QWEN_MODEL`、`QWEN_BASE_URL` 环境变量占位）。
+- 设计决策：千问与 Deepseek 均兼容 OpenAI 接口格式，复用相同的拦截器模式；`SpringAiLlmClient.buildPrompt()` 中 QWEN 与 DEEPSEEK 共走 `DeepseekChatOptions` 路径（均需 enable_search）；不加 `@RefreshScope`（与 Deepseek 不同，千问不需要动态刷新）。
+- 变更原因：用户需要接入千问以支持平台切换对比。
+
+## 2026-03-16 - SpringAiLlmClient 重构为工厂模式支持多平台
+
+- 任务：`SpringAiLlmClient` 原硬编码 `@Qualifier(DEEPSEEK_BEAN_NAME)` 注入单一 ChatModel，重构为通过 `ChatModelFactory` 按平台动态选择 ChatModel，支持 Deepseek / OpenAI / Qwen 等多平台切换。
+- 变更文件：`LlmClient.java`（新增 `chat(messages, modelOverride, temperature)` 与 `chat(AiPlatform, messages, modelOverride, temperature)` 两个 default 重载）；`SpringAiLlmClient.java`（注入 `ChatModelFactory` 替代 `@Qualifier` 单一 ChatModel；新增 `chat(AiPlatform, ...)` 实现；`buildPrompt()` 按 platform switch：DEEPSEEK/QWEN 用 `DeepseekChatOptions`，OPENAI 用 `OpenAiChatOptions`；默认平台常量 `DEFAULT_PLATFORM = AiPlatform.DEEPSEEK`）。
+- 设计决策：`ChatModelFactory` 构造时遍历 `AiPlatform.values()` 按 bean 名从 Spring 容器取 ChatModel 装入 Map，调用方通过枚举取模型，无需知道 Bean 名；`buildPrompt()` 仅在有 override（model/temperature）时构建自定义 Options，否则走默认 Bean 配置，避免覆盖配置文件中的参数。
+- 变更原因：原实现只能调用 Deepseek，新增千问后需要按平台动态路由到对应 ChatModel。
+
+## 2026-03-16 - 公司评估评分稳定性优化
+
+- 任务：修复公司评估评分每次差异过大（如同一公司 50~70 分漂移）的问题，并强化提示词评分锚点。
+- 变更文件：`LlmClient.java`（新增 `chat(messages, modelOverride, temperature)` default 方法）；`SpringAiLlmClient.java`（实现该重载，temperature/modelOverride 任一非空时使用 `DeepseekChatOptions`，否则走默认 Bean 配置）；`CompanyEvaluationAiService.java`（调用时固定传 `temperature=0.0`，其他场景不受影响）；`company-evaluation-v1.yml`（评分要求中增加分段锚点：9-10/7-8/5-6/3-4/0-2 各段含义，减少模型自由发挥空间）；`application-gpt.yml`（Deepseek 默认 temperature 保持 0.7，不影响其他调用）。
+- 设计决策：temperature 参数通过 `LlmClient` 接口按调用方单独控制，不修改全局配置；评分类场景固定 temperature=0 保证确定性；分段锚点只给出大致区间含义，不强制枚举，保留联网搜索后模型的合理判断空间。
+- 变更原因：评分漂移有两个来源——temperature=0.7 引入随机性、提示词缺乏评分锚点导致模型每次自由定标。联网搜索结果的不确定性无法消除，但通过以上两点可显著收窄漂移范围。
+
+## 2026-03-16 - 基础设施包整理：AiPlatform/ChatModelFactory 迁移 & enable_search 注入修复
+
+- 任务：1）将 `AiPlatform` 枚举与 `ChatModelFactory` 从 `getjobs.modules.ai.common` 迁移到 `getjobs.infrastructure.ai`；2）修复 `enable_search` 字段实际未出现在请求体中的问题。
+- 变更文件：新增 `infrastructure/ai/enums/AiPlatform.java`、`infrastructure/ai/factory/ChatModelFactory.java`，删除 `modules/ai/common/` 目录；`CommonConfigController`、`DeepseekGptConfig`、`GptConfig`、`SpringAiLlmClient` import 改为新路径。`DeepseekApiHttpClientConfig.java` 拦截器增加 `injectEnableSearch()`，通过 Jackson 在请求体发出前注入 `enable_search:true`。`DeepseekApiHttpClientConfig.java` 同步移除原响应体打印逻辑及 `BufferedClientHttpResponse`、`BufferingClientHttpRequestFactory`（只保留请求日志）。
+- 设计决策：1）`AiPlatform`/`ChatModelFactory` 属于 AI 平台适配层，与业务无关，归属 infrastructure 更合理；2）Spring AI 1.0.0-M6 的 `ChatCompletionRequest` 是封闭 record，无法通过子类扩展序列化字段，`ClientHttpRequestInterceptor` 是官方标准拦截扩展点，在此注入 Deepseek 专有字段是最小侵入方案；使用 Jackson 结构化解析而非字符串拼接，更安全可靠。
+- 变更原因：`AiPlatform` 被 infrastructure 层大量引用，放在 modules 下造成反向依赖；`enable_search` 虽在 `DeepseekChatOptions` 中定义，但 Spring AI 序列化时只识别父类字段，实际请求体中从未出现该字段，导致联网搜索功能失效。初版注入使用字符串拼接，后改用 Jackson 结构化解析；另发现修改 body 后未更新 `Content-Length` header，导致服务端按旧长度截断读取触发 `EOF while parsing` 错误，通过 `ContentLengthOverridingRequest` 包装类覆盖该 header 修复。
+
+## 2026-03-16 - Deepseek 同步调用（RestClient）缺少请求日志修复
+
+- 任务：排查 ChatModel 已装配带 wiretap 的 HttpClient 但无请求/响应日志的根因，并补充同步调用的请求日志。
+- 根本原因：Spring AI `OpenAiApi` 内部同步调用走 `RestClient`，流式调用才走 `WebClient`；wiretap 只对 `WebClient`（Reactor Netty）生效，`chatModel.call()` 走的 `RestClient` 完全不经过配置的 HttpClient，故 wiretap 日志从不输出。
+- 变更文件：`DeepseekApiHttpClientConfig.java`（新增 `deepseekApiRestClientBuilder` Bean，附 `DeepseekHttpLoggingInterceptor` 拦截器，打印请求 method/URI/body，输出到 `DeepseekApiHttp` logger；`BufferingClientHttpRequestFactory` 保证 request body 可读）；`DeepseekGptConfig.java`（构造函数注入 `deepseekApiRestClientBuilder`，`buildDeepseekOpenAiApi()` 传入 `.restClientBuilder(...)`）。
+- 设计决策：拦截器只打印请求体（不重写 response），避免 response body 二次读取的复杂性；与 wiretap 共用同一 logger 名 `DeepseekApiHttp`，无需额外日志配置。
+- 变更原因：`chatModel.call()` 同步路径无日志，无法 debug 实际发送的提示词内容。
+
+## 2026-03-15 - Deepseek API HTTP 客户端单独配置与 wiretap 日志
+
+- 任务：1）将 Deepseek 的 HTTP 客户端从 DeepseekGptConfig 中抽离，单独配置便于后期维护与扩展（代理、超时、wiretap 等）；2）通过 Reactor Netty wiretap 打印完整 HTTP 请求/响应（含 body），便于 debug 传递内容；3）在配置类中补充 wiretap 两参数的注释说明。
+- 变更文件：新增 `DeepseekApiHttpClientConfig.java`（提供 Bean `deepseekApiWebClientBuilder`，内部 HttpClient 使用 wiretap）；`DeepseekGptConfig.java` 改为构造函数注入该 WebClient.Builder，`buildDeepseekOpenAiApi()` 使用注入的 builder，移除内联 HttpClient 与 wiretap 代码。
+- 设计决策：1）ChatModel 底层不依赖 Spring 自动装配的 WebClient，显式使用 `OpenAiApi.builder().webClientBuilder(...)` 传入专用 builder；2）wiretap 两参数含义：**LogLevel.DEBUG** 为 wiretap 的触发级别，需在 yml 中设置 `logging.level.DeepseekApiHttp=DEBUG` 才会实际输出；**AdvancedByteBufFormat.TEXTUAL** 表示内容以可读文本格式输出（而非十六进制），便于查看 JSON 请求体/响应体；3）后续代理、超时等只需在 DeepseekApiHttpClientConfig 一处扩展。
+- 变更原因：用户要求最佳实践——单独配置 HTTP 客户端引用便于维护扩展；并将 wiretap 配置含义补充到开发日志。
+
+## 2026-03-15 - AI 基础设施抽离至 getjobs.infrastructure.ai
+
+- 任务：将 DDD-lite 下的 AI 基础设施（原 getjobs.config.ai 与 getjobs.modules.ai.infrastructure.llm）抽离到统一包，便于查找与维护。
+- 变更文件：新增 `getjobs.infrastructure.ai` 包（package-info、config/、llm/）；config 下迁入 GptConfig、DeepseekGptConfig、DeepseekChatOptions、DeepseekConfigRefreshService；llm 下迁入 LlmClient、LlmMessage、SpringAiLlmClient。CommonConfigController、DeepseekConfigController、CompanyEvaluationAiService、CompanyEvaluationPromptAssembler 的 import 改为新包。删除原 config/ai 与 modules/ai/infrastructure/llm 下共 7 个文件。
+- 设计决策：1）统一入口为 getjobs.infrastructure.ai，config 负责 Spring 配置与 Deepseek 动态刷新，llm 负责 LLM 端口与 Spring AI 适配器；2）AiPlatform 仍保留在 getjobs.modules.ai.common.enums，仅基础设施与 Controller 依赖；3）应用层（如 CompanyEvaluationAiService）只依赖 infrastructure.ai.llm 的 LlmClient、LlmMessage。
+- 变更原因：用户希望集中维护 AI 基础设施代码，通过单一包路径快速定位。
+
+## 2026-03-15 - 侧边栏替换为 vue-sidebar-menu（折叠后点击父项弹出子菜单）
+
+- 任务：用 vue-sidebar-menu 替换原 Vuetify 侧边栏，解决折叠后点击带子菜单的图标无反应、对齐与折叠逻辑繁琐等问题。
+- 变更文件：`frontend/package.json`（新增 vue-sidebar-menu）；`frontend/src/App.vue`（侧边栏改为 SidebarMenu、菜单数据 navMenu、主内容区 app-body 留白、主题变量覆盖）。
+- 设计决策：1）折叠状态下组件自带「点击父项弹出子菜单」行为，无需再维护 rail 模式下的显示/隐藏；2）使用 header/footer 插槽放 logo 与「收起菜单」按钮，hide-toggle 隐藏组件自带折叠钮；3）主内容区用 appBodyStyle 根据 collapsed 状态设置 marginLeft（280px/80px），与侧栏同宽。
+- 变更原因：用户要求直接使用较好的菜单布局组件，避免继续修补对齐与折叠问题。
+
+## 2026-03-15 - 侧边导航栏重构：层级缩进与收起时图标完整显示
+
+- 任务：使用 Vuetify 官方能力重构侧边栏，解决一级/二级菜单水平距离混乱、收起（rail）时菜单图标被裁切的问题，并保持自适应。
+- 变更文件：`frontend/src/App.vue`（导航栏与样式）。
+- 设计决策：1）使用 `v-navigation-drawer` 的 `width`(280)、`rail-width`(80)，保证收起时 80px 足够图标+左右留白，图标不被裁切；2）通过 CSS 变量 `--list-indent-size: 24px` 让 Vuetify 列表每层缩进 24px，层级清晰；3）rail 模式下用 `.nav-drawer--rail` 隐藏子项与标题、仅保留图标并居中，避免窄条时文字与箭头挤占空间。
+- 变更原因：用户反馈二级与一级水平距离控制差、收起菜单时图标显示不完整，需基于开源布局组件做自适应重构。
+
+## 2026-03-15 - Deepseek 调用增加 enable_search 参数以支持联网
+
+- 任务：Deepseek 需联网时需在请求体中传 `enable_search: true`，按官方示例补充该参数。
+- 变更文件：`DeepseekChatOptions.java`（新建，继承 OpenAiChatOptions，增加 `enable_search` 字段及 deepseekBuilder）；`DeepseekGptConfig.java`（默认选项改为 DeepseekChatOptions.deepseekBuilder()，并读取 enable-search 配置）；`SpringAiLlmClient.java`（modelOverride 时使用 DeepseekChatOptions.deepseekBuilder().model(...).enableSearch(true).build()）；`application-gpt.yml`（deepseek.chat.options 下增加 enable-search: true 及注释）。
+- 设计决策：通过子类在序列化请求体时带上 enable_search；未传 modelOverride 时使用 Bean 默认选项（已含 enable_search）。
+- 变更原因：用户提供 Python 示例需 enable_search 才能联网，需在 Java 调用中同步支持。
+
 ## 2026-03-15 - 公司评估结果卡片移除维度评分展示
 
 - 任务：当前提示词仅返回 pay_risk、company_type、risk_score、reason，不再产出 dimension_scores，结果卡片中「各维度 1–10 分」的展示已无数据来源，移除相关 UI 与逻辑。

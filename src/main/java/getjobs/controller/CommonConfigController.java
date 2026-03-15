@@ -2,8 +2,8 @@ package getjobs.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import getjobs.common.dto.UserProfileDTO;
-import getjobs.config.ai.DeepseekConfigRefreshService;
-import getjobs.modules.ai.common.enums.AiPlatform;
+import getjobs.infrastructure.ai.config.DeepseekConfigRefreshService;
+import getjobs.infrastructure.ai.enums.AiPlatform;
 import getjobs.repository.UserProfileRepository;
 import getjobs.repository.entity.UserProfile;
 import getjobs.modules.ai.job_skill.service.JobSkillAnalysisAsyncService;
