@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,8 +25,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 登录状态检查定时任务
- * 定期检查各个招聘平台的登录状态
+ * 登录状态检查（原定时任务已禁用）
+ * <p>
+ * 原每 15 秒执行一次的定时任务已移除，原因：该任务会触发 SQLite 写锁。
+ * 写锁原因：每次检查都会调用 {@link getjobs.common.service.PlaywrightService#savePlatformCookieToConfig}，
+ * 其内部执行 {@code configService.loadByPlatformType()} + {@code configService.save(config)}，
+ * 即对同一 SQLite 库（主数据源 npe_get_jobs.db）的 config 表进行读+写。SQLite 同一时刻仅允许一个写连接，
+ * 定时任务频繁写 config 会与业务请求（如岗位、公司评估等）的写操作争抢写锁，导致 "database is locked" 或阻塞。
+ * </p>
+ * <p>
+ * 保留本类及 {@link #checkLoginStatus()} 方法供需要时手动触发；不再使用 {@code @Scheduled}。
+ * </p>
  *
  * @author getjobs
  */
@@ -48,10 +56,9 @@ public class LoginStatusCheckScheduler {
     private final Map<RecruitmentPlatformEnum, LoginStatusDTO> loginStatusMap = new ConcurrentHashMap<>();
 
     /**
-     * 定时检查登录状态
-     * 每5分钟执行一次
+     * 检查登录状态（原定时入口，已取消 @Scheduled，避免 SQLite 写锁）
+     * 可保留供手动或接口触发时调用
      */
-    @Scheduled(fixedRate = 15000) // 15秒
     public void checkLoginStatus() {
         // 如果 Playwright 服务未启用，则跳过登录状态检查
         if (!playwrightEnabled) {

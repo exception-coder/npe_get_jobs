@@ -2,6 +2,7 @@ package getjobs.modules.ai.company.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import getjobs.modules.ai.company.assembler.CompanyEvaluationPromptAssembler;
+import getjobs.modules.ai.company.dto.CompanyEvaluationEvaluateResponse;
 import getjobs.modules.ai.company.dto.CompanyEvaluationResult;
 import getjobs.modules.ai.company.dto.RecommendationCode;
 import getjobs.modules.ai.infrastructure.llm.LlmClient;
@@ -18,10 +19,10 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * 公司质量评估 AI 服务
+ * 公司求职风险评估 AI 服务
  * <p>
- * 使用 AI 从多维度评估公司是否值得投递，返回评分、优劣势与投递建议。
- * 设计参考 {@link getjobs.modules.ai.job.service.JobMatchAiService}。
+ * 按 company-evaluation-v1 提示词：AI 直接返回 company_name、pay_risk、company_type、risk_score、reason，
+ * 服务仅做派生字段（total_score、推荐等级、safe_to_apply）并入库。
  * </p>
  */
 @Slf4j
@@ -39,23 +40,21 @@ public class CompanyEvaluationAiService {
 
     /**
      * 根据公司信息进行质量评估（使用默认模板）
-     *
-     * @param companyInfo 公司信息文本（名称、规模、融资、行业、技术栈、口碑等）
-     * @return 评估结果，包含各维度得分与投递建议
      */
-    public CompanyEvaluationResult evaluate(String companyInfo) {
-        return evaluate(companyInfo, DEFAULT_TEMPLATE_ID);
+    public CompanyEvaluationEvaluateResponse evaluate(String companyInfo) {
+        return evaluate(companyInfo, DEFAULT_TEMPLATE_ID, null);
     }
 
     /**
-     * 根据公司信息进行质量评估（可指定模板 ID）。
-     * 先按公司信息文本查库，有记录则直接返回；否则调用 AI 并落库后返回。
+     * 根据公司信息进行求职风险评估，支持指定模板与模型。
+     * 命中缓存时直接返回缓存结果与记录 ID；否则调 AI、派生字段、入库后返回。
      *
-     * @param companyInfo 公司信息文本
-     * @param templateId  提示词模板 ID（例如 "company-evaluation-v1"）
-     * @return 评估结果
+     * @param companyInfo   公司信息文本
+     * @param templateId    提示词模板 ID
+     * @param modelOverride 本次使用的模型（如 deepseek-reasoner），null 时用默认配置
+     * @return 含 recordId 与 result 的响应（新评估会写入库并返回 recordId）
      */
-    public CompanyEvaluationResult evaluate(String companyInfo, String templateId) {
+    public CompanyEvaluationEvaluateResponse evaluate(String companyInfo, String templateId, String modelOverride) {
         String normalizedInput = companyInfo != null ? companyInfo.trim() : "";
         if (!StringUtils.hasText(normalizedInput)) {
             throw new IllegalArgumentException("公司信息不能为空");
@@ -63,22 +62,63 @@ public class CompanyEvaluationAiService {
 
         Optional<CompanyEvaluationEntity> cached = companyEvaluationRepository
                 .findFirstByCompanyInfoAndIsDeletedFalseOrderByCreatedAtDesc(normalizedInput);
-        if (cached.isPresent()) {
+        if (cached.isPresent() && !StringUtils.hasText(modelOverride)) {
             CompanyEvaluationResult fromDb = deserializeResult(cached.get().getResultJson());
             log.info("Company evaluation cache hit - companyInfo length={}", normalizedInput.length());
-            return fromDb;
+            return new CompanyEvaluationEvaluateResponse(cached.get().getId(), fromDb);
         }
 
         List<LlmMessage> messages = assembler.assemble(templateId, normalizedInput);
-        String rawResponse = llmClient.chat(messages).trim();
+        String rawResponse = llmClient.chat(messages, modelOverride).trim();
 
         CompanyEvaluationResult result = parseEvaluationResult(rawResponse);
+        fillDerivedFromRiskScore(result);
         normalizeRecommendationCode(result);
-        saveResult(normalizedInput, result);
-        log.info("Company evaluation - template={}, company={}, totalScore={}, recommendation={}",
-                templateId, result.getCompanyName(), result.getTotalScore(), result.getRecommendationLevel());
+
+        CompanyEvaluationEntity saved = saveResult(normalizedInput, result);
+        Long recordId = saved != null ? saved.getId() : null;
+        if (saved != null) {
+            log.info("Company evaluation saved - recordId={}, company={}, riskScore={}", recordId, result.getCompanyName(), result.getRiskScore());
+        } else {
+            log.warn("Company evaluation result not persisted - companyInfo length={}", normalizedInput.length());
+        }
+        log.info("Company evaluation - template={}, company={}, totalScore={}, riskScore={}, recommendation={}",
+                templateId, result.getCompanyName(), result.getTotalScore(), result.getRiskScore(), result.getRecommendationLevel());
         log.debug("Raw AI response: {}", rawResponse);
-        return result;
+
+        return new CompanyEvaluationEvaluateResponse(recordId, result);
+    }
+
+    /**
+     * 按提示词返回的 risk_score(0-10) 派生 total_score、推荐等级、safe_to_apply
+     */
+    private void fillDerivedFromRiskScore(CompanyEvaluationResult result) {
+        Integer riskScore = result.getRiskScore();
+        if (riskScore == null) {
+            return;
+        }
+        int totalScore = Math.max(0, Math.min(100, riskScore * 10));
+        result.setTotalScore(totalScore);
+        result.setSafeToApply(riskScore >= 5);
+        RecommendationCode code = scoreToRecommendation(totalScore);
+        result.setRecommendationCode(code.name());
+        result.setRecommendationLevel(recommendationLevelLabel(code));
+    }
+
+    private static RecommendationCode scoreToRecommendation(int totalScore) {
+        if (totalScore >= 85) return RecommendationCode.STRONGLY_RECOMMENDED;
+        if (totalScore >= 70) return RecommendationCode.RECOMMENDED;
+        if (totalScore >= 55) return RecommendationCode.CAUTIOUS;
+        return RecommendationCode.NOT_RECOMMENDED;
+    }
+
+    private static String recommendationLevelLabel(RecommendationCode code) {
+        return switch (code) {
+            case STRONGLY_RECOMMENDED -> "强烈推荐";
+            case RECOMMENDED -> "可以投递";
+            case CAUTIOUS -> "谨慎投递";
+            case NOT_RECOMMENDED -> "不建议";
+        };
     }
 
     private CompanyEvaluationResult deserializeResult(String resultJson) {
@@ -90,16 +130,21 @@ public class CompanyEvaluationAiService {
         }
     }
 
-    private void saveResult(String companyInfo, CompanyEvaluationResult result) {
+    /**
+     * 将评估结果写入库
+     *
+     * @return 保存后的实体（含 id），失败时返回 null
+     */
+    private CompanyEvaluationEntity saveResult(String companyInfo, CompanyEvaluationResult result) {
         try {
             String json = objectMapper.writeValueAsString(result);
             CompanyEvaluationEntity entity = new CompanyEvaluationEntity();
             entity.setCompanyInfo(companyInfo);
             entity.setResultJson(json);
-            companyEvaluationRepository.save(entity);
-            log.debug("Company evaluation saved for companyInfo length={}", companyInfo.length());
+            return companyEvaluationRepository.save(entity);
         } catch (Exception e) {
             log.error("Failed to save company evaluation: {}", e.getMessage());
+            return null;
         }
     }
 

@@ -8,15 +8,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 公司评估提示词组装器
- * <p>
- * 将公司评估模板与公司信息组装成 LLM 消息列表。
- * </p>
+ * 公司评估提示词组装器：将模板与公司信息组装成 LLM 消息列表。
  */
 @Component
 @RequiredArgsConstructor
@@ -27,13 +24,9 @@ public class CompanyEvaluationPromptAssembler {
 
     /**
      * 组装公司评估的提示词消息列表
-     *
-     * @param templateId  模板 ID（例如 "company-evaluation-v1"）
-     * @param companyInfo 公司信息文本
-     * @return LLM 消息列表
      */
     public List<LlmMessage> assemble(String templateId, String companyInfo) {
-        Map<String, Object> variables = new HashMap<>();
+        Map<String, Object> variables = new LinkedHashMap<>();
         variables.put(CompanyPromptVariables.COMPANY_INFO, companyInfo != null ? companyInfo : "");
 
         PromptTemplate template = templateRepository.get(templateId);

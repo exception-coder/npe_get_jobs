@@ -153,6 +153,11 @@ public class JobFilterService {
             return "已联系过";
         }
 
+        // 代理岗位直接过滤不投递
+        if (Boolean.TRUE.equals(job.getIsProxyJob())) {
+            return "代理岗位不投递";
+        }
+
         if (salaryExpected) {
             // 检查薪资
             if (!salaryFilterService.isSalaryExpected(job, config)) {

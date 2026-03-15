@@ -307,10 +307,12 @@ public class PlaywrightService {
                     attachObservers(page);
                 }
 
-                // 先加载Cookie，再导航到页面
-                loadPlatformCookies(platform, page);
-
+                // 先导航到目标域，再注入 Cookie，最后刷新页面，确保 Cookie 随请求发送
+                // （Playwright 在 navigate 前 addCookies 时，首次请求可能不会带上 cookie）
                 page.navigate(platform.getHomeUrl());
+                page.waitForLoadState(com.microsoft.playwright.options.LoadState.DOMCONTENTLOADED);
+                loadPlatformCookies(platform, page);
+                page.reload(new Page.ReloadOptions().setWaitUntil(com.microsoft.playwright.options.WaitUntilState.DOMCONTENTLOADED));
                 pageMap.put(platform, page);
                 log.info("✓ 已为平台 {} 初始化页面: {}", platform.getPlatformName(),
                         platform.getHomeUrl());
@@ -1151,7 +1153,7 @@ public class PlaywrightService {
             }
 
             String cookieData = config.getCookieData();
-            loadCookiesFromJson(cookieData, page);
+            loadCookiesFromJson(platform.getHomeUrl(), cookieData, page);
             log.info("已为平台 {} 加载Cookie", platform.getPlatformName());
         } catch (Exception e) {
             log.error("加载平台 {} 的Cookie失败，将使用无Cookie状态启动", platform.getPlatformName(), e);
@@ -1160,11 +1162,21 @@ public class PlaywrightService {
 
     /**
      * 从JSON字符串加载Cookie到页面
+     * <p>
+     * Playwright 要求：每个 cookie 必须提供 {@code url}，或同时提供 {@code domain} 与 {@code path}。
+     * 调用方应保证在「已导航到 targetUrl 对应域名」之后调用本方法，再执行一次 reload，
+     * 否则首次请求可能不会带上注入的 cookie（Playwright 已知行为）。
+     * </p>
      *
-     * @param cookieData Cookie的JSON字符串
+     * @param targetUrl 目标站点的 URL（用于设置 cookie 的 url 作用域，通常为平台首页）
+     * @param cookieData Cookie 的 JSON 字符串
      * @param page       页面对象
      */
-    private void loadCookiesFromJson(String cookieData, Page page) {
+    private void loadCookiesFromJson(String targetUrl, String cookieData, Page page) {
+        if (targetUrl == null || targetUrl.trim().isEmpty()) {
+            log.warn("loadCookiesFromJson: targetUrl 为空，无法正确注入 Cookie");
+            return;
+        }
         try {
             JSONArray jsonArray = new JSONArray(cookieData);
             List<Cookie> cookies = new ArrayList<>();
@@ -1179,28 +1191,27 @@ public class PlaywrightService {
                 if (!jsonObject.isNull("domain")) {
                     cookie.domain = jsonObject.getString("domain");
                 }
-
                 if (!jsonObject.isNull("path")) {
                     cookie.path = jsonObject.getString("path");
                 }
-
+                if (cookie.domain != null && (cookie.path == null || cookie.path.isEmpty())) {
+                    cookie.path = "/";
+                }
                 if (!jsonObject.isNull("expires")) {
                     cookie.expires = jsonObject.getDouble("expires");
                 }
-
                 if (!jsonObject.isNull("secure")) {
                     cookie.secure = jsonObject.getBoolean("secure");
                 }
-
                 if (!jsonObject.isNull("httpOnly")) {
                     cookie.httpOnly = jsonObject.getBoolean("httpOnly");
                 }
-
+                cookie.url = targetUrl;
                 cookies.add(cookie);
             }
 
             page.context().addCookies(cookies);
-            log.debug("成功加载 {} 个Cookie", cookies.size());
+            log.debug("成功加载 {} 个Cookie（targetUrl={}）", cookies.size(), targetUrl);
         } catch (Exception e) {
             log.error("从JSON加载Cookie失败", e);
         }

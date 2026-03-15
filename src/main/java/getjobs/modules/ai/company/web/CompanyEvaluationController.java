@@ -2,6 +2,7 @@ package getjobs.modules.ai.company.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import getjobs.modules.ai.company.dto.CompanyEvaluationDeleteResponse;
+import getjobs.modules.ai.company.dto.CompanyEvaluationEvaluateResponse;
 import getjobs.modules.ai.company.dto.CompanyEvaluationListItem;
 import getjobs.modules.ai.company.dto.CompanyEvaluationPageResponse;
 import getjobs.modules.ai.company.dto.CompanyEvaluationRequest;
@@ -24,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -52,20 +52,25 @@ public class CompanyEvaluationController {
     }
 
     /**
-     * 根据企业名称评估公司是否值得投递
+     * 根据企业名称评估公司求职风险（欠薪/外包/皮包），结果入库并返回记录 ID
      *
      * @param request 请求体，companyName 为企业名称（也可为更长公司描述）
-     * @return 评估结果
+     * @return recordId 与评估结果 result
      */
     @PostMapping("/evaluate")
-    public ResponseEntity<CompanyEvaluationResult> evaluate(@RequestBody CompanyEvaluationRequest request) {
+    public ResponseEntity<CompanyEvaluationEvaluateResponse> evaluate(@RequestBody CompanyEvaluationRequest request) {
         String name = request != null ? request.getCompanyName() : null;
         String trimmed = name != null ? name.trim() : "";
         if (!StringUtils.hasText(trimmed)) {
             return ResponseEntity.badRequest().build();
         }
-        CompanyEvaluationResult result = companyEvaluationAiService.evaluate(trimmed);
-        return ResponseEntity.ok(result);
+        String model = request != null && StringUtils.hasText(request.getModel()) ? request.getModel().trim() : null;
+        CompanyEvaluationEvaluateResponse response = companyEvaluationAiService.evaluate(
+                trimmed,
+                "company-evaluation-v1",
+                model
+        );
+        return ResponseEntity.ok(response);
     }
 
     /**

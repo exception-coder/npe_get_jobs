@@ -31,7 +31,7 @@ public class ConfigServiceImpl implements ConfigService {
         } else {
             List<ConfigEntity> all = configRepository.findAll();
             if (!all.isEmpty()) {
-                ConfigEntity existed = all.get(0);
+                ConfigEntity existed = all.getFirst();
                 entity.setId(existed.getId());
             }
             return configRepository.save(entity);

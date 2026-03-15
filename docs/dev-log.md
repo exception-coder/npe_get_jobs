@@ -1,5 +1,45 @@
 # 开发日志（按时间倒序，最新在上）
 
+## 2026-03-15 - 公司评估结果卡片移除维度评分展示
+
+- 任务：当前提示词仅返回 pay_risk、company_type、risk_score、reason，不再产出 dimension_scores，结果卡片中「各维度 1–10 分」的展示已无数据来源，移除相关 UI 与逻辑。
+- 变更文件：`CompanyEvaluationResultCard.vue`（删除维度区块模板、dimensionLabels/getDimensionScore 及 DimensionScores 引用、.dimensions/.dim-row 等样式）。
+- 变更原因：与简化后的求职风险顾问评估结果一致，避免展示空维度。
+
+## 2026-03-15 - 公司评估按提示词简化处理并保证入库、响应含 recordId
+
+- 任务：1）按 company-evaluation-v1 提示词：AI 只返回 company_name、pay_risk、company_type、risk_score、reason，服务不再做维度加权，仅用 risk_score 派生 total_score/推荐等级/safe_to_apply；2）每次新评估结果均入库（saveResult 在每次调用 LLM 后执行）；3）评估接口响应改为含 record_id 与 result，便于前端确认入库。
+- 变更文件：`CompanyEvaluationAiService.java`（去掉 DimensionScores/applyWeightedScore/旧 8 维逻辑，改为 fillDerivedFromRiskScore；saveResult 改为返回 CompanyEvaluationEntity 并始终在本次评估后调用；evaluate 返回 CompanyEvaluationEvaluateResponse(recordId, result)）；`CompanyEvaluationEvaluateResponse.java`（新建，含 record_id、result）；`CompanyEvaluationController.java`（evaluate 返回 ResponseEntity<CompanyEvaluationEvaluateResponse>）；`companyEvaluationApi.ts`（evaluateCompany 返回 CompanyEvaluationEvaluateResponse，类型含 record_id、result）；`CompanyEvaluationView.vue`（runEvaluate 使用 res.result 与 res.record_id，入库成功时 snackbar 提示记录号）。
+- 设计决策：命中缓存时返回缓存实体 id；新评估先解析 AI JSON、再派生字段、再入库，返回新记录 id；保存失败时 record_id 为 null 并打日志，不抛异常以保证仍返回结果。
+- 变更原因：结果简化后不再需要后端加权计算；确保每次评估都登记入库；接口与前端需明确拿到记录 id。
+
+## 2026-03-15 - 移除公司评估维度权重配置
+
+- 任务：去掉用户可配置的 8 维度权重，降低复杂度；评估已改为求职风险顾问（欠薪/外包/皮包），不再使用多维度加权总分。
+- 变更文件：`CompanyEvaluationController.java`（evaluate 不再传 dimensionWeights）；`CompanyEvaluationRequest.java`（删除 dimensionWeights 字段）；`CompanyEvaluationAiService.java`（evaluate 仅 companyInfo/templateId/modelOverride，applyWeightedScore 无权重参数，旧缓存有 dimension_scores 时按等权计算）；`CompanyEvaluationPromptAssembler.java`（仅 assemble(templateId, companyInfo)，删除权重相关）；`CompanyPromptVariables.java`（删除 DIMENSION_WEIGHTS_CONFIG）；`companyEvaluationApi.ts`（evaluateCompany 仅 companyName、可选 model，删除 DimensionWeights）；`CompanyEvaluationView.vue`（删除维度权重折叠面板、本地保存/恢复、示例企业预览及相关状态与样式）。
+- 变更原因：用户不需要权重配置，简化交互与实现。
+
+## 2026-03-15 - 公司评估提示词简化为求职风险顾问（欠薪/外包/皮包）
+
+- 任务：将公司评估从「多维度质量评分+投递建议」改为「求职风险顾问」：只关注欠薪风险、外包/皮包识别，输出 pay_risk、company_type、risk_score(0-10)、reason，不再淘汰普通公司，不加入前景/赛道等影响投递的判断。
+- 变更文件：`company-evaluation-v1.yml`（重写为求职风险顾问提示词，评估维度仅欠薪风险与外包/皮包识别，输出 JSON 五字段）；`CompanyEvaluationResult.java`（新增 pay_risk、risk_score、reason 等字段，保留旧字段以兼容缓存）；`CompanyEvaluationAiService.java`（applyWeightedScore：无 dimension_scores 时用 risk_score×10 作为 total_score 并设置 safe_to_apply=risk_score≥5）；`companyEvaluationApi.ts`（类型增加 pay_risk、risk_score、reason）；`CompanyEvaluationResultCard.vue`（展示 pay_risk、risk_score、reason）。
+- 设计决策：新 AI 只返回简化 JSON；后端用 risk_score 换算为 0-100 总分与推荐等级，便于前端沿用现有展示；旧缓存若含 dimension_scores 仍按原权重逻辑计算。
+- 变更原因：就业难背景下用户只需判断能否正常发工资、是否外包/诈骗，普通公司不被过度淘汰。
+
+## 2026-03-15 - 企业评估支持按请求指定模型，接口默认使用 deepseek-reasoner
+
+- 任务：1）支持在单次调用时动态指定 Deepseek 模型（如 deepseek-chat、deepseek-reasoner）；2）企业评估接口在未传 model 时默认使用 deepseek-reasoner。
+- 变更文件：`LlmClient.java`（新增默认方法 `chat(messages, modelOverride)`）；`SpringAiLlmClient.java`（实现该重载，有 modelOverride 时用 `OpenAiChatOptions.builder().model(modelOverride).build()` 构造 Prompt）；`CompanyEvaluationRequest.java`（新增可选字段 `model`）；`CompanyEvaluationController.java`（从 request 取 model，未指定时赋默认值 `deepseek-reasoner` 并传入 service）；`CompanyEvaluationAiService.java`（新增重载 `evaluate(..., modelOverride)`，调用 `llmClient.chat(messages, modelOverride)`；指定模型时不读缓存、不写缓存）；`companyEvaluationApi.ts`（`evaluateCompany` 增加可选参数 `model` 并写入请求体）。
+- 设计决策：模型覆盖通过 Spring AI 的 Prompt + ChatOptions 在单次请求中生效；企业评估默认 reasoner 以提升分析质量；指定模型时跳过缓存避免与默认模型结果混淆。
+- 变更原因：用户希望在调用时按需切换 deepseek-chat / deepseek-reasoner，且企业评估默认使用推理能力更强的 reasoner。
+
+## 2026-03-15 - 岗位过滤新增代理岗位判定，不投递代理职位
+
+- 任务：在岗位过滤逻辑中新增「代理岗位」判定，通过 `isProxyJob` 直接过滤不参与投递。
+- 变更文件：`JobFilterService.java`（`getFilterReason` 中在「已联系过」判断之后增加对 `job.getIsProxyJob()` 的判定，为 true 时返回「代理岗位不投递」）。
+- 设计决策：与 `isContacted` 一致使用 `Boolean.TRUE.equals(job.getIsProxyJob())` 避免 NPE；过滤原因文案为「代理岗位不投递」便于在过滤统计/日志中区分。
+- 变更原因：用户要求代理岗位不参与投递，仅投递直招岗位。
+
 ## 2026-03-15 - Cookie 注入顺序调整：先导航再注入再刷新，确保带入页面
 
 - 任务：修复「Cookie 似乎并没有加载到页面中」的问题。根因是 Playwright 在首次 navigate 前通过 context.addCookies 添加的 cookie，首次请求可能不会随请求发送（已知行为）。

@@ -31,8 +31,14 @@ export interface DimensionScores {
 /** 单条评估结果（与后端 CompanyEvaluationResult 一致） */
 export interface CompanyEvaluationResult {
   company_name?: string;
-  evaluation_time?: string;
+  /** 欠薪风险结论 */
+  pay_risk?: string;
   company_type?: string;
+  /** 综合风险评分 0-10，越高越靠谱 */
+  risk_score?: number;
+  /** 判断依据简述 */
+  reason?: string;
+  evaluation_time?: string;
   safe_to_apply?: boolean;
   risk_flags?: RiskFlags;
   dimension_scores?: DimensionScores;
@@ -63,11 +69,26 @@ export interface CompanyEvaluationPageResponse {
   size: number;
 }
 
-/** 发起评估 */
-export async function evaluateCompany(companyName: string): Promise<CompanyEvaluationResult> {
-  const res = await httpJson<CompanyEvaluationResult>('/api/ai/company/evaluate', {
+/** 评估接口响应：含入库记录 ID 与评估结果 */
+export interface CompanyEvaluationEvaluateResponse {
+  record_id?: number | null;
+  result: CompanyEvaluationResult;
+}
+
+/** 发起评估（可选传入本次使用的模型），结果会入库并返回 record_id */
+export async function evaluateCompany(
+  companyName: string,
+  model?: string | null
+): Promise<CompanyEvaluationEvaluateResponse> {
+  const body: { companyName: string; model?: string } = {
+    companyName: companyName.trim(),
+  };
+  if (model?.trim()) {
+    body.model = model.trim();
+  }
+  const res = await httpJson<CompanyEvaluationEvaluateResponse>('/api/ai/company/evaluate', {
     method: 'POST',
-    body: JSON.stringify({ companyName: companyName.trim() }),
+    body: JSON.stringify(body),
   });
   return res;
 }

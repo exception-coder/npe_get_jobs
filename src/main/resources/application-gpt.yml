@@ -20,7 +20,7 @@ spring:
         # 启用OpenAI聊天模型
         enabled: true
         options:
-          # 默认使用的模型
+          # 默认使用的模型（可选：deepseek-chat、deepseek-reasoner）
           model: ${DEEPSEEK_MODEL:deepseek-chat}
           # 默认温度参数 (1.0.0-M6版本使用Double类型)
           temperature: 0.7

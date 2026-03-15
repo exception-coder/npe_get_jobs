@@ -136,6 +136,9 @@
               </template>
             </v-tooltip>
           </template>
+          <template #item.isProxyJob="{ item }">
+            <span class="text-medium-emphasis">{{ item.isProxyJob ? '是' : '否' }}</span>
+          </template>
           <template #item.filterReason="{ item }">
             <v-tooltip v-if="item.filterReason" location="bottom" max-width="320">
               <template #activator="{ props: tooltipProps }">
@@ -398,6 +401,7 @@ const headers = [
   { title: 'HR', key: 'hrName', sortable: false },
   { title: '状态', key: 'status', sortable: false },
   { title: '是否联系过', key: 'isContacted', sortable: false },
+  { title: '是否代理职位', key: 'isProxyJob', sortable: false },
   { title: '过滤原因', key: 'filterReason', sortable: false },
   { title: 'AI匹配', key: 'aiMatched', sortable: false },
   { title: 'AI匹配说明', key: 'aiMatchReason', sortable: false },

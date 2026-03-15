@@ -8,7 +8,7 @@
         </div>
         <div class="header-content">
           <h2 class="card-title">企业评估</h2>
-          <p class="card-subtitle">输入企业名称或公司描述，AI 从多维度评估是否值得投递</p>
+          <p class="card-subtitle">输入企业名称或公司描述，AI 评估欠薪风险与外包/皮包属性</p>
         </div>
       </div>
       <div class="card-body">
@@ -260,8 +260,11 @@ async function runEvaluate() {
   evaluateError.value = '';
   lastResult.value = null;
   try {
-    const result = await evaluateCompany(name);
-    lastResult.value = result;
+    const res = await evaluateCompany(name);
+    lastResult.value = res.result;
+    if (res.record_id != null) {
+      snackbar.show({ message: `已入库，记录 #${res.record_id}`, color: 'success' });
+    }
     loadPage(0);
   } catch (e: unknown) {
     const err = e as { status?: number; payload?: { message?: string } };

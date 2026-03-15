@@ -10,20 +10,10 @@
       </v-chip>
     </div>
     <p v-if="result.company_type" class="meta">公司类型：{{ result.company_type }}</p>
-    <p v-if="result.summary" class="summary">{{ result.summary }}</p>
-    <div v-if="Object.keys(dimensionLabels).length" class="dimensions">
-      <div v-for="(label, key) in dimensionLabels" :key="key" class="dim-row">
-        <span class="dim-label">{{ label }}</span>
-        <v-progress-linear
-          :model-value="getDimensionScore(key)"
-          color="primary"
-          height="6"
-          rounded
-          class="dim-bar"
-        />
-        <span class="dim-value">{{ getDimensionScore(key) }}</span>
-      </div>
-    </div>
+    <p v-if="result.pay_risk" class="meta">欠薪风险：{{ result.pay_risk }}</p>
+    <p v-if="result.risk_score !== undefined && result.risk_score !== null" class="meta">风险评分：{{ result.risk_score }}/10</p>
+    <p v-if="result.reason" class="summary">{{ result.reason }}</p>
+    <p v-else-if="result.summary" class="summary">{{ result.summary }}</p>
     <div v-if="result.main_advantages?.length" class="list-block">
       <strong>主要优势</strong>
       <ul>
@@ -44,29 +34,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { CompanyEvaluationResult, DimensionScores } from '../api/companyEvaluationApi';
+import type { CompanyEvaluationResult } from '../api/companyEvaluationApi';
 
 const props = defineProps<{ result: CompanyEvaluationResult }>();
 
 const result = computed(() => props.result);
-
-const dimensionLabels: Record<string, string> = {
-  company_stability: '公司稳定性',
-  shareholder_background: '股东背景',
-  industry_outlook: '行业前景',
-  business_stability: '业务稳定性',
-  company_reputation: '公司口碑',
-  work_system: '工作制度',
-  salary_benefits: '薪资福利',
-  career_stability: '职业稳定性',
-};
-
-function getDimensionScore(key: string): number {
-  const scores = result.value?.dimension_scores as DimensionScores | undefined;
-  if (!scores) return 0;
-  const v = (scores as Record<string, number>)[key];
-  return typeof v === 'number' ? Math.min(10, Math.max(0, v)) * 10 : 0;
-}
 
 function recommendationColor(code?: string): string {
   if (!code) return 'grey';
@@ -86,11 +58,6 @@ function recommendationColor(code?: string): string {
 .total-score { font-weight: 600; color: rgba(0, 0, 0, 0.85); }
 .meta { margin: 0 0 8px 0; font-size: 12px; color: rgba(0, 0, 0, 0.6); }
 .summary { margin: 0 0 12px 0; color: rgba(0, 0, 0, 0.75); line-height: 1.5; }
-.dimensions { margin: 12px 0; }
-.dim-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.dim-label { width: 100px; flex-shrink: 0; font-size: 12px; color: rgba(0, 0, 0, 0.65); }
-.dim-bar { flex: 1; max-width: 120px; }
-.dim-value { width: 24px; text-align: right; font-size: 12px; }
 .list-block { margin-top: 12px; }
 .list-block strong { display: block; margin-bottom: 4px; font-size: 13px; }
 .list-block ul { margin: 0; padding-left: 20px; }

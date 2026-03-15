@@ -26,6 +26,7 @@ export interface JobRecord {
   aiMatchReason?: string;
   filterReason?: string;
   isContacted?: boolean;
+  isProxyJob?: boolean;
   [key: string]: unknown;
 }
 
