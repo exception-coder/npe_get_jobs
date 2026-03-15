@@ -1,11 +1,11 @@
 package getjobs.modules.sasl.service;
 
-import getjobs.common.infrastructure.auth.AuthContext;
-import getjobs.common.infrastructure.repository.common.*;
-import getjobs.common.infrastructure.repository.service.RepositoryServiceHelper;
-import getjobs.common.infrastructure.queue.service.QueueTaskService;
-import getjobs.common.infrastructure.queue.contract.QueueTask;
-import getjobs.common.infrastructure.queue.domain.QueueTaskConfig;
+import getjobs.infrastructure.auth.AuthContext;
+import getjobs.infrastructure.repository.common.*;
+import getjobs.infrastructure.repository.service.RepositoryServiceHelper;
+import getjobs.infrastructure.queue.service.QueueTaskService;
+import getjobs.infrastructure.queue.contract.QueueTask;
+import getjobs.infrastructure.queue.domain.QueueTaskConfig;
 import getjobs.modules.auth.domain.User;
 import getjobs.modules.sasl.domain.LeadRecord;
 import getjobs.modules.sasl.domain.PlanRow;
@@ -691,7 +691,7 @@ public class SaslService {
         QueueTask task = createBatchSaveLeadRecordsTask(records);
 
         // 提交到队列异步执行
-        getjobs.common.infrastructure.queue.domain.QueueTask queueTask = queueTaskService.submit(task);
+        getjobs.infrastructure.queue.domain.QueueTask queueTask = queueTaskService.submit(task);
         log.info("已提交批量保存线索记录任务到队列: {} [{}] (记录数: {})",
                 queueTask.getConfig().getTaskName(), queueTask.getTaskId(), records.size());
     }
@@ -1062,9 +1062,9 @@ public class SaslService {
                 // 创建队列任务并提交到队列（串行执行，避免并发冲突）
                 // 获取当前操作用户名，传递给队列任务
                 String operator = AuthContext.getUsername();
-                getjobs.common.infrastructure.queue.contract.QueueTask queueTask = queueTaskFactory.createUpdateTask(id,
+                getjobs.infrastructure.queue.contract.QueueTask queueTask = queueTaskFactory.createUpdateTask(id,
                         callStatus, remark, nextCallTime, operator);
-                getjobs.common.infrastructure.queue.domain.QueueTask submittedTask = queueTaskService.submit(queueTask);
+                getjobs.infrastructure.queue.domain.QueueTask submittedTask = queueTaskService.submit(queueTask);
 
                 log.info("更新操作已提交到队列，将异步执行: ID={}, 任务ID={}", id, submittedTask.getTaskId());
 

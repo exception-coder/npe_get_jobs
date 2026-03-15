@@ -1,6 +1,6 @@
 package getjobs.modules.sasl.repository;
 
-import getjobs.common.infrastructure.repository.common.ISaslRecordRepository;
+import getjobs.infrastructure.repository.common.ISaslRecordRepository;
 import getjobs.modules.sasl.domain.SaslRecord;
 import getjobs.modules.sasl.enums.CallStatus;
 import org.springframework.data.domain.Pageable;

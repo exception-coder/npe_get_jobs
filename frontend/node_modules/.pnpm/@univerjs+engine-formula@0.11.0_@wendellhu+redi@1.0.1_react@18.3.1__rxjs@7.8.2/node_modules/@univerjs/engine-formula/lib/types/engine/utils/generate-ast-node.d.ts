@@ -1,0 +1,10 @@
+import { Nullable } from '@univerjs/core';
+import { IFormulaCurrentConfigService } from '../../services/current-data.service';
+import { Lexer } from '../analysis/lexer';
+import { AstTreeBuilder } from '../analysis/parser';
+import { AstRootNode } from '../ast-node/ast-root-node';
+import { IFormulaDependencyTree } from '../dependency/dependency-tree';
+import { FormulaAstLRU } from '../../basics/cache-lru';
+export declare const FORMULA_AST_CACHE: FormulaAstLRU<AstRootNode>;
+export declare function generateAstNode(unitId: string, formulaString: string, lexer: Lexer, astTreeBuilder: AstTreeBuilder, currentConfigService: IFormulaCurrentConfigService): AstRootNode;
+export declare function includeDefinedName(tree: IFormulaDependencyTree, node: Nullable<AstRootNode>, currentConfigService: IFormulaCurrentConfigService): boolean;

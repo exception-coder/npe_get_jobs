@@ -1,0 +1,4 @@
+@mixin position($positions)
+  @each $position in $positions
+    &--#{$position}
+      position: #{$position}

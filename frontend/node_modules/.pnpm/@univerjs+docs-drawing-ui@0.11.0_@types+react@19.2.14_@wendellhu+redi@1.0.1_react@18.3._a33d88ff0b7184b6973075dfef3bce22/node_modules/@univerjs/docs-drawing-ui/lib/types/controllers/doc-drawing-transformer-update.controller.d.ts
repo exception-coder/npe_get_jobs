@@ -1,0 +1,31 @@
+import { Disposable, ICommandService, IUniverInstanceService } from '@univerjs/core';
+import { IDrawingManagerService } from '@univerjs/drawing';
+import { IRenderManagerService } from '@univerjs/engine-render';
+export declare class DocDrawingTransformerController extends Disposable {
+    private readonly _commandService;
+    private readonly _univerInstanceService;
+    private readonly _drawingManagerService;
+    private readonly _renderManagerService;
+    private _liquid;
+    private _listenerOnImageMap;
+    private _transformerCache;
+    private _anchorShape;
+    constructor(_commandService: ICommandService, _univerInstanceService: IUniverInstanceService, _drawingManagerService: IDrawingManagerService, _renderManagerService: IRenderManagerService);
+    private _init;
+    private _listenDrawingFocus;
+    private _listenTransformerChange;
+    private _updateMultipleDrawingDocTransform;
+    private _updateDrawingAnchor;
+    private _updateInlineDrawingAnchor;
+    private _getInlineDrawingAnchor;
+    private _getDrawingAnchor;
+    private _updateDrawingSize;
+    private _moveInlineDrawing;
+    private _limitDrawingInPage;
+    private _nonInlineDrawingTransform;
+    private _getSceneAndTransformerByDrawingSearch;
+    private _getTransformCoordForDocumentOffset;
+    private _createOrUpdateInlineAnchor;
+    private _getDocObject;
+    private _getPageContentSize;
+}

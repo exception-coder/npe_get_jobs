@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","names":["VAvatarGroup"],"sources":["../../../src/labs/VAvatarGroup/index.ts"],"sourcesContent":["export { VAvatarGroup } from './VAvatarGroup'\n"],"mappings":"SAASA,YAAY","ignoreList":[]}

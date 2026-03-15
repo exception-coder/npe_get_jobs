@@ -1,8 +1,8 @@
 package getjobs.modules.task.quickdelivery.domain;
 
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.common.infrastructure.task.contract.ScheduledTask;
-import getjobs.common.infrastructure.task.domain.TaskConfig;
+import getjobs.infrastructure.task.contract.ScheduledTask;
+import getjobs.infrastructure.task.domain.TaskConfig;
 import getjobs.modules.task.quickdelivery.dto.QuickDeliveryResult;
 import getjobs.service.JobDeliveryService;
 import lombok.RequiredArgsConstructor;

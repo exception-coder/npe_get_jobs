@@ -1,0 +1,97 @@
+import { Fragment as _Fragment, createVNode as _createVNode, createElementVNode as _createElementVNode, mergeProps as _mergeProps } from "vue";
+// Components
+import { VAvatar } from "../../components/VAvatar/VAvatar.js";
+import { VBtn } from "../../components/VBtn/VBtn.js";
+import { VDefaultsProvider } from "../../components/VDefaultsProvider/VDefaultsProvider.js";
+import { makeVListItemProps, VListItem } from "../../components/VList/VListItem.js"; // Utilities
+import { computed, ref, watchEffect } from 'vue';
+import { genericComponent, humanReadableFileSize, propsFactory, useRender } from "../../util/index.js"; // Types
+export const makeVFileUploadItemProps = propsFactory({
+  clearable: Boolean,
+  file: {
+    type: Object,
+    default: null
+  },
+  fileIcon: {
+    type: String,
+    // TODO: setup up a proper aliased icon
+    default: 'mdi-file-document'
+  },
+  showSize: Boolean,
+  ...makeVListItemProps({
+    border: true,
+    rounded: true,
+    lines: 'two'
+  })
+}, 'VFileUploadItem');
+export const VFileUploadItem = genericComponent()({
+  name: 'VFileUploadItem',
+  props: makeVFileUploadItemProps(),
+  emits: {
+    'click:remove': () => true,
+    click: e => true
+  },
+  setup(props, _ref) {
+    let {
+      emit,
+      slots
+    } = _ref;
+    const preview = ref();
+    const base = computed(() => typeof props.showSize !== 'boolean' ? props.showSize : undefined);
+    function onClickRemove() {
+      emit('click:remove');
+    }
+    watchEffect(() => {
+      preview.value = props.file?.type.startsWith('image') ? URL.createObjectURL(props.file) : undefined;
+    });
+    useRender(() => {
+      const listItemProps = VListItem.filterProps(props);
+      return _createVNode(VListItem, _mergeProps(listItemProps, {
+        "class": ['v-file-upload-item', props.class],
+        "title": props.title ?? props.file?.name,
+        "subtitle": props.showSize ? humanReadableFileSize(props.file?.size, base.value) : props.file?.type,
+        "style": props.style
+      }), {
+        ...slots,
+        title: slots.title ?? (() => props?.title ?? props.file?.name),
+        prepend: slotProps => _createElementVNode(_Fragment, null, [!slots.prepend ? _createVNode(VAvatar, {
+          "icon": props.fileIcon,
+          "image": preview.value,
+          "rounded": true
+        }, null) : _createVNode(VDefaultsProvider, {
+          "defaults": {
+            VAvatar: {
+              image: preview.value,
+              icon: !preview.value ? props.fileIcon : undefined,
+              rounded: true
+            }
+          }
+        }, {
+          default: () => [slots.prepend?.(slotProps) ?? _createVNode(VAvatar, null, null)]
+        })]),
+        append: slotProps => _createElementVNode(_Fragment, null, [props.clearable && _createElementVNode(_Fragment, null, [!slots.clear ? _createVNode(VBtn, {
+          "icon": "$clear",
+          "density": "comfortable",
+          "variant": "text",
+          "onClick": onClickRemove
+        }, null) : _createVNode(VDefaultsProvider, {
+          "defaults": {
+            VBtn: {
+              icon: '$clear',
+              density: 'comfortable',
+              variant: 'text'
+            }
+          }
+        }, {
+          default: () => [slots.clear?.({
+            ...slotProps,
+            props: {
+              onClick: onClickRemove
+            }
+          }) ?? _createVNode(VBtn, null, null)]
+        })]), slots.append?.(slotProps)])
+      });
+    });
+  }
+});
+//# sourceMappingURL=VFileUploadItem.js.map

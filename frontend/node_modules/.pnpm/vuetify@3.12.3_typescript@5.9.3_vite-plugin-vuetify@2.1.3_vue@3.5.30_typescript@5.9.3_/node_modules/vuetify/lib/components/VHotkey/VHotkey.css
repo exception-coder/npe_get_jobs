@@ -1,0 +1,222 @@
+.v-hotkey {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+  vertical-align: middle;
+  line-height: 1.5;
+}
+.v-hotkey--disabled {
+  opacity: 0.26;
+}
+.v-hotkey--inline {
+  max-height: 1lh;
+  vertical-align: baseline;
+  font-size: 1em;
+  line-height: inherit;
+}
+.v-hotkey__prefix {
+  opacity: var(--v-medium-emphasis-opacity);
+  font-weight: normal;
+  vertical-align: baseline;
+}
+.v-hotkey__suffix {
+  opacity: var(--v-medium-emphasis-opacity);
+  font-weight: normal;
+  vertical-align: baseline;
+}
+.v-hotkey--contained .v-hotkey__contained-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0.2rem 4px;
+  box-sizing: border-box;
+  background: unset;
+  box-shadow: unset;
+  min-height: 1em;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.v-hotkey--contained .v-hotkey__contained-wrapper .v-hotkey__prefix, .v-hotkey--contained .v-hotkey__contained-wrapper .v-hotkey__suffix {
+  opacity: var(--v-high-emphasis-opacity);
+}
+.v-hotkey--contained .v-hotkey__contained-wrapper .v-hotkey__prefix {
+  margin-right: 2px;
+}
+.v-hotkey--contained .v-hotkey__contained-wrapper .v-hotkey__suffix {
+  margin-left: 2px;
+}
+.v-hotkey--contained .v-hotkey__divider {
+  opacity: var(--v-medium-emphasis-opacity);
+  font-size: inherit;
+}
+.v-hotkey--contained .v-hotkey__combination {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.v-hotkey--contained.v-hotkey--inline .v-hotkey__contained-wrapper.v-kbd {
+  align-self: baseline;
+  align-items: baseline;
+  font-size: 1em;
+  line-height: inherit;
+  padding: 1px 4px 0;
+  gap: 2px;
+  margin-left: 0;
+  margin-right: 0;
+}
+.v-hotkey--contained.v-hotkey--inline .v-hotkey__divider {
+  font-size: 1em;
+  align-self: baseline;
+}
+.v-hotkey--contained.v-hotkey--inline .v-hotkey__combination {
+  gap: 2px;
+  align-items: baseline;
+}
+.v-hotkey__key.v-kbd {
+  min-height: unset;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  padding: 0.2rem;
+  min-width: 1.5em;
+}
+.v-hotkey__key.v-kbd--variant-plain, .v-hotkey__key.v-kbd--variant-outlined, .v-hotkey__key.v-kbd--variant-text, .v-hotkey__key.v-kbd--variant-tonal {
+  background: transparent;
+  color: inherit;
+}
+.v-hotkey__key.v-kbd--variant-plain {
+  opacity: 0.62;
+}
+.v-hotkey__key.v-kbd--variant-plain:focus, .v-hotkey__key.v-kbd--variant-plain:hover {
+  opacity: 1;
+}
+.v-hotkey__key.v-kbd--variant-plain .v-hotkey__overlay {
+  display: none;
+}
+.v-hotkey__key.v-kbd--variant-elevated, .v-hotkey__key.v-kbd--variant-flat {
+  background: rgb(var(--v-theme-surface));
+  color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity));
+}
+.v-hotkey__key.v-kbd--variant-elevated {
+  box-shadow: 0px 3px 1px -2px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 2px 2px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 1px 5px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12));
+}
+.v-hotkey__key.v-kbd--variant-flat {
+  box-shadow: 0px 0px 0px 0px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 0px 0px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12));
+}
+.v-hotkey__key.v-kbd--variant-outlined {
+  border: thin solid currentColor;
+}
+.v-hotkey__key.v-kbd--variant-text .v-hotkey__overlay {
+  background: currentColor;
+}
+.v-hotkey__key.v-kbd--variant-tonal .v-hotkey__underlay {
+  background: currentColor;
+  opacity: var(--v-activated-opacity);
+  border-radius: inherit;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+.v-hotkey__key.v-kbd .v-hotkey__underlay {
+  position: absolute;
+}
+.v-hotkey__key-symbol.v-kbd {
+  line-height: normal;
+  font-size: 1em;
+}
+.v-hotkey__key-icon .v-icon {
+  min-width: unset;
+}
+.v-hotkey__key-icon .v-icon:has(svg) {
+  max-width: 0.75rem;
+}
+.v-hotkey__key-icon .v-icon:not(:has(svg)) {
+  font-size: 0.75rem;
+  line-height: inherit;
+  height: inherit;
+}
+.v-hotkey__key--nested {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  min-width: auto;
+  min-height: auto;
+  align-self: baseline;
+}
+.v-hotkey__key--nested.v-hotkey__key-icon {
+  align-self: center;
+}
+.v-hotkey__divider {
+  align-items: center;
+  display: inline-flex;
+  opacity: var(--v-medium-emphasis-opacity);
+  font-size: 1em;
+}
+.v-hotkey__combination {
+  display: flex;
+  gap: 2px;
+}
+.v-hotkey--inline .v-hotkey__key {
+  align-self: center;
+  padding: 1px 4px 0;
+  min-width: 20px;
+  height: calc(1lh - 2px);
+  line-height: calc(1lh - 2px);
+}
+.v-hotkey--inline .v-hotkey__key-icon.v-kbd {
+  padding-block: 0;
+}
+.v-hotkey--inline .v-hotkey__key-icon .v-icon {
+  width: min-content;
+  min-width: fit-content;
+  max-height: calc(1ex + 2px);
+}
+.v-hotkey--inline .v-hotkey__key-icon .v-icon .v-icon__svg {
+  height: 100%;
+  width: unset;
+}
+.v-hotkey--inline .v-hotkey__combination {
+  align-items: baseline;
+  gap: 1px;
+}
+.v-hotkey--inline .v-hotkey__divider {
+  font-size: 1em;
+}
+.v-hotkey--inline .v-hotkey__prefix, .v-hotkey--inline .v-hotkey__suffix {
+  align-self: baseline;
+  font-size: inherit;
+}
+.v-hotkey--variant-elevated .v-hotkey__key.v-kbd {
+  box-shadow: 0px 3px 1px -2px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 2px 2px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 1px 5px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12));
+}
+.v-hotkey--variant-flat .v-hotkey__key.v-kbd {
+  box-shadow: none;
+}
+.v-hotkey--variant-outlined .v-hotkey__key.v-kbd {
+  background: none;
+}
+.v-hotkey--variant-outlined .v-hotkey__key.v-kbd {
+  box-shadow: 0px 0px 0px 0px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 0px 0px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12));
+}
+.v-hotkey--variant-text .v-hotkey__key.v-kbd {
+  background: transparent !important;
+  border: none !important;
+  padding-inline: 0;
+  min-width: auto;
+}
+.v-hotkey--variant-text .v-hotkey__key.v-kbd {
+  box-shadow: 0px 0px 0px 0px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 0px 0px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12));
+}
+.v-hotkey--variant-text .v-hotkey__combination {
+  gap: 1px;
+}
+.v-hotkey--variant-tonal .v-hotkey__key.v-kbd {
+  border: unset;
+  box-shadow: unset;
+}

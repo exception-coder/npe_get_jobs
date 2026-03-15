@@ -1,0 +1,1 @@
+(function(e,t){typeof exports=="object"&&typeof module<"u"?module.exports=t():typeof define=="function"&&define.amd?define(t):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsNoteUiZhCN=t())})(this,(function(){"use strict";return{rightClick:{addNote:"添加批注",deleteNote:"删除批注",toggleNote:"显示/隐藏批注"},note:{placeholder:"在此输入"}}}));

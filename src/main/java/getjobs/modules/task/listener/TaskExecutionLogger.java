@@ -1,7 +1,7 @@
 package getjobs.modules.task.listener;
 
-import getjobs.common.infrastructure.task.contract.TaskNotificationListener;
-import getjobs.common.infrastructure.task.domain.TaskNotification;
+import getjobs.infrastructure.task.contract.TaskNotificationListener;
+import getjobs.infrastructure.task.domain.TaskNotification;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

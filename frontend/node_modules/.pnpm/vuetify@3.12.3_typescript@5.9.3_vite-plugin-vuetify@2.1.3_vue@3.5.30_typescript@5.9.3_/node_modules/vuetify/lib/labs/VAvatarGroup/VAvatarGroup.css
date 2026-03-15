@@ -1,0 +1,49 @@
+.v-avatar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.v-avatar-group--hoverable .v-avatar {
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.v-avatar-group--hoverable .v-avatar:hover {
+  transform: translateY(-8px);
+}
+.v-avatar-group--hoverable.v-avatar-group--vertical .v-avatar:hover {
+  transform: translateX(8px);
+}
+.v-avatar-group__content {
+  display: flex;
+  align-items: center;
+}
+.v-avatar-group .v-avatar-group__overflow {
+  background: rgb(var(--v-theme-surface-light));
+  color: rgb(var(--v-theme-on-surface-light));
+}
+.v-avatar-group--horizontal .v-avatar:not(:first-child) {
+  margin-inline-start: var(--v-avatar-group-gap, -12px);
+}
+.v-avatar-group--horizontal.v-avatar-group--reverse .v-avatar-group__content {
+  flex-direction: row-reverse;
+}
+.v-avatar-group--horizontal.v-avatar-group--reverse {
+  /* upgrade someday: https://caniuse.com/wf-sibling-count */
+}
+.v-avatar-group--horizontal.v-avatar-group--reverse .v-avatar:not(:first-child) {
+  margin-inline-start: 0;
+  margin-inline-end: var(--v-avatar-group-gap, -12px);
+}
+.v-avatar-group--vertical .v-avatar-group__content {
+  flex-direction: column;
+}
+.v-avatar-group--vertical .v-avatar:not(:first-child) {
+  margin-block-start: var(--v-avatar-group-gap, -12px);
+}
+.v-avatar-group--vertical.v-avatar-group--reverse .v-avatar-group__content {
+  flex-direction: column-reverse;
+}
+.v-avatar-group--vertical.v-avatar-group--reverse .v-avatar:not(:first-child) {
+  margin-block-start: 0;
+  margin-block-end: var(--v-avatar-group-gap, -12px);
+}

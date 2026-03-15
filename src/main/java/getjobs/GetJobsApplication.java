@@ -12,10 +12,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * 数据源配置说明：
  * <ul>
  * <li>SQLite 主数据源：由
- * {@link getjobs.common.infrastructure.datasource.PrimaryDataSourceConfig}
+ * {@link getjobs.infrastructure.datasource.PrimaryDataSourceConfig}
  * 配置</li>
  * <li>MySQL 数据源：由
- * {@link getjobs.common.infrastructure.datasource.MySQLDataSourceConfig}
+ * {@link getjobs.infrastructure.datasource.MySQLDataSourceConfig}
  * 配置</li>
  * </ul>
  * </p>

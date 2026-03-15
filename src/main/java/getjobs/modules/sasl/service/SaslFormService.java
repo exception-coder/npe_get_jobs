@@ -1,11 +1,11 @@
 package getjobs.modules.sasl.service;
 
-import getjobs.common.infrastructure.auth.AuthContext;
-import getjobs.common.infrastructure.repository.common.ISaslFormStatisticsRecordRepository;
-import getjobs.common.infrastructure.repository.common.ISaslRecordRepository;
-import getjobs.common.infrastructure.repository.common.IUserDocumentTitleRepository;
-import getjobs.common.infrastructure.repository.common.IUserRepository;
-import getjobs.common.infrastructure.repository.service.RepositoryServiceHelper;
+import getjobs.infrastructure.auth.AuthContext;
+import getjobs.infrastructure.repository.common.ISaslFormStatisticsRecordRepository;
+import getjobs.infrastructure.repository.common.ISaslRecordRepository;
+import getjobs.infrastructure.repository.common.IUserDocumentTitleRepository;
+import getjobs.infrastructure.repository.common.IUserRepository;
+import getjobs.infrastructure.repository.service.RepositoryServiceHelper;
 import getjobs.modules.auth.domain.User;
 import getjobs.modules.sasl.domain.SaslFormStatisticsRecord;
 import getjobs.modules.sasl.domain.SaslRecord;

@@ -1,10 +1,10 @@
 package getjobs.modules.sasl.service;
 
-import getjobs.common.infrastructure.queue.contract.QueueTask;
-import getjobs.common.infrastructure.queue.domain.QueueTaskConfig;
-import getjobs.common.infrastructure.repository.common.ISaslRecordRepository;
-import getjobs.common.infrastructure.repository.common.ISaslRecordUpdateLogRepository;
-import getjobs.common.infrastructure.repository.service.RepositoryServiceHelper;
+import getjobs.infrastructure.queue.contract.QueueTask;
+import getjobs.infrastructure.queue.domain.QueueTaskConfig;
+import getjobs.infrastructure.repository.common.ISaslRecordRepository;
+import getjobs.infrastructure.repository.common.ISaslRecordUpdateLogRepository;
+import getjobs.infrastructure.repository.service.RepositoryServiceHelper;
 import getjobs.modules.sasl.domain.SaslRecord;
 import getjobs.modules.sasl.domain.SaslRecordUpdateLog;
 import getjobs.modules.sasl.enums.CallStatus;

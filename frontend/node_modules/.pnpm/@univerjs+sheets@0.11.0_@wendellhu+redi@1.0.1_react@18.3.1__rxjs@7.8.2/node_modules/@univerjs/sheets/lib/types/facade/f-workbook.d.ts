@@ -1,0 +1,757 @@
+import { CommandListener, CustomData, IDisposable, IRange, IStyleData, IWorkbookData, LocaleType, Workbook, ICommandService, ILogService, Injector, IPermissionService, IResourceLoaderService, IUniverInstanceService, LocaleService } from '@univerjs/core';
+import { ISetDefinedNameMutationParam, IDefinedNamesService } from '@univerjs/engine-formula';
+import { IInsertSheetCommandParams, IRangeThemeStyleJSON, RangeThemeStyle, SheetsSelectionsService } from '@univerjs/sheets';
+import { FontLine as _FontLine, FRange } from './f-range';
+import { FBaseInitialable } from '@univerjs/core/facade';
+import { FDefinedName } from './f-defined-name';
+import { FPermission } from './f-permission';
+import { FWorksheet } from './f-worksheet';
+/**
+ * Facade API object bounded to a workbook. It provides a set of methods to interact with the workbook.
+ * @hideconstructor
+ */
+export declare class FWorkbook extends FBaseInitialable {
+    protected readonly _workbook: Workbook;
+    protected readonly _injector: Injector;
+    protected readonly _resourceLoaderService: IResourceLoaderService;
+    protected readonly _selectionManagerService: SheetsSelectionsService;
+    protected readonly _univerInstanceService: IUniverInstanceService;
+    protected readonly _commandService: ICommandService;
+    protected readonly _permissionService: IPermissionService;
+    protected readonly _logService: ILogService;
+    protected readonly _localeService: LocaleService;
+    protected readonly _definedNamesService: IDefinedNamesService;
+    readonly id: string;
+    constructor(_workbook: Workbook, _injector: Injector, _resourceLoaderService: IResourceLoaderService, _selectionManagerService: SheetsSelectionsService, _univerInstanceService: IUniverInstanceService, _commandService: ICommandService, _permissionService: IPermissionService, _logService: ILogService, _localeService: LocaleService, _definedNamesService: IDefinedNamesService);
+    /**
+     * Get the Workbook instance.
+     * @returns {Workbook} The Workbook instance.
+     * @example
+     * ```ts
+     * // The code below gets the Workbook instance
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const workbook = fWorkbook.getWorkbook();
+     * console.log(workbook);
+     * ```
+     */
+    getWorkbook(): Workbook;
+    dispose(): void;
+    /**
+     * Get the id of the workbook.
+     * @returns {string} The id of the workbook.
+     * @example
+     * ```ts
+     * // The code below gets the id of the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const unitId = fWorkbook.getId();
+     * console.log(unitId);
+     * ```
+     */
+    getId(): string;
+    /**
+     * Get the name of the workbook.
+     * @returns {string} The name of the workbook.
+     * @example
+     * ```ts
+     * // The code below gets the name of the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const name = fWorkbook.getName();
+     * console.log(name);
+     * ```
+     */
+    getName(): string;
+    /**
+     * Set the name of the workbook.
+     * @param {string} name The new name of the workbook.
+     * @example
+     * ```ts
+     * // The code below sets the name of the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.setName('MyWorkbook');
+     * ```
+     */
+    setName(name: string): this;
+    /**
+     * Save workbook snapshot data, including conditional formatting, data validation, and other plugin data.
+     * @returns {IWorkbookData} Workbook snapshot data
+     * @example
+     * ```ts
+     * // The code below saves the workbook snapshot data
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const snapshot = fWorkbook.save();
+     * console.log(snapshot);
+     * ```
+     */
+    save(): IWorkbookData;
+    /**
+     * @deprecated use 'save' instead.
+     * @returns {IWorkbookData} Workbook snapshot data
+     * @memberof FWorkbook
+     * @example
+     * ```ts
+     * // The code below saves the workbook snapshot data
+     * const activeSpreadsheet = univerAPI.getActiveWorkbook();
+     * const snapshot = activeSpreadsheet.getSnapshot();
+     * ```
+     */
+    getSnapshot(): IWorkbookData;
+    /**
+     * Get the active sheet of the workbook.
+     * @returns {FWorksheet} The active sheet of the workbook
+     * @example
+     * ```ts
+     * // The code below gets the active sheet of the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const fWorksheet = fWorkbook.getActiveSheet();
+     * console.log(fWorksheet);
+     * ```
+     */
+    getActiveSheet(): FWorksheet;
+    /**
+     * Gets all the worksheets in this workbook
+     * @returns {FWorksheet[]} An array of all the worksheets in the workbook
+     * @example
+     * ```ts
+     * // The code below gets all the worksheets in the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const sheets = fWorkbook.getSheets();
+     * console.log(sheets);
+     * ```
+     */
+    getSheets(): FWorksheet[];
+    /**
+     * Create a new worksheet and returns a handle to it.
+     * @param {string} name Name of the new sheet
+     * @param {number} rows How many rows would the new sheet have
+     * @param {number} columns How many columns would the new sheet have
+     * @param {Pick<IInsertSheetCommandParams, 'index' | 'sheet'>} [options] The options for the new sheet
+     * @param {number} [options.index] The position index where the new sheet is to be inserted
+     * @param {Partial<IWorksheetData>} [options.sheet] The data configuration for the new sheet
+     * @returns {FWorksheet} The new created sheet
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     *
+     * // Create a new sheet named 'MyNewSheet' with 10 rows and 10 columns
+     * const newSheet = fWorkbook.create('MyNewSheet', 10, 10);
+     * console.log(newSheet);
+     *
+     * // Create a new sheet named 'MyNewSheetWithData' with 10 rows and 10 columns and some data, and set it as the first sheet
+     * const sheetData = {
+     *   // ... Omit other properties
+     *   cellData: {
+     *     0: {
+     *       0: {
+     *         v: 'Hello Univer!',
+     *       }
+     *     }
+     *   },
+     *   // ... Omit other properties
+     * };
+     * const newSheetWithData = fWorkbook.create('MyNewSheetWithData', 10, 10, {
+     *   index: 0,
+     *   sheet: sheetData,
+     * });
+     * console.log(newSheetWithData);
+     * ```
+     */
+    create(name: string, rows: number, columns: number, options?: Pick<IInsertSheetCommandParams, 'index' | 'sheet'>): FWorksheet;
+    /**
+     * Get a worksheet by sheet id.
+     * @param {string} sheetId The id of the sheet to get.
+     * @returns {FWorksheet | null} The worksheet with given sheet id
+     * @example
+     * ```ts
+     * // The code below gets a worksheet by sheet id
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const sheet = fWorkbook.getSheetBySheetId('sheetId');
+     * console.log(sheet);
+     * ```
+     */
+    getSheetBySheetId(sheetId: string): FWorksheet | null;
+    /**
+     * Get a worksheet by sheet name.
+     * @param {string} name The name of the sheet to get.
+     * @returns {FWorksheet | null} The worksheet with given sheet name
+     * @example
+     * ```ts
+     * // The code below gets a worksheet by sheet name
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const sheet = fWorkbook.getSheetByName('Sheet1');
+     * console.log(sheet);
+     * ```
+     */
+    getSheetByName(name: string): FWorksheet | null;
+    /**
+     * Sets the given worksheet to be the active worksheet in the workbook.
+     * @param {FWorksheet | string} sheet The instance or id of the worksheet to set as active.
+     * @returns {FWorksheet} The active worksheet
+     * @example
+     * ```ts
+     * // The code below sets the given worksheet to be the active worksheet
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const sheet = fWorkbook.getSheets()[1];
+     * fWorkbook.setActiveSheet(sheet);
+     * ```
+     */
+    setActiveSheet(sheet: FWorksheet | string): FWorksheet;
+    /**
+     * Inserts a new worksheet into the workbook.
+     * Using a default sheet name. The new sheet becomes the active sheet
+     * @param {string} [sheetName] The name of the new sheet
+     * @param {Pick<IInsertSheetCommandParams, 'index' | 'sheet'>} [options] The options for the new sheet
+     * @param {number} [options.index] The position index where the new sheet is to be inserted
+     * @param {Partial<IWorksheetData>} [options.sheet] The data configuration for the new sheet
+     * @returns {FWorksheet} The new sheet
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     *
+     * // Create a new sheet with default configuration
+     * const newSheet = fWorkbook.insertSheet();
+     * console.log(newSheet);
+     *
+     * // Create a new sheet with custom name and default configuration
+     * const newSheetWithName = fWorkbook.insertSheet('MyNewSheet');
+     * console.log(newSheetWithName);
+     *
+     * // Create a new sheet with custom name and custom configuration
+     * const sheetData = {
+     *   // ... Omit other properties
+     *   cellData: {
+     *     0: {
+     *       0: {
+     *         v: 'Hello Univer!',
+     *       }
+     *     }
+     *   },
+     *   // ... Omit other properties
+     * };
+     * const newSheetWithData = fWorkbook.insertSheet('MyNewSheetWithData', {
+     *   index: 0,
+     *   sheet: sheetData,
+     * });
+     * console.log(newSheetWithData);
+     * ```
+     */
+    insertSheet(sheetName?: string, options?: Pick<IInsertSheetCommandParams, 'index' | 'sheet'>): FWorksheet;
+    /**
+     * Deletes the specified worksheet.
+     * @param {FWorksheet | string} sheet The instance or id of the worksheet to delete.
+     * @returns {boolean} True if the worksheet was deleted, false otherwise.
+     * @example
+     * ```ts
+     * // The code below deletes the specified worksheet
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const sheet = fWorkbook.getSheets()[1];
+     * fWorkbook.deleteSheet(sheet);
+     *
+     * // The code below deletes the specified worksheet by id
+     * // fWorkbook.deleteSheet(sheet.getSheetId());
+     * ```
+     */
+    deleteSheet(sheet: FWorksheet | string): boolean;
+    /**
+     * Undo the last action.
+     * @returns {FWorkbook} A promise that resolves to true if the undo was successful, false otherwise.
+     * @example
+     * ```ts
+     * // The code below undoes the last action
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.undo();
+     * ```
+     */
+    undo(): FWorkbook;
+    /**
+     * Redo the last undone action.
+     * @returns {FWorkbook} A promise that resolves to true if the redo was successful, false otherwise.
+     * @example
+     * ```ts
+     * // The code below redoes the last undone action
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.redo();
+     * ```
+     */
+    redo(): FWorkbook;
+    /**
+     * Callback for command execution.
+     * @callback onBeforeCommandExecuteCallback
+     * @param {ICommandInfo<ISheetCommandSharedParams>} command The command that was executed.
+     */
+    /**
+     * Register a callback that will be triggered before invoking a command targeting the Univer sheet.
+     * @param {onBeforeCommandExecuteCallback} callback the callback.
+     * @returns {IDisposable} A function to dispose the listening.
+     * @example
+     * ```ts
+     * // The code below registers a callback that will be triggered before invoking a command targeting the Univer sheet
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.onBeforeCommandExecute((command) => {
+     *   console.log('Before command execute:', command);
+     * });
+     * ```
+     */
+    onBeforeCommandExecute(callback: CommandListener): IDisposable;
+    /**
+     * Callback for command execution.
+     * @callback onCommandExecutedCallback
+     * @param {ICommandInfo<ISheetCommandSharedParams>} command The command that was executed
+     */
+    /**
+     * Register a callback that will be triggered when a command is invoked targeting the Univer sheet.
+     * @param {onCommandExecutedCallback} callback the callback.
+     * @returns {IDisposable} A function to dispose the listening.
+     * @example
+     * ```ts
+     * // The code below registers a callback that will be triggered when a command is invoked targeting the Univer sheet
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.onCommandExecuted((command) => {
+     *   console.log('Command executed:', command);
+     * });
+     * ```
+     */
+    onCommandExecuted(callback: CommandListener): IDisposable;
+    /**
+     * Callback for selection changes.
+     * @callback onSelectionChangeCallback
+     * @param {IRange[]} selections The new selection.
+     */
+    /**
+     * Register a callback that will be triggered when the selection changes.
+     * @param {onSelectionChangeCallback} callback The callback.
+     * @returns {IDisposable} A function to dispose the listening
+     * @example
+     * ```ts
+     * // The code below registers a callback that will be triggered when the selection changes
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.onSelectionChange((selections) => {
+     *   console.log('Selection changed:', selections);
+     * });
+     * ```
+     */
+    onSelectionChange(callback: (selections: IRange[]) => void): IDisposable;
+    /**
+     * Used to modify the editing permissions of the workbook. When the value is false, editing is not allowed.
+     * @param {boolean} value  editable value want to set
+     * @returns {FWorkbook} FWorkbook instance
+     * @example
+     * ```ts
+     * // The code below sets the editing permissions of the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.setEditable(false);
+     * ```
+     */
+    setEditable(value: boolean): FWorkbook;
+    /**
+     * Sets the selection region for active sheet.
+     * @param {FRange} range The range to set as the active selection.
+     * @returns {FWorkbook} FWorkbook instance
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const range = fWorkbook.getActiveSheet().getRange('A10:B10');
+     * fWorkbook.setActiveRange(range);
+     * ```
+     */
+    setActiveRange(range: FRange): FWorkbook;
+    /**
+     * Returns the selected range in the active sheet, or null if there is no active range.
+     * @returns {FRange | null} The active range
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const activeRange = fWorkbook.getActiveRange();
+     * console.log(activeRange);
+     * ```
+     */
+    getActiveRange(): FRange | null;
+    /**
+     * Returns the active cell in this spreadsheet.
+     * @returns {FRange | null} The active cell
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * console.log(fWorkbook.getActiveCell().getA1Notation());
+     * ```
+     */
+    getActiveCell(): FRange | null;
+    /**
+     * Deletes the currently active sheet.
+     * @returns {boolean} true if the sheet was deleted, false otherwise
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.deleteActiveSheet();
+     * ```
+     */
+    deleteActiveSheet(): boolean;
+    /**
+     * Duplicates the given worksheet.
+     * @param {FWorksheet} sheet The worksheet to duplicate.
+     * @returns {FWorksheet} The duplicated worksheet
+     * @example
+     * ```ts
+     * // The code below duplicates the given worksheet
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const activeSheet = fWorkbook.getActiveSheet();
+     * const duplicatedSheet = fWorkbook.duplicateSheet(activeSheet);
+     * console.log(duplicatedSheet);
+     * ```
+     */
+    duplicateSheet(sheet: FWorksheet): FWorksheet;
+    /**
+     * Duplicates the active sheet.
+     * @returns {FWorksheet} The duplicated worksheet
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const duplicatedSheet = fWorkbook.duplicateActiveSheet();
+     * console.log(duplicatedSheet);
+     * ```
+     */
+    duplicateActiveSheet(): FWorksheet;
+    /**
+     * Get the number of sheets in the workbook.
+     * @returns {number} The number of sheets in the workbook
+     * @example
+     * ```ts
+     * // The code below gets the number of sheets in the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * console.log(fWorkbook.getNumSheets());
+     * ```
+     */
+    getNumSheets(): number;
+    /**
+     * Get the locale of the workbook.
+     * @returns {LocaleType} The locale of the workbook
+     * @example
+     * ```ts
+     * // The code below gets the locale of the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * console.log(fWorkbook.getLocale());
+     * ```
+     */
+    getLocale(): LocaleType;
+    /**
+     * @deprecated use `setSpreadsheetLocale` instead.
+     * @param {LocaleType} locale - The locale to set
+     */
+    setLocale(locale: LocaleType): void;
+    /**
+     * Set the locale of the workbook.
+     * @param {LocaleType} locale The locale to set
+     * @returns {FWorkbook} This workbook, for chaining
+     * @example
+     * ```ts
+     * // The code below sets the locale of the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.setSpreadsheetLocale(univerAPI.Enum.LocaleType.EN_US);
+     * console.log(fWorkbook.getLocale());
+     * ```
+     */
+    setSpreadsheetLocale(locale: LocaleType): FWorkbook;
+    /**
+     * Get the URL of the workbook.
+     * @returns {string} The URL of the workbook
+     * @example
+     * ```ts
+     * // The code below gets the URL of the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const url = fWorkbook.getUrl();
+     * console.log(url);
+     * ```
+     */
+    getUrl(): string;
+    /**
+     * Move the sheet to the specified index.
+     * @param {FWorksheet} sheet The sheet to move
+     * @param {number} index The index to move the sheet to
+     * @returns {FWorkbook} This workbook, for chaining
+     * @example
+     * ```ts
+     * // The code below moves the sheet to the specified index
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const sheet = fWorkbook.getActiveSheet();
+     * fWorkbook.moveSheet(sheet, 1);
+     * ```
+     */
+    moveSheet(sheet: FWorksheet, index: number): FWorkbook;
+    /**
+     * Move the active sheet to the specified index.
+     * @param {number} index The index to move the active sheet to
+     * @returns {FWorkbook} This workbook, for chaining
+     * @example
+     * ```ts
+     * // The code below moves the active sheet to the specified index
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.moveActiveSheet(1);
+     * ```
+     */
+    moveActiveSheet(index: number): FWorkbook;
+    /**
+     * Get the PermissionInstance.
+     * @returns {FPermission} - The PermissionInstance.
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const permission = fWorkbook.getPermission();
+     * console.log(permission);
+     * ```
+     */
+    getPermission(): FPermission;
+    /**
+     * Get the defined name by name.
+     * @param {string} name The name of the defined name to get
+     * @returns {FDefinedName | null} The defined name with the given name
+     * @example
+     * ```ts
+     * // The code below gets the defined name by name
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const definedName = fWorkbook.getDefinedName('MyDefinedName');
+     * console.log(definedName?.getFormulaOrRefString());
+     *
+     * if (definedName) {
+     *   definedName.setName('NewDefinedName');
+     * }
+     * ```
+     */
+    getDefinedName(name: string): FDefinedName | null;
+    /**
+     * Get all the defined names in the workbook.
+     * @returns {FDefinedName[]} All the defined names in the workbook
+     * @example
+     * ```ts
+     * // The code below gets all the defined names in the workbook
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const definedNames = fWorkbook.getDefinedNames();
+     * console.log(definedNames, definedNames[0]?.getFormulaOrRefString());
+     * ```
+     */
+    getDefinedNames(): FDefinedName[];
+    /**
+     * Insert a defined name.
+     * @param {string} name The name of the defined name to insert
+     * @param {string} formulaOrRefString The formula(=sum(A2:b10)) or reference(A1) string of the defined name to insert
+     * @returns {FWorkbook} The current FWorkbook instance
+     * @example
+     * ```ts
+     * // The code below inserts a defined name
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.insertDefinedName('MyDefinedName', 'Sheet1!$A$1');
+     * ```
+     */
+    insertDefinedName(name: string, formulaOrRefString: string): FWorkbook;
+    /**
+     * Delete the defined name with the given name.
+     * @param {string} name The name of the defined name to delete
+     * @returns {boolean} true if the defined name was deleted, false otherwise
+     * @example
+     * ```ts
+     * // The code below deletes the defined name with the given name
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.deleteDefinedName('MyDefinedName');
+     * ```
+     */
+    deleteDefinedName(name: string): boolean;
+    /**
+     * Insert a defined name by builder param.
+     * @param {ISetDefinedNameMutationParam} param The param to insert the defined name
+     * @returns {void}
+     * @example
+     * ```ts
+     * // The code below inserts a defined name by builder param
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const definedNameBuilder = univerAPI.newDefinedName()
+     *   .setRef('Sheet1!$A$1')
+     *   .setName('MyDefinedName')
+     *   .setComment('This is a comment')
+     *   .build();
+     * fWorkbook.insertDefinedNameBuilder(definedNameBuilder);
+     * ```
+     */
+    insertDefinedNameBuilder(param: ISetDefinedNameMutationParam): void;
+    /**
+     * Update the defined name with the given name.
+     * @param {ISetDefinedNameMutationParam} param The param to insert the defined name
+     * @returns {void}
+     * @example
+     * ```ts
+     * // The code below updates the defined name with the given name
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const definedName = fWorkbook.getDefinedName('MyDefinedName');
+     * console.log(definedName?.getFormulaOrRefString());
+     *
+     * // Update the defined name
+     * if (definedName) {
+     *   const newDefinedNameParam = definedName.toBuilder()
+     *     .setName('NewDefinedName')
+     *     .setRef('Sheet1!$A$2')
+     *     .build();
+     *   fWorkbook.updateDefinedNameBuilder(newDefinedNameParam);
+     * }
+     * ```
+     */
+    updateDefinedNameBuilder(param: ISetDefinedNameMutationParam): void;
+    /**
+     * Gets the registered range themes.
+     * @returns {string[]} The name list of registered range themes.
+     * @example
+     * ```ts
+     * // The code below gets the registered range themes
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const themes = fWorkbook.getRegisteredRangeThemes();
+     * console.log(themes);
+     * ```
+     */
+    getRegisteredRangeThemes(): string[];
+    /**
+     * Register a custom range theme style.
+     * @param {RangeThemeStyle} rangeThemeStyle The range theme style to register
+     * @returns {void}
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const rangeThemeStyle = fWorkbook.createRangeThemeStyle('MyTheme', {
+     *   secondRowStyle: {
+     *     bg: {
+     *       rgb: 'rgb(214,231,241)',
+     *     },
+     *   },
+     * });
+     * fWorkbook.registerRangeTheme(rangeThemeStyle);
+     * ```
+     */
+    registerRangeTheme(rangeThemeStyle: RangeThemeStyle): void;
+    /**
+     * Unregister a custom range theme style.
+     * @param {string} themeName The name of the theme to unregister
+     * @returns {void}
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.unregisterRangeTheme('MyTheme');
+     * ```
+     */
+    unregisterRangeTheme(themeName: string): void;
+    /**
+     * Create a range theme style.
+     * @param {string} themeName - The name of the theme to register
+     * @param {Omit<IRangeThemeStyleJSON, 'name'>} themeStyleJson - The theme style json to register
+     * @returns {RangeThemeStyle} - The created range theme style
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const rangeThemeStyle = fWorkbook.createRangeThemeStyle('MyTheme', {
+     *   secondRowStyle: {
+     *     bg: {
+     *       rgb: 'rgb(214,231,241)',
+     *     },
+     *   },
+     * });
+     * console.log(rangeThemeStyle);
+     * ```
+     */
+    createRangeThemeStyle(themeName: string, themeStyleJson?: Omit<IRangeThemeStyleJSON, 'name'>): RangeThemeStyle;
+    /**
+     * Set custom metadata of workbook
+     * @param {CustomData | undefined} custom custom metadata
+     * @returns {FWorkbook} FWorkbook
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * fWorkbook.setCustomMetadata({ key: 'value' });
+     * ```
+     */
+    setCustomMetadata(custom: CustomData | undefined): FWorkbook;
+    /**
+     * Get custom metadata of workbook
+     * @returns {CustomData | undefined} custom metadata
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     * const custom = fWorkbook.getCustomMetadata();
+     * console.log(custom);
+     * ```
+     */
+    getCustomMetadata(): CustomData | undefined;
+    /**
+     * Add styles to the workbook styles.
+     * @param {Record<string, IStyleData>} styles Styles to add
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     *
+     * // Add styles to the workbook styles
+     * const styles = {
+     *   'custom-style-1': {
+     *     bg: {
+     *       rgb: 'rgb(255, 0, 0)',
+     *     }
+     *   },
+     *   'custom-style-2': {
+     *     fs: 20,
+     *     n: {
+     *       pattern: '@'
+     *     }
+     *   }
+     * };
+     * fWorkbook.addStyles(styles);
+     *
+     * // Set values with the new styles
+     * const fWorksheet = fWorkbook.getActiveSheet();
+     * const fRange = fWorksheet.getRange('A1:B2');
+     * fRange.setValues([
+     *   [{ v: 'Hello', s: 'custom-style-1' }, { v: 'Univer', s: 'custom-style-1' }],
+     *   [{ v: 'To', s: 'custom-style-1' }, { v: '0001', s: 'custom-style-2' }],
+     * ]);
+     * ```
+     */
+    addStyles(styles: Record<string, IStyleData>): void;
+    /**
+     * Remove styles from the workbook styles.
+     * @param {string[]} styleKeys Style keys to remove
+     * @example
+     * ```ts
+     * const fWorkbook = univerAPI.getActiveWorkbook();
+     *
+     * // Add styles to the workbook styles
+     * const styles = {
+     *   'custom-style-1': {
+     *     bg: {
+     *       rgb: 'rgb(255, 0, 0)',
+     *     }
+     *   },
+     *   'custom-style-2': {
+     *     fs: 20,
+     *     n: {
+     *       pattern: '@'
+     *     }
+     *   }
+     * };
+     * fWorkbook.addStyles(styles);
+     *
+     * // Set values with the new styles
+     * const fWorksheet = fWorkbook.getActiveSheet();
+     * const fRange = fWorksheet.getRange('A1:B2');
+     * fRange.setValues([
+     *   [{ v: 'Hello', s: 'custom-style-1' }, { v: 'Univer', s: 'custom-style-1' }],
+     *   [{ v: 'To', s: 'custom-style-1' }, { v: '0001', s: 'custom-style-2' }],
+     * ]);
+     *
+     * // Remove the style `custom-style-1` after 2 seconds
+     * setTimeout(() => {
+     *   fWorkbook.removeStyles(['custom-style-1']);
+     *   fWorksheet.refreshCanvas();
+     * }, 2000);
+     * ```
+     */
+    removeStyles(styleKeys: string[]): void;
+}
+/**
+ * @ignore
+ */
+export declare namespace FWorkbook {
+    type FontLine = _FontLine;
+    type FontStyle = _FontLine;
+    type FontWeight = _FontLine;
+}

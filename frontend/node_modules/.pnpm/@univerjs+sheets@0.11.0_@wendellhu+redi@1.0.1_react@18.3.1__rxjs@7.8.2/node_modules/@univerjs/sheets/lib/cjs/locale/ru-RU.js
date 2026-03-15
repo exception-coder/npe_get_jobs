@@ -1,0 +1,1 @@
+"use strict";const e={sheets:{tabs:{sheetCopy:"(Копия{0})",sheet:"Лист"},info:{overlappingSelections:"Невозможно использовать эту команду на пересекающихся выделениях",acrossMergedCell:"Через объединенную ячейку",partOfCell:"Выделена только часть объединенной ячейки",hideSheet:"После скрытия этого листа не будет видно ни одного листа"}}};module.exports=e;

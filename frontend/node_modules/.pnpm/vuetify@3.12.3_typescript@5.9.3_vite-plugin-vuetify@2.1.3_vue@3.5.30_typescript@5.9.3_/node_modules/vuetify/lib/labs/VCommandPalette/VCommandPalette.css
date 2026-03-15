@@ -1,0 +1,35 @@
+.v-command-palette > .v-overlay__content > .v-sheet {
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: column;
+}
+.v-command-palette--density-default .v-command-palette__input-container {
+  padding-block: 8px;
+  padding-inline: 16px;
+}
+
+.v-command-palette--density-comfortable .v-command-palette__input-container {
+  padding-block: 4px;
+  padding-inline: 12px;
+}
+
+.v-command-palette--density-compact .v-command-palette__input-container {
+  padding-block: 0px;
+  padding-inline: 8px;
+}
+
+.v-command-palette__content {
+  overflow-y: auto;
+}
+.v-command-palette__no-data {
+  opacity: 0.6;
+  padding: 16px;
+  text-align: center;
+}
+.v-command-palette__list .v-list-subheader {
+  opacity: 0.7;
+  user-select: none;
+}
+.v-command-palette__list .v-divider {
+  margin-block: 4px;
+}

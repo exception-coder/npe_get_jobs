@@ -1,0 +1,435 @@
+// Composables
+import { useToggleScope } from "../../composables/toggleScope.js"; // Utilities
+import { computed, nextTick, onScopeDispose, ref, watch } from 'vue';
+import { anchorToPoint, getOffset } from "./util/point.js";
+import { CircularBuffer, clamp, consoleError, convertToUnit, deepEqual, destructComputed, flipAlign, flipCorner, flipSide, getAxis, getScrollParents, IN_BROWSER, isFixedPosition, nullifyTransforms, parseAnchor, propsFactory } from "../../util/index.js";
+import { Box, getElementBox, getOverflow, getTargetBox } from "../../util/box.js"; // Types
+const locationStrategies = {
+  static: staticLocationStrategy,
+  // specific viewport position, usually centered
+  connected: connectedLocationStrategy // connected to a certain element
+};
+export const makeLocationStrategyProps = propsFactory({
+  locationStrategy: {
+    type: [String, Function],
+    default: 'static',
+    validator: val => typeof val === 'function' || val in locationStrategies
+  },
+  location: {
+    type: String,
+    default: 'bottom'
+  },
+  origin: {
+    type: String,
+    default: 'auto'
+  },
+  offset: [Number, String, Array],
+  stickToTarget: Boolean,
+  viewportMargin: {
+    type: [Number, String],
+    default: 12
+  }
+}, 'VOverlay-location-strategies');
+export function useLocationStrategies(props, data) {
+  const contentStyles = ref({});
+  const updateLocation = ref();
+  if (IN_BROWSER) {
+    useToggleScope(() => !!(data.isActive.value && props.locationStrategy), reset => {
+      watch(() => props.locationStrategy, reset);
+      onScopeDispose(() => {
+        window.removeEventListener('resize', onResize);
+        visualViewport?.removeEventListener('resize', onVisualResize);
+        visualViewport?.removeEventListener('scroll', onVisualScroll);
+        updateLocation.value = undefined;
+      });
+      window.addEventListener('resize', onResize, {
+        passive: true
+      });
+      visualViewport?.addEventListener('resize', onVisualResize, {
+        passive: true
+      });
+      visualViewport?.addEventListener('scroll', onVisualScroll, {
+        passive: true
+      });
+      if (typeof props.locationStrategy === 'function') {
+        updateLocation.value = props.locationStrategy(data, props, contentStyles)?.updateLocation;
+      } else {
+        updateLocation.value = locationStrategies[props.locationStrategy](data, props, contentStyles)?.updateLocation;
+      }
+    });
+  }
+  function onResize(e) {
+    updateLocation.value?.(e);
+  }
+  function onVisualResize(e) {
+    updateLocation.value?.(e);
+  }
+  function onVisualScroll(e) {
+    updateLocation.value?.(e);
+  }
+  return {
+    contentStyles,
+    updateLocation
+  };
+}
+function staticLocationStrategy() {
+  // TODO
+}
+
+/** Get size of element ignoring max-width/max-height */
+function getIntrinsicSize(el, isRtl) {
+  // const scrollables = new Map<Element, [number, number]>()
+  // el.querySelectorAll('*').forEach(el => {
+  //   const x = el.scrollLeft
+  //   const y = el.scrollTop
+  //   if (x || y) {
+  //     scrollables.set(el, [x, y])
+  //   }
+  // })
+
+  // const initialMaxWidth = el.style.maxWidth
+  // const initialMaxHeight = el.style.maxHeight
+  // el.style.removeProperty('max-width')
+  // el.style.removeProperty('max-height')
+
+  /* eslint-disable-next-line sonarjs/prefer-immediate-return */
+  const contentBox = nullifyTransforms(el);
+  if (isRtl) {
+    contentBox.x += parseFloat(el.style.right || 0);
+  } else {
+    contentBox.x -= parseFloat(el.style.left || 0);
+  }
+  contentBox.y -= parseFloat(el.style.top || 0);
+
+  // el.style.maxWidth = initialMaxWidth
+  // el.style.maxHeight = initialMaxHeight
+  // scrollables.forEach((position, el) => {
+  //   el.scrollTo(...position)
+  // })
+
+  return contentBox;
+}
+function connectedLocationStrategy(data, props, contentStyles) {
+  const activatorFixed = Array.isArray(data.target.value) || isFixedPosition(data.target.value);
+  if (activatorFixed) {
+    Object.assign(contentStyles.value, {
+      position: 'fixed',
+      top: 0,
+      [data.isRtl.value ? 'right' : 'left']: 0
+    });
+  }
+  const {
+    preferredAnchor,
+    preferredOrigin
+  } = destructComputed(() => {
+    const parsedAnchor = parseAnchor(props.location, data.isRtl.value);
+    const parsedOrigin = props.origin === 'overlap' ? parsedAnchor : props.origin === 'auto' ? flipSide(parsedAnchor) : parseAnchor(props.origin, data.isRtl.value);
+
+    // Some combinations of props may produce an invalid origin
+    if (parsedAnchor.side === parsedOrigin.side && parsedAnchor.align === flipAlign(parsedOrigin).align) {
+      return {
+        preferredAnchor: flipCorner(parsedAnchor),
+        preferredOrigin: flipCorner(parsedOrigin)
+      };
+    } else {
+      return {
+        preferredAnchor: parsedAnchor,
+        preferredOrigin: parsedOrigin
+      };
+    }
+  });
+  const [minWidth, minHeight, maxWidth, maxHeight] = ['minWidth', 'minHeight', 'maxWidth', 'maxHeight'].map(key => {
+    return computed(() => {
+      const val = parseFloat(props[key]);
+      return isNaN(val) ? Infinity : val;
+    });
+  });
+  const offset = computed(() => {
+    if (Array.isArray(props.offset)) {
+      return props.offset;
+    }
+    if (typeof props.offset === 'string') {
+      const offset = props.offset.split(' ').map(parseFloat);
+      if (offset.length < 2) offset.push(0);
+      return offset;
+    }
+    return typeof props.offset === 'number' ? [props.offset, 0] : [0, 0];
+  });
+  let observe = false;
+  let lastFrame = -1;
+  const flipped = new CircularBuffer(4);
+  const observer = new ResizeObserver(() => {
+    if (!observe) return;
+
+    // Detect consecutive frames
+    requestAnimationFrame(newTime => {
+      if (newTime !== lastFrame) flipped.clear();
+      requestAnimationFrame(newNewTime => {
+        lastFrame = newNewTime;
+      });
+    });
+    if (flipped.isFull) {
+      const values = flipped.values();
+      if (deepEqual(values.at(-1), values.at(-3)) && !deepEqual(values.at(-1), values.at(-2))) {
+        // Flipping is causing a container resize loop
+        return;
+      }
+    }
+    const result = updateLocation();
+    if (result) flipped.push(result.flipped);
+  });
+  let targetBox = new Box({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0
+  });
+  watch(data.target, (newTarget, oldTarget) => {
+    if (oldTarget && !Array.isArray(oldTarget)) observer.unobserve(oldTarget);
+    if (!Array.isArray(newTarget)) {
+      if (newTarget) observer.observe(newTarget);
+    } else if (!deepEqual(newTarget, oldTarget)) {
+      updateLocation();
+    }
+  }, {
+    immediate: true
+  });
+  watch(data.contentEl, (newContentEl, oldContentEl) => {
+    if (oldContentEl) observer.unobserve(oldContentEl);
+    if (newContentEl) observer.observe(newContentEl);
+  }, {
+    immediate: true
+  });
+  onScopeDispose(() => {
+    observer.disconnect();
+  });
+
+  // eslint-disable-next-line max-statements
+  function updateLocation() {
+    observe = false;
+    requestAnimationFrame(() => observe = true);
+    if (!data.target.value || !data.contentEl.value) return;
+    if (Array.isArray(data.target.value) || data.target.value.offsetParent || data.target.value.getClientRects().length) {
+      targetBox = getTargetBox(data.target.value);
+    } // Otherwise target element is hidden, use last known value
+
+    const contentBox = getIntrinsicSize(data.contentEl.value, data.isRtl.value);
+    const scrollParents = getScrollParents(data.contentEl.value);
+    const viewportMargin = Number(props.viewportMargin);
+    if (!scrollParents.length) {
+      scrollParents.push(document.documentElement);
+      if (!(data.contentEl.value.style.top && data.contentEl.value.style.left)) {
+        contentBox.x -= parseFloat(document.documentElement.style.getPropertyValue('--v-body-scroll-x') || 0);
+        contentBox.y -= parseFloat(document.documentElement.style.getPropertyValue('--v-body-scroll-y') || 0);
+      }
+    }
+    const viewport = scrollParents.reduce((box, el) => {
+      const scrollBox = getElementBox(el);
+      if (box) {
+        return new Box({
+          x: Math.max(box.left, scrollBox.left),
+          y: Math.max(box.top, scrollBox.top),
+          width: Math.min(box.right, scrollBox.right) - Math.max(box.left, scrollBox.left),
+          height: Math.min(box.bottom, scrollBox.bottom) - Math.max(box.top, scrollBox.top)
+        });
+      }
+      return scrollBox;
+    }, undefined);
+    if (props.stickToTarget) {
+      viewport.x += Math.min(viewportMargin, targetBox.x);
+      viewport.y += Math.min(viewportMargin, targetBox.y);
+      viewport.width = Math.max(viewport.width - viewportMargin * 2, targetBox.x + targetBox.width - viewportMargin);
+      viewport.height = Math.max(viewport.height - viewportMargin * 2, targetBox.y + targetBox.height - viewportMargin);
+    } else {
+      viewport.x += viewportMargin;
+      viewport.y += viewportMargin;
+      viewport.width -= viewportMargin * 2;
+      viewport.height -= viewportMargin * 2;
+    }
+    let placement = {
+      anchor: preferredAnchor.value,
+      origin: preferredOrigin.value
+    };
+    function checkOverflow(_placement) {
+      const box = new Box(contentBox);
+      const targetPoint = anchorToPoint(_placement.anchor, targetBox);
+      const contentPoint = anchorToPoint(_placement.origin, box);
+      let {
+        x,
+        y
+      } = getOffset(targetPoint, contentPoint);
+      switch (_placement.anchor.side) {
+        case 'top':
+          y -= offset.value[0];
+          break;
+        case 'bottom':
+          y += offset.value[0];
+          break;
+        case 'left':
+          x -= offset.value[0];
+          break;
+        case 'right':
+          x += offset.value[0];
+          break;
+      }
+      switch (_placement.anchor.align) {
+        case 'top':
+          y -= offset.value[1];
+          break;
+        case 'bottom':
+          y += offset.value[1];
+          break;
+        case 'left':
+          x -= offset.value[1];
+          break;
+        case 'right':
+          x += offset.value[1];
+          break;
+      }
+      box.x += x;
+      box.y += y;
+      box.width = Math.min(box.width, maxWidth.value);
+      box.height = Math.min(box.height, maxHeight.value);
+      const overflows = getOverflow(box, viewport);
+      return {
+        overflows,
+        x,
+        y
+      };
+    }
+    let x = 0;
+    let y = 0;
+    const available = {
+      x: 0,
+      y: 0
+    };
+    const flipped = {
+      x: false,
+      y: false
+    };
+    let resets = -1;
+    while (true) {
+      if (resets++ > 10) {
+        consoleError('Infinite loop detected in connectedLocationStrategy');
+        break;
+      }
+      const {
+        x: _x,
+        y: _y,
+        overflows
+      } = checkOverflow(placement);
+      x += _x;
+      y += _y;
+      contentBox.x += _x;
+      contentBox.y += _y;
+
+      // flip
+      {
+        const axis = getAxis(placement.anchor);
+        const hasOverflowX = overflows.x.before || overflows.x.after;
+        const hasOverflowY = overflows.y.before || overflows.y.after;
+        let reset = false;
+        ['x', 'y'].forEach(key => {
+          if (key === 'x' && hasOverflowX && !flipped.x || key === 'y' && hasOverflowY && !flipped.y) {
+            const newPlacement = {
+              anchor: {
+                ...placement.anchor
+              },
+              origin: {
+                ...placement.origin
+              }
+            };
+            const flip = key === 'x' ? axis === 'y' ? flipAlign : flipSide : axis === 'y' ? flipSide : flipAlign;
+            newPlacement.anchor = flip(newPlacement.anchor);
+            newPlacement.origin = flip(newPlacement.origin);
+            const {
+              overflows: newOverflows
+            } = checkOverflow(newPlacement);
+            if (newOverflows[key].before <= overflows[key].before && newOverflows[key].after <= overflows[key].after || newOverflows[key].before + newOverflows[key].after < (overflows[key].before + overflows[key].after) / 2) {
+              placement = newPlacement;
+              reset = flipped[key] = true;
+            }
+          }
+        });
+        if (reset) continue;
+      }
+
+      // shift
+      if (overflows.x.before) {
+        x += overflows.x.before;
+        contentBox.x += overflows.x.before;
+      }
+      if (overflows.x.after) {
+        x -= overflows.x.after;
+        contentBox.x -= overflows.x.after;
+      }
+      if (overflows.y.before) {
+        y += overflows.y.before;
+        contentBox.y += overflows.y.before;
+      }
+      if (overflows.y.after) {
+        y -= overflows.y.after;
+        contentBox.y -= overflows.y.after;
+      }
+
+      // size
+      {
+        const overflows = getOverflow(contentBox, viewport);
+        available.x = viewport.width - overflows.x.before - overflows.x.after;
+        available.y = viewport.height - overflows.y.before - overflows.y.after;
+        x += overflows.x.before;
+        contentBox.x += overflows.x.before;
+        y += overflows.y.before;
+        contentBox.y += overflows.y.before;
+      }
+      break;
+    }
+    const axis = getAxis(placement.anchor);
+    Object.assign(contentStyles.value, {
+      '--v-overlay-anchor-origin': `${placement.anchor.side} ${placement.anchor.align}`,
+      transformOrigin: `${placement.origin.side} ${placement.origin.align}`,
+      // transform: `translate(${pixelRound(x)}px, ${pixelRound(y)}px)`,
+      top: convertToUnit(pixelRound(y)),
+      left: data.isRtl.value ? undefined : convertToUnit(pixelRound(x)),
+      right: data.isRtl.value ? convertToUnit(pixelRound(-x)) : undefined,
+      minWidth: convertToUnit(axis === 'y' ? Math.min(minWidth.value, targetBox.width) : minWidth.value),
+      maxWidth: convertToUnit(pixelCeil(clamp(available.x, minWidth.value === Infinity ? 0 : minWidth.value, maxWidth.value))),
+      maxHeight: convertToUnit(pixelCeil(clamp(available.y, minHeight.value === Infinity ? 0 : minHeight.value, maxHeight.value)))
+    });
+    return {
+      available,
+      contentBox,
+      flipped
+    };
+  }
+  watch(() => [preferredAnchor.value, preferredOrigin.value, props.offset, props.minWidth, props.minHeight, props.maxWidth, props.maxHeight], () => updateLocation());
+  nextTick(() => {
+    const result = updateLocation();
+
+    // TODO: overflowing content should only require a single updateLocation call
+    // Icky hack to make sure the content is positioned consistently
+    if (!result) return;
+    const {
+      available,
+      contentBox
+    } = result;
+    if (contentBox.height > available.y) {
+      requestAnimationFrame(() => {
+        updateLocation();
+        requestAnimationFrame(() => {
+          updateLocation();
+        });
+      });
+    }
+  });
+  return {
+    updateLocation
+  };
+}
+function pixelRound(val) {
+  return Math.round(val * devicePixelRatio) / devicePixelRatio;
+}
+function pixelCeil(val) {
+  return Math.ceil(val * devicePixelRatio) / devicePixelRatio;
+}
+//# sourceMappingURL=locationStrategies.js.map

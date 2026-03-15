@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","names":["VImg"],"sources":["../../../src/components/VImg/index.ts"],"sourcesContent":["export { VImg } from './VImg'\n"],"mappings":"SAASA,IAAI","ignoreList":[]}

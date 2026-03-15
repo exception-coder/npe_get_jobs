@@ -1,6 +1,6 @@
 package getjobs.modules.datasource.mysql.repository;
 
-import getjobs.common.infrastructure.repository.common.IPlanSectionRepository;
+import getjobs.infrastructure.repository.common.IPlanSectionRepository;
 import getjobs.modules.sasl.domain.PlanSection;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

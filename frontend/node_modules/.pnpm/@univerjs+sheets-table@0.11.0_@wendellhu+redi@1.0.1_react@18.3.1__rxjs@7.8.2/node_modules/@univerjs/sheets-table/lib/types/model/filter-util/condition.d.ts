@@ -1,0 +1,11 @@
+import { IDocumentData, Worksheet } from '@univerjs/core';
+import { TableStringCompareTypeEnum, TableConditionTypeEnum, TableDateCompareTypeEnum, TableNumberCompareTypeEnum } from '../../types/enum';
+import { ICalculatedOptions, ITableConditionFilterItem } from '../../types/type';
+type TableConditionCompareType = TableNumberCompareTypeEnum | TableDateCompareTypeEnum | TableStringCompareTypeEnum;
+export declare function isNumberDynamicFilter(compareType: TableConditionCompareType): compareType is TableNumberCompareTypeEnum;
+export declare function isDateDynamicFilter(compareType: TableConditionCompareType): compareType is TableDateCompareTypeEnum;
+export declare function getConditionExecuteFunc(filter: ITableConditionFilterItem, calculatedOptions: ICalculatedOptions | undefined): ((date: Date) => boolean) | ((value: number) => boolean) | ((value: string) => boolean);
+export declare function getCellValueWithConditionType(sheet: Worksheet, row: number, col: number, conditionType: TableConditionTypeEnum): string | number | Date | null | undefined;
+export declare const getStringFromDataStream: (data: IDocumentData) => string;
+export declare function excelSerialToDateTime(serial: number): Date;
+export {};

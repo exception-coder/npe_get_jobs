@@ -1,6 +1,6 @@
 package getjobs.modules.sasl.repository;
 
-import getjobs.common.infrastructure.repository.common.ISaslFormStatisticsRecordRepository;
+import getjobs.infrastructure.repository.common.ISaslFormStatisticsRecordRepository;
 import getjobs.modules.sasl.domain.SaslFormStatisticsRecord;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

@@ -1,0 +1,201 @@
+.v-icon-btn {
+  border-color: rgba(var(--v-border-color), var(--v-border-opacity));
+  border-style: solid;
+  border-width: 0;
+}
+.v-icon-btn--border {
+  border-width: thin;
+  box-shadow: none;
+}
+.v-icon-btn {
+  border-radius: 50%;
+}
+.v-icon-btn:hover > .v-icon-btn__overlay {
+  opacity: calc(var(--v-hover-opacity) * var(--v-theme-overlay-multiplier));
+}
+.v-icon-btn:focus-visible > .v-icon-btn__overlay {
+  opacity: calc(var(--v-focus-opacity) * var(--v-theme-overlay-multiplier));
+}
+@supports not selector(:focus-visible) {
+  .v-icon-btn:focus > .v-icon-btn__overlay {
+    opacity: calc(var(--v-focus-opacity) * var(--v-theme-overlay-multiplier));
+  }
+}
+.v-icon-btn--active > .v-icon-btn__overlay, .v-icon-btn[aria-haspopup=menu][aria-expanded=true] > .v-icon-btn__overlay {
+  opacity: calc(var(--v-activated-opacity) * var(--v-theme-overlay-multiplier));
+}
+.v-icon-btn--active:hover > .v-icon-btn__overlay, .v-icon-btn[aria-haspopup=menu][aria-expanded=true]:hover > .v-icon-btn__overlay {
+  opacity: calc((var(--v-activated-opacity) + var(--v-hover-opacity)) * var(--v-theme-overlay-multiplier));
+}
+.v-icon-btn--active:focus-visible > .v-icon-btn__overlay, .v-icon-btn[aria-haspopup=menu][aria-expanded=true]:focus-visible > .v-icon-btn__overlay {
+  opacity: calc((var(--v-activated-opacity) + var(--v-focus-opacity)) * var(--v-theme-overlay-multiplier));
+}
+@supports not selector(:focus-visible) {
+  .v-icon-btn--active:focus > .v-icon-btn__overlay, .v-icon-btn[aria-haspopup=menu][aria-expanded=true]:focus > .v-icon-btn__overlay {
+    opacity: calc((var(--v-activated-opacity) + var(--v-focus-opacity)) * var(--v-theme-overlay-multiplier));
+  }
+}
+.v-icon-btn--variant-plain, .v-icon-btn--variant-outlined, .v-icon-btn--variant-text, .v-icon-btn--variant-tonal {
+  background: transparent;
+  color: inherit;
+}
+.v-icon-btn--variant-plain {
+  opacity: 0.62;
+}
+.v-icon-btn--variant-plain:focus, .v-icon-btn--variant-plain:hover {
+  opacity: 1;
+}
+.v-icon-btn--variant-plain .v-icon-btn__overlay {
+  display: none;
+}
+.v-icon-btn--variant-elevated, .v-icon-btn--variant-flat {
+  background: rgb(var(--v-theme-surface));
+  color: inherit;
+}
+.v-icon-btn--variant-elevated {
+  box-shadow: 0px 3px 1px -2px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 2px 2px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 1px 5px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12));
+}
+.v-icon-btn--variant-flat {
+  box-shadow: 0px 0px 0px 0px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 0px 0px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12));
+}
+.v-icon-btn--variant-outlined {
+  border: thin solid currentColor;
+}
+.v-icon-btn--variant-text .v-icon-btn__overlay {
+  background: currentColor;
+}
+.v-icon-btn--variant-tonal .v-icon-btn__underlay {
+  background: currentColor;
+  opacity: var(--v-activated-opacity);
+  border-radius: inherit;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+.v-icon-btn .v-icon-btn__underlay {
+  position: absolute;
+}
+.v-icon-btn {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: normal;
+  height: var(--v-icon-btn-height);
+  justify-content: center;
+  outline: none;
+  position: relative;
+  transition-property: width, height, transform;
+  transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  vertical-align: middle;
+  width: var(--v-icon-btn-width);
+}
+@supports selector(:focus-visible) {
+  .v-icon-btn::after {
+    pointer-events: none;
+    border: 2px solid currentColor;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+  }
+  .v-icon-btn::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .v-icon-btn:focus-visible::after {
+    opacity: calc(0.25 * var(--v-theme-overlay-multiplier));
+  }
+}
+.v-icon-btn--disabled, .v-icon-btn--loading, .v-icon-btn--readonly {
+  pointer-events: none;
+}
+.v-icon-btn--disabled {
+  opacity: 0.26;
+}
+.v-icon-btn--start {
+  margin-inline-end: 8px;
+}
+.v-icon-btn--end {
+  margin-inline-start: 8px;
+}
+
+.v-icon-btn__content {
+  align-items: center;
+  justify-content: center;
+  display: inline-flex;
+  transition: inherit;
+  transition-property: transform;
+  transform: rotate(var(--v-icon-btn-rotate, 0deg));
+}
+.v-icon-btn--loading .v-icon-btn__content {
+  opacity: 0;
+}
+.v-icon-btn__content .v-icon {
+  transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-property: opacity, font-size, width, height;
+  transform-origin: center;
+}
+
+.v-icon-btn__loader {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.v-icon-btn__overlay,
+.v-icon-btn__underlay {
+  border-radius: inherit;
+  pointer-events: none;
+}
+.v-icon-btn__overlay,
+.v-icon-btn__underlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.v-icon-btn__overlay {
+  background-color: currentColor;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+.v-icon-btn--active:not(:hover) .v-icon-btn__overlay {
+  --v-activated-opacity: 0;
+}
+
+@media (forced-colors: active) {
+  .v-icon-btn:focus-visible {
+    outline: 2px solid;
+    outline-offset: 2px;
+  }
+  .v-icon-btn:not(.v-icon-btn--active):hover, .v-icon-btn:not(.v-icon-btn--active):focus {
+    color: highlight !important;
+  }
+  .v-icon-btn--active:not(.v-icon-btn--disabled), .v-icon-btn--active:not(.v-icon-btn--disabled)[class*=bg-] {
+    outline-color: canvastext !important;
+    background: highlight !important;
+    color: highlighttext !important;
+  }
+  .v-icon-btn--disabled {
+    color: graytext;
+  }
+  .v-icon-btn__overlay, .v-icon-btn__underlay,
+  .v-icon-btn .v-icon {
+    forced-color-adjust: preserve-parent-color;
+  }
+}

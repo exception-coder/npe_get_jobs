@@ -1,0 +1,38 @@
+import { DocumentDataModel, Disposable, ICommandService, IContextService, LocaleService } from '@univerjs/core';
+import { IRenderContext, IRenderModule, IRenderManagerService } from '@univerjs/engine-render';
+import { DocSelectionManagerService } from '@univerjs/docs';
+import { IDocDrawingService } from '@univerjs/docs-drawing';
+import { DocSelectionRenderService } from '@univerjs/docs-ui';
+import { IDrawingManagerService, IImageIoService } from '@univerjs/drawing';
+import { ILocalFileService, IMessageService } from '@univerjs/ui';
+import { DocRefreshDrawingsService } from '../../services/doc-refresh-drawings.service';
+export declare class DocDrawingUpdateRenderController extends Disposable implements IRenderModule {
+    private readonly _context;
+    private readonly _commandService;
+    private readonly _docSelectionManagerService;
+    private readonly _renderManagerSrv;
+    private readonly _imageIoService;
+    private readonly _docDrawingService;
+    private readonly _drawingManagerService;
+    private readonly _contextService;
+    private readonly _messageService;
+    private readonly _localeService;
+    private readonly _docSelectionRenderService;
+    private readonly _docRefreshDrawingsService;
+    private readonly _fileOpenerService;
+    constructor(_context: IRenderContext<DocumentDataModel>, _commandService: ICommandService, _docSelectionManagerService: DocSelectionManagerService, _renderManagerSrv: IRenderManagerService, _imageIoService: IImageIoService, _docDrawingService: IDocDrawingService, _drawingManagerService: IDrawingManagerService, _contextService: IContextService, _messageService: IMessageService, _localeService: LocaleService, _docSelectionRenderService: DocSelectionRenderService, _docRefreshDrawingsService: DocRefreshDrawingsService, _fileOpenerService: ILocalFileService);
+    dispose(): void;
+    insertDocImage(): Promise<boolean>;
+    private _insertFloatImages;
+    private _isInsertInHeaderFooter;
+    private _getImagePosition;
+    private _updateOrderListener;
+    private _groupDrawingListener;
+    private _getCurrentSceneAndTransformer;
+    private _transformDrawingListener;
+    private _focusDrawingListener;
+    private _findSegmentIdByDrawingId;
+    private _updateDrawingsEditStatus;
+    private _editAreaChangeListener;
+    private _setDrawingSelections;
+}

@@ -1,6 +1,6 @@
 package getjobs.modules.sasl.repository;
 
-import getjobs.common.infrastructure.repository.common.ILeadRecordRepository;
+import getjobs.infrastructure.repository.common.ILeadRecordRepository;
 import getjobs.modules.sasl.domain.LeadRecord;
 import org.springframework.stereotype.Repository;
 

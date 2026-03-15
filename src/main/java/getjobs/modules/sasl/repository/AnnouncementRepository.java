@@ -1,6 +1,6 @@
 package getjobs.modules.sasl.repository;
 
-import getjobs.common.infrastructure.repository.common.IAnnouncementRepository;
+import getjobs.infrastructure.repository.common.IAnnouncementRepository;
 import getjobs.modules.sasl.domain.Announcement;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;

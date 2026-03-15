@@ -1,7 +1,7 @@
 package getjobs.modules.auth.service;
 
-import getjobs.common.infrastructure.repository.common.*;
-import getjobs.common.infrastructure.repository.service.RepositoryServiceHelper;
+import getjobs.infrastructure.repository.common.*;
+import getjobs.infrastructure.repository.service.RepositoryServiceHelper;
 import getjobs.modules.auth.domain.Permission;
 import getjobs.modules.auth.domain.RolePermission;
 import getjobs.modules.auth.domain.UserRole;

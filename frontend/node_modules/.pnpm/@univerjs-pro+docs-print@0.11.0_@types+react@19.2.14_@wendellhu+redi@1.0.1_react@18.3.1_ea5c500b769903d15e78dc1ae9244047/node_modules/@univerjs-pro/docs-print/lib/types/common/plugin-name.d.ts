@@ -1,0 +1,1 @@
+export declare const DOCS_PRINT_PLUGIN_NAME = "UNIVER_DOCS_PRINT";

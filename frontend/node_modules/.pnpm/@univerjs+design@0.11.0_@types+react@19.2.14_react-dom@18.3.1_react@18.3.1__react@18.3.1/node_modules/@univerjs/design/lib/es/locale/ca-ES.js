@@ -1,0 +1,40 @@
+const e = {
+  design: {
+    Confirm: {
+      cancel: "cancel·la",
+      confirm: "ok"
+    },
+    CascaderList: {
+      empty: "Cap"
+    },
+    Calendar: {
+      year: "",
+      weekDays: ["dg", "dl", "dt", "dc", "dj", "dv", "ds"],
+      months: [
+        "gener",
+        "febrer",
+        "març",
+        "abril",
+        "maig",
+        "juny",
+        "juliol",
+        "agost",
+        "setembre",
+        "octubre",
+        "novembre",
+        "desembre"
+      ]
+    },
+    Select: {
+      empty: "Cap"
+    },
+    ColorPicker: {
+      more: "Més colors",
+      cancel: "cancel·la",
+      confirm: "ok"
+    }
+  }
+};
+export {
+  e as default
+};

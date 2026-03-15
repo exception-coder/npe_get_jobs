@@ -1,6 +1,6 @@
 package getjobs.modules.datasource.mysql.repository;
 
-import getjobs.common.infrastructure.repository.common.IRoleRepository;
+import getjobs.infrastructure.repository.common.IRoleRepository;
 import getjobs.modules.auth.domain.Role;
 import org.springframework.stereotype.Repository;
 

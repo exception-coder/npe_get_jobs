@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","names":["VHotkey"],"sources":["../../../src/labs/VHotkey/index.ts"],"sourcesContent":["export { VHotkey } from './VHotkey'\n"],"mappings":"SAASA,OAAO","ignoreList":[]}

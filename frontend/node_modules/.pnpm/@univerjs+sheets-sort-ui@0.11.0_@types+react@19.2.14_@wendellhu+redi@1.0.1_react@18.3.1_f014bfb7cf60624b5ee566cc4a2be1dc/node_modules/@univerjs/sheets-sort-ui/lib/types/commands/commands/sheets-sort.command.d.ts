@@ -1,0 +1,11 @@
+import { ICommand } from '@univerjs/core';
+export declare const SortRangeAscCommand: ICommand;
+export declare const SortRangeAscExtCommand: ICommand;
+export declare const SortRangeDescCommand: ICommand;
+export declare const SortRangeDescExtCommand: ICommand;
+export declare const SortRangeCustomCommand: ICommand;
+export declare const SortRangeAscInCtxMenuCommand: ICommand;
+export declare const SortRangeAscExtInCtxMenuCommand: ICommand;
+export declare const SortRangeDescInCtxMenuCommand: ICommand;
+export declare const SortRangeDescExtInCtxMenuCommand: ICommand;
+export declare const SortRangeCustomInCtxMenuCommand: ICommand;

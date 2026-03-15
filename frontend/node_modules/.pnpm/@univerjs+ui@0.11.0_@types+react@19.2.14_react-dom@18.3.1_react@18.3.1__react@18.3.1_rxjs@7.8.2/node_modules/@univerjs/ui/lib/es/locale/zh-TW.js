@@ -1,0 +1,87 @@
+const t = {
+  toolbar: {
+    heading: {
+      normal: "正文",
+      title: "標題",
+      subTitle: "副標題",
+      1: "標題 1",
+      2: "標題 2",
+      3: "標題 3",
+      4: "標題 4",
+      5: "標題 5",
+      6: "標題 6",
+      tooltip: "設定標題"
+    }
+  },
+  ribbon: {
+    start: "開始",
+    startDesc: "初始化工作表並設定基本參數。",
+    insert: "插入",
+    insertDesc: "插入行、列、圖表和各種其他元素。",
+    formulas: "公式",
+    formulasDesc: "使用函數和公式進行數據計算。",
+    data: "資料",
+    dataDesc: "管理資料，包括匯入、排序和篩選。",
+    view: "視圖",
+    viewDesc: "切換視圖模式並調整顯示效果。",
+    others: "其他",
+    othersDesc: "其他功能和設定。",
+    more: "更多"
+  },
+  fontFamily: {
+    TimesNewRoman: "Times New Roman",
+    Arial: "Arial",
+    Tahoma: "Tahoma",
+    Verdana: "Verdana",
+    MicrosoftYaHei: "微軟雅黑",
+    SimSun: "宋體",
+    SimHei: "黑體",
+    Kaiti: "楷體",
+    FangSong: "仿宋",
+    NSimSun: "新宋體",
+    STXinwei: "華文新魏",
+    STXingkai: "華文行楷",
+    STLiti: "華文隸書",
+    HanaleiFill: "HanaleiFill",
+    Anton: "Anton",
+    Pacifico: "Pacifico"
+  },
+  "shortcut-panel": {
+    title: "快捷鍵面板"
+  },
+  shortcut: {
+    undo: "撤銷",
+    redo: "重做",
+    cut: "剪切",
+    copy: "複製",
+    paste: "貼上",
+    "shortcut-panel": "開啟收起快捷鍵面板"
+  },
+  "common-edit": "常用編輯",
+  "toggle-shortcut-panel": "開啟收起快速鍵面板",
+  clipboard: {
+    authentication: {
+      title: "無法存取剪貼簿",
+      content: "請允許 Univer 存取您的剪貼簿。 "
+    }
+  },
+  textEditor: {
+    formulaError: "請輸入合法的公式，例如=SUM(A1)",
+    rangeError: "請輸入合法的範圍，例如 A1:B10"
+  },
+  rangeSelector: {
+    title: "選擇一個資料範圍",
+    addAnotherRange: "新增範圍",
+    buttonTooltip: "選擇資料範圍",
+    placeHolder: "框選範圍或輸入",
+    confirm: "確認",
+    cancel: "取消"
+  },
+  "global-shortcut": "全域快捷鍵",
+  "zoom-slider": {
+    resetTo: "恢復至"
+  }
+};
+export {
+  t as default
+};

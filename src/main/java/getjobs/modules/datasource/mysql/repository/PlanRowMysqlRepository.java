@@ -1,6 +1,6 @@
 package getjobs.modules.datasource.mysql.repository;
 
-import getjobs.common.infrastructure.repository.common.IPlanRowRepository;
+import getjobs.infrastructure.repository.common.IPlanRowRepository;
 import getjobs.modules.sasl.domain.PlanRow;
 import getjobs.modules.sasl.domain.PlanSection;
 import org.springframework.data.jpa.repository.Modifying;

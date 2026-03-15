@@ -1,0 +1,24 @@
+.v-date-picker {
+  overflow: hidden;
+  width: 328px;
+  --v-date-picker-landscape-header-width: 170px;
+}
+.v-date-picker--show-week {
+  width: 368px;
+}
+.v-date-picker.v-picker--landscape:has(.v-picker__header-wrapper) {
+  width: calc(328px + var(--v-date-picker-landscape-header-width));
+}
+.v-date-picker.v-picker--landscape:has(.v-picker__header-wrapper) .v-picker__header-wrapper {
+  width: var(--v-date-picker-landscape-header-width);
+}
+.v-date-picker.v-picker--landscape:has(.v-picker__header-wrapper) .v-picker__header-wrapper .v-date-picker-header {
+  height: auto;
+  padding-inline: 24px;
+}
+.v-date-picker.v-picker--landscape:has(.v-picker__header-wrapper).v-picker--show-week {
+  width: calc(368px + var(--v-date-picker-landscape-header-width));
+}
+.v-date-picker > .v-picker__body {
+  flex-direction: column;
+}

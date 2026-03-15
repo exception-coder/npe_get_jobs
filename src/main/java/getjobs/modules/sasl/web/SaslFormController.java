@@ -1,6 +1,6 @@
 package getjobs.modules.sasl.web;
 
-import getjobs.common.infrastructure.auth.AuthContext;
+import getjobs.infrastructure.auth.AuthContext;
 import getjobs.modules.sasl.infrastructure.sse.SaslSseConnectionManager;
 import getjobs.modules.sasl.service.SaslFormService;
 import lombok.RequiredArgsConstructor;

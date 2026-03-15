@@ -1,9 +1,9 @@
 package getjobs.modules.task.quickdelivery.service;
 
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.common.infrastructure.task.domain.Task;
-import getjobs.common.infrastructure.task.enums.TaskStatusEnum;
-import getjobs.common.infrastructure.task.scheduler.TaskSchedulerService;
+import getjobs.infrastructure.task.domain.Task;
+import getjobs.infrastructure.task.enums.TaskStatusEnum;
+import getjobs.infrastructure.task.scheduler.TaskSchedulerService;
 import getjobs.modules.task.quickdelivery.domain.ParameterizedQuickDeliveryTask;
 import getjobs.modules.task.quickdelivery.dto.DeliveryFlowOptions;
 import getjobs.service.JobDeliveryService;

@@ -1,0 +1,1 @@
+"use strict";Object.defineProperty(exports,Symbol.toStringTag,{value:"Module"});const e=require("@univerjs/core/facade"),t=require("@univerjs/sheets-formula-ui");class r extends e.FUniver{showRangeSelectorDialog(o){return this._injector.get(t.GlobalRangeSelectorService).showRangeSelectorDialog(o)}}e.FUniver.extend(r);exports.FSheetsFormulaUIUniver=r;

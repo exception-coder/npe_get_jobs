@@ -1,7 +1,7 @@
 package getjobs.modules.sasl.service;
 
-import getjobs.common.infrastructure.repository.common.IAnnouncementRepository;
-import getjobs.common.infrastructure.repository.service.RepositoryServiceHelper;
+import getjobs.infrastructure.repository.common.IAnnouncementRepository;
+import getjobs.infrastructure.repository.service.RepositoryServiceHelper;
 import getjobs.modules.sasl.domain.Announcement;
 import jakarta.annotation.PostConstruct;
 import org.springframework.transaction.annotation.Transactional;

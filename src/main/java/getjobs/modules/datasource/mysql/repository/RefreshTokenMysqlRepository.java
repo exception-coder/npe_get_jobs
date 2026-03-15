@@ -1,6 +1,6 @@
 package getjobs.modules.datasource.mysql.repository;
 
-import getjobs.common.infrastructure.repository.common.IRefreshTokenRepository;
+import getjobs.infrastructure.repository.common.IRefreshTokenRepository;
 import getjobs.modules.auth.domain.RefreshToken;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

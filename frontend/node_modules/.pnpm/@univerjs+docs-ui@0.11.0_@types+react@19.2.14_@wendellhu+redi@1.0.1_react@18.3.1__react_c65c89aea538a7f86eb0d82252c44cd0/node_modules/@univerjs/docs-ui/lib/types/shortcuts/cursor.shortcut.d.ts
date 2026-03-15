@@ -1,0 +1,10 @@
+import { IShortcutItem } from '@univerjs/ui';
+export declare const MoveCursorUpShortcut: IShortcutItem;
+export declare const MoveCursorDownShortcut: IShortcutItem;
+export declare const MoveCursorLeftShortcut: IShortcutItem;
+export declare const MoveCursorRightShortcut: IShortcutItem;
+export declare const MoveSelectionUpShortcut: IShortcutItem;
+export declare const MoveSelectionDownShortcut: IShortcutItem;
+export declare const MoveSelectionLeftShortcut: IShortcutItem;
+export declare const MoveSelectionRightShortcut: IShortcutItem;
+export declare const SelectAllShortcut: IShortcutItem;

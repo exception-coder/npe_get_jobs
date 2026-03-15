@@ -1,0 +1,1 @@
+"use strict";const e={sheets:{tabs:{sheetCopy:"(Còpia{0})",sheet:"Full"},info:{overlappingSelections:"No es pot utilitzar aquesta ordre en seleccions superposades",acrossMergedCell:"A través d'una cel·la combinada",partOfCell:"Només una part d'una cel·la combinada està seleccionada",hideSheet:"No hi ha fulls visibles després d'ocultar aquest"}}};module.exports=e;

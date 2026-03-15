@@ -1,0 +1,23 @@
+.v-time-picker.v-picker {
+  min-width: 328px;
+}
+.v-time-picker .v-picker__body, .v-time-picker-controls__field-label,
+.v-time-picker .v-field {
+  transition-duration: 0.25s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-property: transform, max-height, opacity, font-size;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v-time-picker .v-picker__body, .v-time-picker-controls__field-label,
+  .v-time-picker .v-field {
+    transition: none;
+  }
+}
+.v-time-picker .v-picker__body {
+  transition-behavior: allow-discrete;
+  max-height: calc-size(max-content, size);
+}
+.v-time-picker--variant-input .v-picker__body {
+  transform: scale(0);
+  max-height: 0;
+}

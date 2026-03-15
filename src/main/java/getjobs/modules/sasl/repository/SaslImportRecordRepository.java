@@ -1,6 +1,6 @@
 package getjobs.modules.sasl.repository;
 
-import getjobs.common.infrastructure.repository.common.ISaslImportRecordRepository;
+import getjobs.infrastructure.repository.common.ISaslImportRecordRepository;
 import getjobs.modules.sasl.domain.SaslImportRecord;
 import org.springframework.stereotype.Repository;
 

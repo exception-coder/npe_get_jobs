@@ -1,6 +1,6 @@
 package getjobs.modules.auth.infrastructure;
 
-import getjobs.common.infrastructure.repository.common.IRoleRepository;
+import getjobs.infrastructure.repository.common.IRoleRepository;
 import getjobs.modules.auth.domain.Role;
 
 /**

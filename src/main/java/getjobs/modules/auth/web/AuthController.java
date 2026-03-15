@@ -1,7 +1,7 @@
 package getjobs.modules.auth.web;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
-import getjobs.common.infrastructure.auth.AuthInterceptorProperties;
+import getjobs.infrastructure.auth.AuthInterceptorProperties;
 import getjobs.modules.auth.config.JwtProperties;
 import getjobs.modules.auth.domain.User;
 import getjobs.modules.auth.dto.CreateUserRequest;

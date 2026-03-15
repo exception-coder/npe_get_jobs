@@ -1,6 +1,6 @@
 package getjobs.modules.auth.infrastructure;
 
-import getjobs.common.infrastructure.repository.common.IRolePermissionRepository;
+import getjobs.infrastructure.repository.common.IRolePermissionRepository;
 import getjobs.modules.auth.domain.RolePermission;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

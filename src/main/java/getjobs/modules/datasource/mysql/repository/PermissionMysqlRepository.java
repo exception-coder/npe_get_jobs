@@ -1,6 +1,6 @@
 package getjobs.modules.datasource.mysql.repository;
 
-import getjobs.common.infrastructure.repository.common.IPermissionRepository;
+import getjobs.infrastructure.repository.common.IPermissionRepository;
 import getjobs.modules.auth.domain.Permission;
 import org.springframework.stereotype.Repository;
 

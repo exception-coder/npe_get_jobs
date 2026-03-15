@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","names":["VOverlay"],"sources":["../../../src/components/VOverlay/index.ts"],"sourcesContent":["export { VOverlay } from './VOverlay'\n"],"mappings":"SAASA,QAAQ","ignoreList":[]}

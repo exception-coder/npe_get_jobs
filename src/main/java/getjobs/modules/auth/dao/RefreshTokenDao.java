@@ -1,7 +1,7 @@
 package getjobs.modules.auth.dao;
 
-import getjobs.common.infrastructure.repository.common.IRefreshTokenRepository;
-import getjobs.common.infrastructure.repository.service.RepositoryServiceHelper;
+import getjobs.infrastructure.repository.common.IRefreshTokenRepository;
+import getjobs.infrastructure.repository.service.RepositoryServiceHelper;
 import getjobs.modules.auth.domain.RefreshToken;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;

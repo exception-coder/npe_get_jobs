@@ -1,6 +1,6 @@
 package getjobs.modules.auth.infrastructure;
 
-import getjobs.common.infrastructure.repository.common.IPermissionRepository;
+import getjobs.infrastructure.repository.common.IPermissionRepository;
 import getjobs.modules.auth.domain.Permission;
 
 import java.util.List;

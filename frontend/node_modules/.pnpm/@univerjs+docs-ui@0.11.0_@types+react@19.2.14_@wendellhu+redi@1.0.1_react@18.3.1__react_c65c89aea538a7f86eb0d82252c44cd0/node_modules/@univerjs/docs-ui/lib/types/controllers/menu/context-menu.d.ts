@@ -1,0 +1,18 @@
+import { IAccessor } from '@univerjs/core';
+import { IMenuButtonItem, IMenuSelectorItem } from '@univerjs/ui';
+export declare const CopyMenuFactory: (accessor: IAccessor) => IMenuButtonItem;
+export declare const ParagraphSettingMenuFactory: (accessor: IAccessor) => IMenuButtonItem;
+export declare const CutMenuFactory: (accessor: IAccessor) => IMenuButtonItem;
+export declare const PasteMenuFactory: (accessor: IAccessor) => IMenuButtonItem;
+export declare const DeleteMenuFactory: (accessor: IAccessor) => IMenuButtonItem;
+export declare const TABLE_INSERT_MENU_ID = "doc.menu.table-insert";
+export declare function TableInsertMenuItemFactory(accessor: IAccessor): IMenuSelectorItem<string>;
+export declare function InsertRowBeforeMenuItemFactory(accessor: IAccessor): IMenuButtonItem;
+export declare function InsertRowAfterMenuItemFactory(accessor: IAccessor): IMenuButtonItem;
+export declare function InsertColumnLeftMenuItemFactory(accessor: IAccessor): IMenuButtonItem;
+export declare function InsertColumnRightMenuItemFactory(accessor: IAccessor): IMenuButtonItem;
+export declare const TABLE_DELETE_MENU_ID = "doc.menu.table-delete";
+export declare function TableDeleteMenuItemFactory(accessor: IAccessor): IMenuSelectorItem<string>;
+export declare function DeleteRowsMenuItemFactory(accessor: IAccessor): IMenuButtonItem;
+export declare function DeleteColumnsMenuItemFactory(accessor: IAccessor): IMenuButtonItem;
+export declare function DeleteTableMenuItemFactory(accessor: IAccessor): IMenuButtonItem;

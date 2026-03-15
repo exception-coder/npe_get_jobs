@@ -1,6 +1,6 @@
 package getjobs.modules.auth.infrastructure;
 
-import getjobs.common.infrastructure.repository.common.IUserRoleRepository;
+import getjobs.infrastructure.repository.common.IUserRoleRepository;
 import getjobs.modules.auth.domain.UserRole;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

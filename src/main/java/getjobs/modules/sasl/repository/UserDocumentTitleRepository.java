@@ -1,6 +1,6 @@
 package getjobs.modules.sasl.repository;
 
-import getjobs.common.infrastructure.repository.common.IUserDocumentTitleRepository;
+import getjobs.infrastructure.repository.common.IUserDocumentTitleRepository;
 import getjobs.modules.sasl.domain.UserDocumentTitle;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

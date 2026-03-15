@@ -1,0 +1,1 @@
+(function(e,n){typeof exports=="object"&&typeof module<"u"?module.exports=n():typeof define=="function"&&define.amd?define(n):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsThreadCommentUiZhCN=n())})(this,(function(){"use strict";return{sheetThreadComment:{menu:{addComment:"添加评论",commentManagement:"评论管理"}}}}));

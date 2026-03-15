@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","names":["VCommandPalette","VCommandPaletteItemComponent"],"sources":["../../../src/labs/VCommandPalette/index.ts"],"sourcesContent":["export { VCommandPalette } from './VCommandPalette'\nexport { VCommandPaletteItemComponent } from './VCommandPaletteItem'\n"],"mappings":"SAASA,eAAe;AAAA,SACfC,4BAA4B","ignoreList":[]}

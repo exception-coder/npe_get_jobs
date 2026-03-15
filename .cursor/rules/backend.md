@@ -77,14 +77,23 @@ src/main/java/getjobs/
 │   ├── dto/                       # 通用 DTO
 │   ├── util/                      # 工具类
 │   ├── enums/                     # 枚举
-│   ├── service/                   # 通用服务
-│   └── infrastructure/            # 通用基础设施
-│       ├── auth/                  # 认证
-│       ├── webclient/             # HTTP 客户端
-│       ├── repository/            # 通用仓储
-│       ├── task/                  # 异步任务
-│       ├── queue/                 # 消息队列
-│       └── ...
+│   └── service/                   # 通用服务
+├── infrastructure/                # 基础设施层（技术实现）
+│   ├── ai/                        # AI 平台适配
+│   │   ├── config/                # AI 配置（Deepseek/Qwen/OpenAI）
+│   │   ├── llm/                   # LLM 客户端接口与实现
+│   │   ├── enums/                 # AI 平台枚举
+│   │   └── factory/               # ChatModel 工厂
+│   ├── accesslog/                 # 访问日志
+│   ├── asyncexecutor/             # 异步执行器
+│   ├── auth/                      # 认证拦截器
+│   ├── datasource/                # 数据源配置
+│   ├── health/                    # 健康检查
+│   ├── queue/                     # 队列任务
+│   ├── repository/                # 通用仓储
+│   ├── task/                      # 定时任务
+│   ├── tomcat/                    # Tomcat 配置
+│   └── webclient/                 # HTTP 客户端
 ├── config/                        # Spring 配置
 │   ├── WebConfig.java
 │   ├── SecurityConfig.java

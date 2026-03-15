@@ -1,0 +1,1 @@
+"use strict";const e={sheets:{tabs:{sheetCopy:"(Copy{0})",sheet:"Sheet"},info:{overlappingSelections:"Cannot use that command on overlapping selections",acrossMergedCell:"Across a merged cell",partOfCell:"Only part of a merged cell is selected",hideSheet:"No visible sheet after you hide this"}}};module.exports=e;

@@ -1,0 +1,38 @@
+.v-btn-toggle > .v-btn.v-btn--active:not(.v-btn--disabled) > .v-btn__overlay {
+  opacity: calc(var(--v-activated-opacity) * var(--v-theme-overlay-multiplier));
+}
+.v-btn-toggle > .v-btn.v-btn--active:not(.v-btn--disabled):hover > .v-btn__overlay {
+  opacity: calc((var(--v-activated-opacity) + var(--v-hover-opacity)) * var(--v-theme-overlay-multiplier));
+}
+.v-btn-toggle > .v-btn.v-btn--active:not(.v-btn--disabled):focus-visible > .v-btn__overlay {
+  opacity: calc((var(--v-activated-opacity) + var(--v-focus-opacity)) * var(--v-theme-overlay-multiplier));
+}
+@supports not selector(:focus-visible) {
+  .v-btn-toggle > .v-btn.v-btn--active:not(.v-btn--disabled):focus > .v-btn__overlay {
+    opacity: calc((var(--v-activated-opacity) + var(--v-focus-opacity)) * var(--v-theme-overlay-multiplier));
+  }
+}
+.v-btn-toggle > .v-btn.v-btn--active:not(.v-btn--disabled).v-btn--variant-plain {
+  opacity: 1;
+}
+@media (forced-colors: active) {
+  .v-btn-toggle > .v-btn:not(.v-btn--disabled) {
+    border-color: buttontext !important;
+  }
+  .v-btn-toggle > .v-btn:not(.v-btn--disabled):focus-visible {
+    outline: 0;
+  }
+  .v-btn-toggle > .v-btn:not(.v-btn--disabled):not(.v-btn--active):hover, .v-btn-toggle > .v-btn:not(.v-btn--disabled):not(.v-btn--active):focus-visible {
+    color: highlight;
+    border-color: currentColor !important;
+  }
+  .v-btn-toggle > .v-btn--active {
+    color: highlight !important;
+    forced-color-adjust: preserve-parent-color;
+  }
+  .v-btn-toggle > .v-btn--active:not(.v-btn--variant-text, .v-btn--variant-plain) {
+    background-color: highlight !important;
+    color: highlighttext !important;
+    border-color: highlight !important;
+  }
+}
