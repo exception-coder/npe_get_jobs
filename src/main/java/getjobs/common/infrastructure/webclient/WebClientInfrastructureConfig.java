@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.ProxyProvider;
@@ -94,6 +95,17 @@ public class WebClientInfrastructureConfig {
     public WebClient.Builder webClientBuilderDefault() {
         log.info("WebClient 默认配置已初始化（未使用自定义 HttpClient）");
         return WebClient.builder();
+    }
+
+    /**
+     * 默认 RestClient.Builder，无任何定制。
+     * 供 Spring 自动配置（如 OpenAiAutoConfiguration）及未指定 Qualifier 的注入点使用，
+     * 避免多个平台专用 Builder Bean 导致 NoUniqueBeanDefinitionException。
+     */
+    @Bean
+    @Primary
+    public RestClient.Builder restClientBuilder() {
+        return RestClient.builder();
     }
 
     /**
