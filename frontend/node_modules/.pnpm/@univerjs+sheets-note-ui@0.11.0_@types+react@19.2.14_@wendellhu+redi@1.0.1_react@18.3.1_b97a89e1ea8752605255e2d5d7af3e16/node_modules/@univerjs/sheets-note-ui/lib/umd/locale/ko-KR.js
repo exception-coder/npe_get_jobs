@@ -1,1 +1,0 @@
-(function(e,t){typeof exports=="object"&&typeof module<"u"?module.exports=t():typeof define=="function"&&define.amd?define(t):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsNoteUiKoKR=t())})(this,(function(){"use strict";return{rightClick:{addNote:"노트 추가",deleteNote:"노트 삭제",toggleNote:"노트 표시/숨기기"},note:{placeholder:"여기에 입력"}}}));

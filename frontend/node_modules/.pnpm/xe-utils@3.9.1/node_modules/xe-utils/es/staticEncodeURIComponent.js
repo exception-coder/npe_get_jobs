@@ -1,3 +1,0 @@
-var staticEncodeURIComponent = encodeURIComponent
-
-export default staticEncodeURIComponent

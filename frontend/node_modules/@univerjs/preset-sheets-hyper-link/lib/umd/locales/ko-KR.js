@@ -1,6 +1,0 @@
-// @univerjs/sheets-hyper-link-ui/locale/ko-KR
-(function(e,n){typeof exports=="object"&&typeof module<"u"?module.exports=n():typeof define=="function"&&define.amd?define(n):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsHyperLinkUiKoKR=n())})(this,(function(){"use strict";return{hyperLink:{form:{editTitle:"링크 편집",addTitle:"링크 삽입",label:"표시 텍스트",type:"유형",link:"링크",linkPlaceholder:"링크 입력",range:"범위",worksheet:"워크시트",definedName:"정의된 이름",ok:"확인",cancel:"취소",labelPlaceholder:"표시할 텍스트 입력",inputError:"값을 입력하세요",selectError:"선택하세요",linkError:"유효한 링크를 입력하세요"},menu:{add:"링크 삽입"},message:{noSheet:"대상 워크시트가 삭제되었습니다",refError:"잘못된 범위입니다",hiddenSheet:"링크를 열 수 없습니다. 연결된 워크시트가 숨겨져 있습니다",coped:"링크가 클립보드에 복사되었습니다"},popup:{copy:"링크 복사",edit:"링크 편집",cancel:"링크 취소"}}}}));
-
-
-// locale/ko-KR
-(function(e,i){typeof exports=="object"&&typeof module<"u"?module.exports=i(require("@univerjs/core"),require("@univerjs/sheets-hyper-link-ui/locale/ko-KR")):typeof define=="function"&&define.amd?define(["@univerjs/core","@univerjs/sheets-hyper-link-ui/locale/ko-KR"],i):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverPresetSheetsHyperLinkKoKR=i(e.UniverCore,e.UniverSheetsHyperLinkUiKoKR))})(this,(function(e,i){"use strict";return e.mergeLocales(i)}));

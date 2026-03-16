@@ -1,5 +1,0 @@
-export * from './assign'
-export * from './objectEach'
-export * from './lastObjectEach'
-export * from './objectMap'
-export * from './merge'

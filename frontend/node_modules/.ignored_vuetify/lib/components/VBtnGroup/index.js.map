@@ -1,1 +1,0 @@
-{"version":3,"file":"index.js","names":["VBtnGroup"],"sources":["../../../src/components/VBtnGroup/index.ts"],"sourcesContent":["export { VBtnGroup } from './VBtnGroup'\n"],"mappings":"SAASA,SAAS","ignoreList":[]}

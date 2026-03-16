@@ -1,1 +1,0 @@
-{"version":3,"file":"index.js","names":["VIconBtn"],"sources":["../../../src/labs/VIconBtn/index.ts"],"sourcesContent":["export { VIconBtn } from './VIconBtn'\n"],"mappings":"SAASA,QAAQ","ignoreList":[]}

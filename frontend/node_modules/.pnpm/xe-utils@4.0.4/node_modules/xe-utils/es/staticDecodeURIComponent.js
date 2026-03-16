@@ -1,3 +1,0 @@
-var staticDecodeURIComponent = decodeURIComponent
-
-export default staticDecodeURIComponent

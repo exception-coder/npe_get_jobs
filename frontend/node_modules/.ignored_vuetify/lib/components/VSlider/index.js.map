@@ -1,1 +1,0 @@
-{"version":3,"file":"index.js","names":["VSlider"],"sources":["../../../src/components/VSlider/index.ts"],"sourcesContent":["export { VSlider } from './VSlider'\n"],"mappings":"SAASA,OAAO","ignoreList":[]}

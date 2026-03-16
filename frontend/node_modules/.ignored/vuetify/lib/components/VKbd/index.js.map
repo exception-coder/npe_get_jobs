@@ -1,1 +1,0 @@
-{"version":3,"file":"index.js","names":["VKbd"],"sources":["../../../src/components/VKbd/index.ts"],"sourcesContent":["// Styles\nimport './VKbd.scss'\n\nexport { VKbd } from './VKbd'\n"],"mappings":"AAAA;AACA;AAAoB,SAEXA,IAAI","ignoreList":[]}

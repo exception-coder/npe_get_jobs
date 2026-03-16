@@ -1,1 +1,0 @@
-(function(e,i){typeof exports=="object"&&typeof module<"u"?module.exports=i():typeof define=="function"&&define.amd?define(i):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsFindReplaceFaIR=i())})(this,(function(){"use strict";return{"sheet-find-replace":{replace:{"partial-failure":"جایگزینی برخی سلول‌ها ناموفق بود",failure:"جایگزینی همه سلول‌ها ناموفق بود"}}}}));

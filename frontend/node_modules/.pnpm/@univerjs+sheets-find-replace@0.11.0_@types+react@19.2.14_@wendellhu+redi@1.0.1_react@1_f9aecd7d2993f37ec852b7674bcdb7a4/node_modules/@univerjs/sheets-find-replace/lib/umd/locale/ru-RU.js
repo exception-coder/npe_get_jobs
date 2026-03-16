@@ -1,1 +1,0 @@
-(function(e,i){typeof exports=="object"&&typeof module<"u"?module.exports=i():typeof define=="function"&&define.amd?define(i):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsFindReplaceRuRU=i())})(this,(function(){"use strict";return{"sheet-find-replace":{replace:{"partial-failure":"Не удалось заменить некоторые ячейки",failure:"Не удалось заменить все ячейки"}}}}));

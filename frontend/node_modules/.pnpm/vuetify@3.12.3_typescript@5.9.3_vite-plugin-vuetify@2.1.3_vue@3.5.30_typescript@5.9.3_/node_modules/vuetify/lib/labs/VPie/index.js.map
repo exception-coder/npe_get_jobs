@@ -1,1 +1,0 @@
-{"version":3,"file":"index.js","names":["VPie","VPieSegment","VPieTooltip"],"sources":["../../../src/labs/VPie/index.ts"],"sourcesContent":["export { VPie } from './VPie'\nexport { VPieSegment } from './VPieSegment'\nexport { VPieTooltip } from './VPieTooltip'\n"],"mappings":"SAASA,IAAI;AAAA,SACJC,WAAW;AAAA,SACXC,WAAW","ignoreList":[]}

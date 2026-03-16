@@ -1,8 +1,0 @@
-import { BaseValueObject } from '../../../engine/value-object/base-value-object';
-import { BaseFunction } from '../../base-function';
-export declare class Midb extends BaseFunction {
-    minParams: number;
-    maxParams: number;
-    calculate(text: BaseValueObject, startNum: BaseValueObject, numBytes: BaseValueObject): BaseValueObject;
-    private _handleSingleObject;
-}

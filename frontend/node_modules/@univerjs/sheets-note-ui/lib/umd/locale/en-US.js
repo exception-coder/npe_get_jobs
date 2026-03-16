@@ -1,1 +1,0 @@
-(function(e,t){typeof exports=="object"&&typeof module<"u"?module.exports=t():typeof define=="function"&&define.amd?define(t):(e=typeof globalThis<"u"?globalThis:e||self,e.UniverSheetsNoteUiEnUS=t())})(this,(function(){"use strict";return{rightClick:{addNote:"Add Note",deleteNote:"Delete Note",toggleNote:"Show/Hide Note"},note:{placeholder:"Type here"}}}));

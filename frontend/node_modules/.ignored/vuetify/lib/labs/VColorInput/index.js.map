@@ -1,1 +1,0 @@
-{"version":3,"file":"index.js","names":["VColorInput"],"sources":["../../../src/labs/VColorInput/index.ts"],"sourcesContent":["export { VColorInput } from './VColorInput'\n"],"mappings":"SAASA,WAAW","ignoreList":[]}
