@@ -1,29 +1,15 @@
 package getjobs.modules.datasource.mysql.service;
 
-import getjobs.modules.sasl.domain.Announcement;
-import getjobs.modules.sasl.domain.PlanRow;
-import getjobs.modules.sasl.domain.PlanSection;
 import getjobs.modules.auth.domain.Permission;
 import getjobs.modules.auth.domain.RefreshToken;
 import getjobs.modules.auth.domain.Role;
 import getjobs.modules.auth.domain.RolePermission;
-import getjobs.modules.sasl.domain.SaslFormStatisticsRecord;
-import getjobs.modules.sasl.domain.SaslImportRecord;
-import getjobs.modules.sasl.domain.SaslRecord;
 import getjobs.modules.auth.domain.User;
-import getjobs.modules.sasl.domain.UserDocumentTitle;
 import getjobs.modules.auth.domain.UserRole;
-import getjobs.modules.datasource.mysql.repository.AnnouncementMysqlRepository;
-import getjobs.modules.datasource.mysql.repository.PlanRowMysqlRepository;
-import getjobs.modules.datasource.mysql.repository.PlanSectionMysqlRepository;
 import getjobs.modules.datasource.mysql.repository.PermissionMysqlRepository;
 import getjobs.modules.datasource.mysql.repository.RefreshTokenMysqlRepository;
 import getjobs.modules.datasource.mysql.repository.RoleMysqlRepository;
 import getjobs.modules.datasource.mysql.repository.RolePermissionMysqlRepository;
-import getjobs.modules.datasource.mysql.repository.SaslFormStatisticsRecordMysqlRepository;
-import getjobs.modules.datasource.mysql.repository.SaslImportRecordMysqlRepository;
-import getjobs.modules.datasource.mysql.repository.SaslRecordMysqlRepository;
-import getjobs.modules.datasource.mysql.repository.UserDocumentTitleMysqlRepository;
 import getjobs.modules.datasource.mysql.repository.UserMysqlRepository;
 import getjobs.modules.datasource.mysql.repository.UserRoleMysqlRepository;
 import jakarta.annotation.PostConstruct;
@@ -52,15 +38,6 @@ import java.util.stream.Collectors;
 @Order(Ordered.LOWEST_PRECEDENCE) // 在其他初始化完成后执行
 public class DataMigrationService {
 
-    // SQLite repositories (源数据)
-    private final getjobs.modules.sasl.repository.SaslRecordRepository sqliteSaslRecordRepository;
-    private final getjobs.modules.sasl.repository.AnnouncementRepository sqliteAnnouncementRepository;
-    private final getjobs.modules.sasl.repository.SaslFormStatisticsRecordRepository sqliteSaslFormStatisticsRecordRepository;
-    private final getjobs.modules.sasl.repository.SaslImportRecordRepository sqliteSaslImportRecordRepository;
-    private final getjobs.modules.sasl.repository.PlanSectionRepository sqlitePlanSectionRepository;
-    private final getjobs.modules.sasl.repository.PlanRowRepository sqlitePlanRowRepository;
-    private final getjobs.modules.sasl.repository.UserDocumentTitleRepository sqliteUserDocumentTitleRepository;
-
     // Auth SQLite repositories (源数据)
     private final getjobs.modules.auth.infrastructure.UserRepository sqliteUserRepository;
     private final getjobs.modules.auth.infrastructure.RoleRepository sqliteRoleRepository;
@@ -68,15 +45,6 @@ public class DataMigrationService {
     private final getjobs.modules.auth.infrastructure.RefreshTokenRepository sqliteRefreshTokenRepository;
     private final getjobs.modules.auth.infrastructure.UserRoleRepository sqliteUserRoleRepository;
     private final getjobs.modules.auth.infrastructure.RolePermissionRepository sqliteRolePermissionRepository;
-
-    // MySQL repositories (目标数据)
-    private final SaslRecordMysqlRepository mysqlSaslRecordRepository;
-    private final AnnouncementMysqlRepository mysqlAnnouncementRepository;
-    private final SaslFormStatisticsRecordMysqlRepository mysqlSaslFormStatisticsRecordRepository;
-    private final SaslImportRecordMysqlRepository mysqlSaslImportRecordRepository;
-    private final PlanSectionMysqlRepository mysqlPlanSectionRepository;
-    private final PlanRowMysqlRepository mysqlPlanRowRepository;
-    private final UserDocumentTitleMysqlRepository mysqlUserDocumentTitleRepository;
 
     // Auth MySQL repositories (目标数据)
     private final UserMysqlRepository mysqlUserRepository;
@@ -98,25 +66,7 @@ public class DataMigrationService {
             log.info("        开始数据迁移：SQLite → MySQL");
             log.info("═══════════════════════════════════════════════════════════");
 
-            // 1. 迁移 SaslRecord
-            migrateSaslRecords();
-
-            // 2. 迁移 Announcement
-            migrateAnnouncements();
-
-            // 3. 迁移 SaslFormStatisticsRecord
-            migrateSaslFormStatisticsRecords();
-
-            // 4. 迁移 SaslImportRecord
-            migrateSaslImportRecords();
-
-            // 5. 迁移 PlanSection 和 PlanRow（需要一起处理，因为有外键关系）
-            migratePlanSectionsAndRows();
-
-            // 6. 迁移 UserDocumentTitle
-            migrateUserDocumentTitles();
-
-            // 7. 迁移 Auth 模块数据
+            // 1. 迁移 Auth 模块数据
             migrateAuthData();
 
             log.info("═══════════════════════════════════════════════════════════");
@@ -128,324 +78,6 @@ public class DataMigrationService {
         }
     }
 
-    /**
-     * 迁移 SaslRecord 数据。
-     */
-    private void migrateSaslRecords() {
-        try {
-            List<getjobs.modules.sasl.domain.SaslRecord> sqliteRecords = sqliteSaslRecordRepository.findAll();
-            if (sqliteRecords.isEmpty()) {
-                log.info("  [SaslRecord] SQLite中没有数据，跳过迁移");
-                return;
-            }
-
-            long mysqlCount = mysqlSaslRecordRepository.count();
-            if (mysqlCount > 0) {
-                log.info("  [SaslRecord] MySQL中已存在 {} 条数据，跳过迁移", mysqlCount);
-                return;
-            }
-
-            List<SaslRecord> mysqlRecords = sqliteRecords.stream()
-                    .map(this::convertSaslRecord)
-                    .collect(Collectors.toList());
-
-            mysqlSaslRecordRepository.saveAll(mysqlRecords);
-            log.info("  [SaslRecord] ✓ 迁移完成：{} 条记录", mysqlRecords.size());
-        } catch (Exception e) {
-            log.error("  [SaslRecord] ✗ 迁移失败", e);
-        }
-    }
-
-    /**
-     * 迁移 Announcement 数据。
-     */
-    private void migrateAnnouncements() {
-        try {
-            List<getjobs.modules.sasl.domain.Announcement> sqliteAnnouncements = sqliteAnnouncementRepository.findAll();
-            if (sqliteAnnouncements.isEmpty()) {
-                log.info("  [Announcement] SQLite中没有数据，跳过迁移");
-                return;
-            }
-
-            long mysqlCount = mysqlAnnouncementRepository.count();
-            if (mysqlCount > 0) {
-                log.info("  [Announcement] MySQL中已存在 {} 条数据，跳过迁移", mysqlCount);
-                return;
-            }
-
-            List<Announcement> mysqlAnnouncements = sqliteAnnouncements.stream()
-                    .map(this::convertAnnouncement)
-                    .collect(Collectors.toList());
-
-            mysqlAnnouncementRepository.saveAll(mysqlAnnouncements);
-            log.info("  [Announcement] ✓ 迁移完成：{} 条记录", mysqlAnnouncements.size());
-        } catch (Exception e) {
-            log.error("  [Announcement] ✗ 迁移失败", e);
-        }
-    }
-
-    /**
-     * 迁移 SaslFormStatisticsRecord 数据。
-     */
-    private void migrateSaslFormStatisticsRecords() {
-        try {
-            List<getjobs.modules.sasl.domain.SaslFormStatisticsRecord> sqliteRecords = sqliteSaslFormStatisticsRecordRepository
-                    .findAll();
-            if (sqliteRecords.isEmpty()) {
-                log.info("  [SaslFormStatisticsRecord] SQLite中没有数据，跳过迁移");
-                return;
-            }
-
-            long mysqlCount = mysqlSaslFormStatisticsRecordRepository.count();
-            if (mysqlCount > 0) {
-                log.info("  [SaslFormStatisticsRecord] MySQL中已存在 {} 条数据，跳过迁移", mysqlCount);
-                return;
-            }
-
-            List<SaslFormStatisticsRecord> mysqlRecords = sqliteRecords.stream()
-                    .map(this::convertSaslFormStatisticsRecord)
-                    .collect(Collectors.toList());
-
-            mysqlSaslFormStatisticsRecordRepository.saveAll(mysqlRecords);
-            log.info("  [SaslFormStatisticsRecord] ✓ 迁移完成：{} 条记录", mysqlRecords.size());
-        } catch (Exception e) {
-            log.error("  [SaslFormStatisticsRecord] ✗ 迁移失败", e);
-        }
-    }
-
-    /**
-     * 迁移 SaslImportRecord 数据。
-     */
-    private void migrateSaslImportRecords() {
-        try {
-            List<getjobs.modules.sasl.domain.SaslImportRecord> sqliteRecords = sqliteSaslImportRecordRepository
-                    .findAll();
-            if (sqliteRecords.isEmpty()) {
-                log.info("  [SaslImportRecord] SQLite中没有数据，跳过迁移");
-                return;
-            }
-
-            long mysqlCount = mysqlSaslImportRecordRepository.count();
-            if (mysqlCount > 0) {
-                log.info("  [SaslImportRecord] MySQL中已存在 {} 条数据，跳过迁移", mysqlCount);
-                return;
-            }
-
-            List<SaslImportRecord> mysqlRecords = sqliteRecords.stream()
-                    .map(this::convertSaslImportRecord)
-                    .collect(Collectors.toList());
-
-            mysqlSaslImportRecordRepository.saveAll(mysqlRecords);
-            log.info("  [SaslImportRecord] ✓ 迁移完成：{} 条记录", mysqlRecords.size());
-        } catch (Exception e) {
-            log.error("  [SaslImportRecord] ✗ 迁移失败", e);
-        }
-    }
-
-    /**
-     * 迁移 PlanSection 和 PlanRow 数据。
-     * 需要一起处理，因为PlanRow依赖PlanSection。
-     */
-    private void migratePlanSectionsAndRows() {
-        try {
-            List<getjobs.modules.sasl.domain.PlanSection> sqliteSections = sqlitePlanSectionRepository.findAll();
-            if (sqliteSections.isEmpty()) {
-                log.info("  [PlanSection/PlanRow] SQLite中没有数据，跳过迁移");
-                return;
-            }
-
-            long mysqlCount = mysqlPlanSectionRepository.count();
-            if (mysqlCount > 0) {
-                log.info("  [PlanSection/PlanRow] MySQL中已存在 {} 条数据，跳过迁移", mysqlCount);
-                return;
-            }
-
-            // 创建ID映射：SQLite ID -> MySQL ID
-            Map<Long, Long> sectionIdMap = new HashMap<>();
-
-            // 先迁移所有PlanSection
-            List<PlanSection> mysqlSections = new ArrayList<>();
-            for (getjobs.modules.sasl.domain.PlanSection sqliteSection : sqliteSections) {
-                PlanSection mysqlSection = convertPlanSection(sqliteSection);
-                PlanSection saved = mysqlPlanSectionRepository.save(mysqlSection);
-                sectionIdMap.put(sqliteSection.getId(), saved.getId());
-                mysqlSections.add(saved);
-            }
-
-            // 再迁移所有PlanRow，并更新外键关系
-            int totalRows = 0;
-            for (getjobs.modules.sasl.domain.PlanSection sqliteSection : sqliteSections) {
-                List<getjobs.modules.sasl.domain.PlanRow> sqliteRows = sqlitePlanRowRepository
-                        .findByPlanSectionOrderBySortOrderAsc(sqliteSection);
-                if (!sqliteRows.isEmpty()) {
-                    Long mysqlSectionId = sectionIdMap.get(sqliteSection.getId());
-                    List<PlanRow> mysqlRows = sqliteRows.stream()
-                            .map(sqliteRow -> convertPlanRow(sqliteRow, mysqlSectionId))
-                            .collect(Collectors.toList());
-                    mysqlPlanRowRepository.saveAll(mysqlRows);
-                    totalRows += mysqlRows.size();
-                }
-            }
-
-            log.info("  [PlanSection/PlanRow] ✓ 迁移完成：{} 个套餐方案，{} 条套餐行",
-                    mysqlSections.size(), totalRows);
-        } catch (Exception e) {
-            log.error("  [PlanSection/PlanRow] ✗ 迁移失败", e);
-        }
-    }
-
-    /**
-     * 迁移 UserDocumentTitle 数据。
-     */
-    private void migrateUserDocumentTitles() {
-        try {
-            List<getjobs.modules.sasl.domain.UserDocumentTitle> sqliteRecords = sqliteUserDocumentTitleRepository
-                    .findAll();
-            if (sqliteRecords.isEmpty()) {
-                log.info("  [UserDocumentTitle] SQLite中没有数据，跳过迁移");
-                return;
-            }
-
-            long mysqlCount = mysqlUserDocumentTitleRepository.count();
-            if (mysqlCount > 0) {
-                log.info("  [UserDocumentTitle] MySQL中已存在 {} 条数据，跳过迁移", mysqlCount);
-                return;
-            }
-
-            List<UserDocumentTitle> mysqlRecords = sqliteRecords.stream()
-                    .map(this::convertUserDocumentTitle)
-                    .collect(Collectors.toList());
-
-            mysqlUserDocumentTitleRepository.saveAll(mysqlRecords);
-            log.info("  [UserDocumentTitle] ✓ 迁移完成：{} 条记录", mysqlRecords.size());
-        } catch (Exception e) {
-            log.error("  [UserDocumentTitle] ✗ 迁移失败", e);
-        }
-    }
-
-    // ==================== 转换方法 ====================
-
-    /**
-     * 转换 SaslRecord。
-     */
-    private SaslRecord convertSaslRecord(getjobs.modules.sasl.domain.SaslRecord sqlite) {
-        SaslRecord mysql = new SaslRecord();
-        mysql.setId(sqlite.getId());
-        mysql.setMrt(sqlite.getMrt());
-        mysql.setOldContract(sqlite.getOldContract());
-        mysql.setSales(sqlite.getSales());
-        mysql.setCategory(sqlite.getCategory());
-        mysql.setLastTurnNetworkMonth(sqlite.getLastTurnNetworkMonth());
-        mysql.setDocumentTitle(sqlite.getDocumentTitle());
-        mysql.setDocumentDescription(sqlite.getDocumentDescription());
-        mysql.setExcelFileName(sqlite.getExcelFileName());
-        mysql.setCallStatus(sqlite.getCallStatus());
-        mysql.setLastCallTime(sqlite.getLastCallTime());
-        mysql.setNextCallTime(sqlite.getNextCallTime());
-        mysql.setCreatedAt(sqlite.getCreatedAt());
-        mysql.setUpdatedAt(sqlite.getUpdatedAt());
-        mysql.setIsDeleted(sqlite.getIsDeleted());
-        mysql.setRemark(sqlite.getRemark());
-        return mysql;
-    }
-
-    /**
-     * 转换 Announcement。
-     */
-    private Announcement convertAnnouncement(getjobs.modules.sasl.domain.Announcement sqlite) {
-        Announcement mysql = new Announcement();
-        mysql.setId(sqlite.getId());
-        mysql.setContent(sqlite.getContent());
-        mysql.setEnabled(sqlite.getEnabled());
-        mysql.setSortOrder(sqlite.getSortOrder());
-        mysql.setCreatedAt(sqlite.getCreatedAt());
-        mysql.setUpdatedAt(sqlite.getUpdatedAt());
-        mysql.setIsDeleted(sqlite.getIsDeleted());
-        return mysql;
-    }
-
-    /**
-     * 转换 SaslFormStatisticsRecord。
-     */
-    private SaslFormStatisticsRecord convertSaslFormStatisticsRecord(
-            getjobs.modules.sasl.domain.SaslFormStatisticsRecord sqlite) {
-        SaslFormStatisticsRecord mysql = new SaslFormStatisticsRecord();
-        mysql.setId(sqlite.getId());
-        mysql.setTodayCallCount(sqlite.getTodayCallCount());
-        mysql.setMonthlyRegisteredCount(sqlite.getMonthlyRegisteredCount());
-        mysql.setPendingFollowUpCount(sqlite.getPendingFollowUpCount());
-        mysql.setCreatedAt(sqlite.getCreatedAt());
-        mysql.setUpdatedAt(sqlite.getUpdatedAt());
-        mysql.setIsDeleted(sqlite.getIsDeleted());
-        return mysql;
-    }
-
-    /**
-     * 转换 SaslImportRecord。
-     */
-    private SaslImportRecord convertSaslImportRecord(getjobs.modules.sasl.domain.SaslImportRecord sqlite) {
-        SaslImportRecord mysql = new SaslImportRecord();
-        mysql.setId(sqlite.getId());
-        mysql.setExcelFileName(sqlite.getExcelFileName());
-        mysql.setDocumentTitle(sqlite.getDocumentTitle());
-        mysql.setDocumentDescription(sqlite.getDocumentDescription());
-        mysql.setDocumentRemark(sqlite.getDocumentRemark());
-        mysql.setCreatedAt(sqlite.getCreatedAt());
-        mysql.setUpdatedAt(sqlite.getUpdatedAt());
-        mysql.setIsDeleted(sqlite.getIsDeleted());
-        return mysql;
-    }
-
-    /**
-     * 转换 PlanSection。
-     */
-    private PlanSection convertPlanSection(getjobs.modules.sasl.domain.PlanSection sqlite) {
-        PlanSection mysql = new PlanSection();
-        mysql.setId(sqlite.getId());
-        mysql.setPlanId(sqlite.getPlanId());
-        mysql.setTitle(sqlite.getTitle());
-        mysql.setSubtitle(sqlite.getSubtitle());
-        mysql.setColumns(sqlite.getColumns());
-        mysql.setFootnote(sqlite.getFootnote());
-        mysql.setCreatedAt(sqlite.getCreatedAt());
-        mysql.setUpdatedAt(sqlite.getUpdatedAt());
-        mysql.setIsDeleted(sqlite.getIsDeleted());
-        // 注意：rows 会在后续单独处理
-        return mysql;
-    }
-
-    /**
-     * 转换 PlanRow。
-     */
-    private PlanRow convertPlanRow(getjobs.modules.sasl.domain.PlanRow sqlite, Long mysqlSectionId) {
-        PlanRow mysql = new PlanRow();
-        mysql.setId(sqlite.getId());
-        // 需要设置MySQL的PlanSection对象
-        PlanSection mysqlSection = mysqlPlanSectionRepository.findById(mysqlSectionId)
-                .orElseThrow(() -> new IllegalStateException("PlanSection not found: " + mysqlSectionId));
-        mysql.setPlanSection(mysqlSection);
-        mysql.setLabel(sqlite.getLabel());
-        mysql.setValues(sqlite.getValues());
-        mysql.setSortOrder(sqlite.getSortOrder());
-        mysql.setCreatedAt(sqlite.getCreatedAt());
-        mysql.setUpdatedAt(sqlite.getUpdatedAt());
-        mysql.setIsDeleted(sqlite.getIsDeleted());
-        return mysql;
-    }
-
-    /**
-     * 转换 UserDocumentTitle。
-     */
-    private UserDocumentTitle convertUserDocumentTitle(getjobs.modules.sasl.domain.UserDocumentTitle sqlite) {
-        UserDocumentTitle mysql = new UserDocumentTitle();
-        mysql.setId(sqlite.getId());
-        mysql.setUserId(sqlite.getUserId());
-        mysql.setDocumentTitle(sqlite.getDocumentTitle());
-        mysql.setCreatedAt(sqlite.getCreatedAt());
-        mysql.setUpdatedAt(sqlite.getUpdatedAt());
-        mysql.setIsDeleted(sqlite.getIsDeleted());
-        return mysql;
-    }
 
     // ==================== Auth 模块迁移方法 ====================
 

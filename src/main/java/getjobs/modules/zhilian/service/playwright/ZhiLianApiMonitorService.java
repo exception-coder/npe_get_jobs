@@ -3,7 +3,7 @@ package getjobs.modules.zhilian.service.playwright;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.*;
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.common.service.PlaywrightService;
+import getjobs.infrastructure.playwright.PlaywrightService;
 import getjobs.modules.zhilian.dto.ZhiLianApiResponse;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;

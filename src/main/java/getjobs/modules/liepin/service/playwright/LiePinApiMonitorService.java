@@ -5,7 +5,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.Response;
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.common.service.PlaywrightService;
+import getjobs.infrastructure.playwright.PlaywrightService;
 import getjobs.modules.liepin.dto.LiePinApiResponse;
 import getjobs.repository.JobRepository;
 import getjobs.repository.entity.JobEntity;

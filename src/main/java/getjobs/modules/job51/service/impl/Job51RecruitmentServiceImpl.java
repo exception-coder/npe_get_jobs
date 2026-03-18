@@ -3,7 +3,7 @@ package getjobs.modules.job51.service.impl;
 import com.microsoft.playwright.Page;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.dto.ConfigDTO;
-import getjobs.common.service.PlaywrightService;
+import getjobs.infrastructure.playwright.PlaywrightService;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.modules.job51.service.Job51ElementLocators;
 import getjobs.repository.UserProfileRepository;

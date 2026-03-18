@@ -159,7 +159,7 @@ public class JobDeliveryService {
             } else {
                 log.info("步骤2: 未开启采集，跳过；从数据库加载待处理岗位");
                 taskExecutionManager.updateTaskStep(platform, TaskExecutionStep.LOAD_JOBS_FROM_DB, "从数据库加载待处理岗位");
-                collectedJobs = jobService.findPendingJobsAsDTO(platform.getPlatformCode());
+                collectedJobs = jobService.findPendingDelivery(platform.getPlatformCode());
                 if (collectedJobs == null) {
                     collectedJobs = new ArrayList<>();
                 }

@@ -1,5 +1,47 @@
 # 开发日志（按时间倒序，最新在上）
 
+## 2026-03-18 - 创建 release/v1.1.0 分支并更新 pom 版本号
+
+- 任务：按“先更新 `pom.xml` 版本号再打分支”的流程，从 `main` 创建新分支 `release/v1.1.0`。
+- 变更文件：`pom.xml`（版本号更新为 `v1.1.0`）。
+- 设计决策：由于本地环境未安装 `mvn`/`mvnw`，版本读取与校验以 `pom.xml` 顶部 `<version>` 为准；分支命名采用 `release/<version>` 便于识别发布线。
+- 变更原因：确保每条分支与其构建产物版本号一致，避免后续发布/回滚时版本混乱。
+
+## 2026-03-18 - 新增“打分支前先更新 pom 版本号”Skill
+
+- 任务：新增一个 Cursor Skill，要求在创建分支前先读取并展示 `pom.xml` 当前版本号，让用户输入目标分支版本号，并在 `main` 分支上更新 `pom.xml` 版本后再创建新分支。
+- 变更文件：新增 `.cursor/skills/git-branch-bump-pom-version/SKILL.md`；未改动业务代码。
+- 设计决策：版本读取优先使用 Maven 的 `help:evaluate`，避免依赖行号；版本更新使用 `versions:set` 统一修改；默认分支名用 `release/<version>`，但允许用户按团队规范覆盖。
+- 变更原因：把“先改版本再打分支”的约束固化为可复用流程，减少遗漏与口头约定带来的返工。
+
+## 2026-03-18 - Boss 岗位卡片点击支持任务中断
+
+- 任务：点击所有岗位卡片时增加任务中断检查，支持用户取消后及时退出循环。
+- 变更文件：`BossElementLocators.java`（新增 `InterruptedChecker` 回调接口，点击前后检查中断并处理 InterruptedException）；`BossRecruitmentServiceImpl.java`（调用点击方法时传入 `checkInterrupted`）。
+- 设计决策：通过回调注入中断检查，避免在工具类内耦合具体服务实现；被中断时记录日志并安全返回。
+- 变更原因：点击岗位卡片循环可能耗时较长，需要响应取消信号及时退出。
+
+## 2026-03-18 - Playwright Cookie 恢复与持久化修复
+
+- 任务：修复 Cookie 加载/保存中的数据校验与注入异常问题，确保恢复成功率。
+- 变更文件：`CookieManager.java`（空数据拦截、逐条容错解析、domain/url 互斥规则、保存前等待 NETWORKIDLE、Cookie JSON 生成提取为方法）。
+- 设计决策：加载时跳过无效条目并保留其余有效 Cookie；仅在缺少 domain 时设置 url 避免 Playwright 异常。
+- 变更原因：部分 Cookie 数据缺失字段或同时存在 domain+url 会导致 addCookies 失败，需提升健壮性。
+
+## 2026-03-18 - Playwright 初始化页面增加重建与重试
+
+- 任务：修复初始化阶段 `page.reload` 可能因页面对象失效导致异常的问题（Object doesn't exist）。
+- 变更文件：`PlaywrightService.java`（抽出 `initializePlatformPage`：初始化失败时重建 Page 并重试一次；`reload` 前检查 `page.isClosed()`；失败时安全关闭页面）。
+- 设计决策：初始化阶段允许单次重试，避免因单个平台页崩溃导致整体服务启动失败。
+- 变更原因：页面在加载/刷新时可能被反爬或崩溃，Playwright Response 失效引发异常，需要容错。
+
+## 2026-03-16 - 前端 node_modules 误提交回滚与忽略规则补全
+
+- 任务：线上仓库中误将 `frontend/node_modules` 目录提交并推送，需要从 Git 版本历史中停止跟踪该目录，并完善前端相关的忽略规则。
+- 变更文件：`.gitignore`（新增 `node_modules/`、`frontend/node_modules/`、`frontend/dist/`、`frontend/.vite/` 忽略配置）；`README.md`（补充二维码无法加载时在本地通过 `docs/images/readme/wechat-contact.png` 直接打开图片的说明）；Git 索引中删除已跟踪的 `frontend/node_modules` 文件，保留本地实际目录。
+- 设计决策：通过 `git rm -r --cached frontend/node_modules` 仅从版本库索引移除已跟踪文件，不删除本地物理目录；在 `.gitignore` 中显式忽略前端构建产物与依赖，防止后续再次误提交。
+- 变更原因：`node_modules` 体积大且为构建产物，不应纳入版本控制；补充 README 说明是为了解决部分环境下二维码图片无法在线加载的问题，并给出本地查看路径。
+
 ## 2026-03-16 - 基础设施包结构重构：common/infrastructure → infrastructure/
 
 - 任务：将 `common/infrastructure/` 下所有基础设施代码迁移到顶层 `infrastructure/` 包，统一归集，符合 DDD-lite 规范。

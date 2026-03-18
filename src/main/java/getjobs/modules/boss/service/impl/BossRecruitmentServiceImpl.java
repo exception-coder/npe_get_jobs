@@ -9,7 +9,7 @@ import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.Cookie;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.common.service.PlaywrightService;
+import getjobs.infrastructure.playwright.PlaywrightService;
 import getjobs.common.util.PageHealthChecker;
 import getjobs.modules.boss.BossElementLocators;
 import getjobs.common.dto.ConfigDTO;
@@ -43,8 +43,9 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+
+import static getjobs.infrastructure.playwright.PlaywrightService.isVisibleWithTimeout;
 import static getjobs.modules.boss.BossElementLocators.*;
-import static getjobs.common.service.PlaywrightService.isVisibleWithTimeout;
 
 /**
  * Boss直聘招聘服务实现类
@@ -454,7 +455,12 @@ public class BossRecruitmentServiceImpl extends AbstractRecruitmentService {
             PageHealthChecker.executeWithRetry(
                     page,
                     () -> {
-                        BossElementLocators.clickAllJobCards(page, 5000);
+                        try {
+                            BossElementLocators.clickAllJobCards(page, 5000, this::checkInterrupted);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            log.info("点击岗位卡片时被中断，停止采集");
+                        }
                         return null;
                     },
                     "点击岗位卡片",

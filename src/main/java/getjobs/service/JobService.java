@@ -418,6 +418,40 @@ public class JobService {
      * @return 待处理状态的JobDTO列表
      */
     @Transactional
+    public List<JobDTO> findPendingDelivery(String platform) {
+        try {
+            if (platform == null || platform.trim().isEmpty()) {
+                throw new IllegalArgumentException("平台参数不能为空");
+            }
+
+            // 先删除该平台下岗位描述（jobPostDescription）为空的记录（监控接口额外获取，非点击岗位卡实际搜索的数据）
+            int deleted = jobRepository.deleteByPlatformAndJobRequirementsEmpty(platform);
+            if (deleted > 0) {
+                log.debug("平台 {} 已删除岗位描述为空的记录数: {}", platform, deleted);
+            }
+
+            // 查询指定平台的所有职位
+            List<JobEntity> jobEntities = jobRepository.findByPlatform(platform);
+
+            // 过滤出待投递状态的职位并转换为DTO
+            return jobEntities.stream()
+                    .filter(job -> JobStatusEnum.PENDING_DELIVERY.getCode() == job.getStatus())
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("查询平台 {} 的待投递职位失败", platform, e);
+            throw new RuntimeException("查询待投递职位失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 查询指定平台待处理状态的职位并转换为JobDTO列表
+     *
+     * @param platform 平台代码（platformCode）
+     * @return 待处理状态的JobDTO列表
+     */
+    @Transactional
     public List<JobDTO> findPendingJobsAsDTO(String platform) {
         try {
             if (platform == null || platform.trim().isEmpty()) {

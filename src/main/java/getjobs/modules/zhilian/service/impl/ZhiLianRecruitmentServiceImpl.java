@@ -3,7 +3,7 @@ package getjobs.modules.zhilian.service.impl;
 import com.microsoft.playwright.Page;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.common.service.PlaywrightService;
+import getjobs.infrastructure.playwright.PlaywrightService;
 import getjobs.common.util.PageHealthChecker;
 import getjobs.modules.boss.dto.JobDTO;
 import getjobs.modules.zhilian.service.ZhiLianElementLocators;
