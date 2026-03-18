@@ -12,6 +12,11 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class BossElementLocators {
+
+    @FunctionalInterface
+    public interface InterruptedChecker {
+        void check() throws InterruptedException;
+    }
     // 主页相关元素
     public static final String LOGIN_BTN = "//li[@class='nav-figure']";
     public static final String LOGIN_SUCCESS_HEADER = "//*[@id=\"header\"]/div[1]/div[@class='user-nav']/ul/li[@class='nav-figure']";
@@ -116,7 +121,8 @@ public class BossElementLocators {
      * @param delayMillis 每次点击的延迟时间（毫秒）
      * @return 成功点击的卡片数量
      */
-    public static int clickAllJobCards(Page page, int delayMillis) {
+    public static int clickAllJobCards(Page page, int delayMillis, InterruptedChecker interruptedChecker)
+            throws InterruptedException {
         if (page == null) {
             log.error("Page对象为空，无法执行点击操作");
             return 0;
@@ -153,6 +159,9 @@ public class BossElementLocators {
             // 遍历所有岗位卡片并点击
             for (int i = 0; i < cardCount; i++) {
                 try {
+                    if (interruptedChecker != null) {
+                        interruptedChecker.check();
+                    }
                     // 每次循环前检查Page健康状态
                     if (!PageHealthChecker.isPageHealthy(page)) {
                         log.warn("Page对象在点击第 {} 个卡片时变为不健康，停止点击", i + 1);
@@ -191,6 +200,14 @@ public class BossElementLocators {
 
                     successCount++;
 
+                    if (interruptedChecker != null) {
+                        interruptedChecker.check();
+                    }
+
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.info("点击第 {} 个岗位卡片时检测到中断，停止操作", i + 1);
+                    break;
                 } catch (PlaywrightException e) {
                     // 如果是Page对象失效异常，停止后续点击
                     if (e.getMessage() != null && e.getMessage().contains("Object doesn't exist")) {

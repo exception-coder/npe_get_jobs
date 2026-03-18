@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.openjson.JSONObject;
 import com.microsoft.playwright.*;
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.common.service.PlaywrightService;
+import getjobs.infrastructure.playwright.PlaywrightService;
 import getjobs.modules.boss.dto.BossApiResponse;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;

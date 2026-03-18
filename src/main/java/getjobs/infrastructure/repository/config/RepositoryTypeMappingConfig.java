@@ -3,7 +3,6 @@ package getjobs.infrastructure.repository.config;
 import getjobs.infrastructure.repository.common.*;
 import getjobs.modules.auth.infrastructure.*;
 import getjobs.modules.datasource.mysql.repository.*;
-import getjobs.modules.sasl.repository.*;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -60,44 +59,6 @@ public class RepositoryTypeMappingConfig {
         // RefreshTokenRepository映射
         unifiedToSqliteMap.put(IRefreshTokenRepository.class, RefreshTokenRepository.class);
         unifiedToMysqlMap.put(IRefreshTokenRepository.class, RefreshTokenMysqlRepository.class);
-
-        // SASL模块的Repository映射
-
-        // SaslRecordRepository映射
-        unifiedToSqliteMap.put(ISaslRecordRepository.class, SaslRecordRepository.class);
-        unifiedToMysqlMap.put(ISaslRecordRepository.class, SaslRecordMysqlRepository.class);
-
-        // AnnouncementRepository映射
-        unifiedToSqliteMap.put(IAnnouncementRepository.class, AnnouncementRepository.class);
-        unifiedToMysqlMap.put(IAnnouncementRepository.class, AnnouncementMysqlRepository.class);
-
-        // SaslFormStatisticsRecordRepository映射
-        unifiedToSqliteMap.put(ISaslFormStatisticsRecordRepository.class, SaslFormStatisticsRecordRepository.class);
-        unifiedToMysqlMap.put(ISaslFormStatisticsRecordRepository.class, SaslFormStatisticsRecordMysqlRepository.class);
-
-        // SaslImportRecordRepository映射
-        unifiedToSqliteMap.put(ISaslImportRecordRepository.class, SaslImportRecordRepository.class);
-        unifiedToMysqlMap.put(ISaslImportRecordRepository.class, SaslImportRecordMysqlRepository.class);
-
-        // UserDocumentTitleRepository映射
-        unifiedToSqliteMap.put(IUserDocumentTitleRepository.class, UserDocumentTitleRepository.class);
-        unifiedToMysqlMap.put(IUserDocumentTitleRepository.class, UserDocumentTitleMysqlRepository.class);
-
-        // PlanSectionRepository映射
-        unifiedToSqliteMap.put(IPlanSectionRepository.class, PlanSectionRepository.class);
-        unifiedToMysqlMap.put(IPlanSectionRepository.class, PlanSectionMysqlRepository.class);
-
-        // PlanRowRepository映射
-        unifiedToSqliteMap.put(IPlanRowRepository.class, PlanRowRepository.class);
-        unifiedToMysqlMap.put(IPlanRowRepository.class, PlanRowMysqlRepository.class);
-
-        // LeadRecordRepository映射
-        unifiedToSqliteMap.put(ILeadRecordRepository.class, LeadRecordRepository.class);
-        unifiedToMysqlMap.put(ILeadRecordRepository.class, LeadRecordMysqlRepository.class);
-
-        // SaslRecordUpdateLogRepository映射
-        unifiedToSqliteMap.put(ISaslRecordUpdateLogRepository.class, SaslRecordUpdateLogRepository.class);
-        unifiedToMysqlMap.put(ISaslRecordUpdateLogRepository.class, SaslRecordUpdateLogMysqlRepository.class);
 
         log.info("Repository类型映射配置完成，共配置 {} 个Repository类型映射", unifiedToSqliteMap.size());
     }
