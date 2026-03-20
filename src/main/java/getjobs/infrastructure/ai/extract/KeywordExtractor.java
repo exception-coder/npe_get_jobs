@@ -1,4 +1,4 @@
-package getjobs.modules.ai.infrastructure.extract;
+package getjobs.infrastructure.ai.extract;
 
 import org.springframework.stereotype.Component;
 

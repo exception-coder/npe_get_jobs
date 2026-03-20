@@ -1,4 +1,4 @@
-package getjobs.modules.boss.service.impl;
+package getjobs.modules.getjobs.boss.service.impl;
 
 import com.github.openjson.JSONArray;
 import com.github.openjson.JSONObject;
@@ -11,20 +11,20 @@ import com.microsoft.playwright.options.WaitForSelectorState;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.infrastructure.playwright.PlaywrightService;
 import getjobs.common.util.PageHealthChecker;
-import getjobs.modules.boss.BossElementLocators;
+import getjobs.modules.getjobs.boss.BossElementLocators;
 import getjobs.common.dto.ConfigDTO;
-import getjobs.modules.boss.dto.JobDTO;
+import getjobs.modules.getjobs.boss.dto.JobDTO;
 import getjobs.common.enums.JobStatusEnum;
-import getjobs.service.JobFilterService;
-import getjobs.modules.boss.service.playwright.BossApiMonitorService;
+import getjobs.modules.getjobs.service.JobFilterService;
+import getjobs.modules.getjobs.boss.service.playwright.BossApiMonitorService;
 import getjobs.repository.JobRepository;
 import getjobs.repository.UserProfileRepository;
 import getjobs.repository.entity.ConfigEntity;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.entity.UserProfile;
-import getjobs.service.AbstractRecruitmentService;
-import getjobs.service.ConfigService;
-import getjobs.utils.JobUtils;
+import getjobs.modules.getjobs.service.AbstractRecruitmentService;
+import getjobs.modules.getjobs.service.ConfigService;
+import getjobs.modules.getjobs.utils.JobUtils;
 import getjobs.modules.ai.greeting.service.GreetingService;
 import getjobs.modules.ai.greeting.dto.GreetingRequest;
 import getjobs.modules.ai.greeting.dto.GreetingResponse;
@@ -45,7 +45,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static getjobs.infrastructure.playwright.PlaywrightService.isVisibleWithTimeout;
-import static getjobs.modules.boss.BossElementLocators.*;
+import static getjobs.modules.getjobs.boss.BossElementLocators.*;
 
 /**
  * Boss直聘招聘服务实现类

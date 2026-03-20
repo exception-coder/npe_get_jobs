@@ -6,7 +6,7 @@ import getjobs.infrastructure.task.enums.TaskStatusEnum;
 import getjobs.infrastructure.task.scheduler.TaskSchedulerService;
 import getjobs.modules.task.quickdelivery.domain.ParameterizedQuickDeliveryTask;
 import getjobs.modules.task.quickdelivery.dto.DeliveryFlowOptions;
-import getjobs.service.JobDeliveryService;
+import getjobs.modules.getjobs.service.JobDeliveryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

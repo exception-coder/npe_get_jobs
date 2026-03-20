@@ -1,4 +1,4 @@
-package getjobs.modules.liepin.dto;
+package getjobs.modules.getjobs.liepin.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;

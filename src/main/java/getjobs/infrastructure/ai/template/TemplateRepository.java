@@ -1,4 +1,4 @@
-package getjobs.modules.ai.infrastructure.template;
+package getjobs.infrastructure.ai.template;
 
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;

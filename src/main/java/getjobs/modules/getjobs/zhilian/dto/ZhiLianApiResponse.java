@@ -1,4 +1,4 @@
-package getjobs.modules.zhilian.dto;
+package getjobs.modules.getjobs.zhilian.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

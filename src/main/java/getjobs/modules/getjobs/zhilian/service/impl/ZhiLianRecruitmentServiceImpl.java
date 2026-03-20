@@ -1,15 +1,15 @@
-package getjobs.modules.zhilian.service.impl;
+package getjobs.modules.getjobs.zhilian.service.impl;
 
 import com.microsoft.playwright.Page;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.infrastructure.playwright.PlaywrightService;
 import getjobs.common.util.PageHealthChecker;
-import getjobs.modules.boss.dto.JobDTO;
-import getjobs.modules.zhilian.service.ZhiLianElementLocators;
+import getjobs.modules.getjobs.boss.dto.JobDTO;
+import getjobs.modules.getjobs.zhilian.service.ZhiLianElementLocators;
 import getjobs.repository.UserProfileRepository;
-import getjobs.service.AbstractRecruitmentService;
-import getjobs.service.ConfigService;
+import getjobs.modules.getjobs.service.AbstractRecruitmentService;
+import getjobs.modules.getjobs.service.ConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

@@ -1,4 +1,4 @@
-package getjobs.modules.dict.api;
+package getjobs.modules.getjobs.dict.api;
 
 /**
  * 字典项（如 薪资区间 3-5K）

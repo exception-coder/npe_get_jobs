@@ -6,7 +6,7 @@ import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.WaitUntilState;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.repository.entity.ConfigEntity;
-import getjobs.service.ConfigService;
+import getjobs.modules.getjobs.service.ConfigService;
 import lombok.extern.slf4j.Slf4j;
 import com.github.openjson.JSONArray;
 import com.github.openjson.JSONObject;
@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-import java.util.function.Supplier;
 
 /**
  * Cookie 管理器

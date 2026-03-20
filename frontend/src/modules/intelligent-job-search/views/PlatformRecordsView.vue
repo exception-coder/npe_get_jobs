@@ -41,7 +41,7 @@
             variant="flat"
             color="error"
             class="action-btn-header"
-            @click="openConfirm('删除岗位记录', `确定删除${meta.displayName}的所有岗位吗？`, handleDelete)"
+            @click="openConfirm('删除岗位记录', `确定删除${meta.displayName}的所有岗位吗？\n\n注意：已投递成功/失败的岗位不会被删除，系统保留这些记录用于防止重复投递。`, handleDelete)"
           >
             <v-icon start>mdi-delete-outline</v-icon>
             删除全部
@@ -65,6 +65,18 @@
               <v-icon color="primary">mdi-magnify</v-icon>
             </template>
           </v-text-field>
+          <v-select
+            v-model="statusFilter"
+            :items="statusOptions"
+            item-title="title"
+            item-value="value"
+            label="状态筛选"
+            variant="outlined"
+            density="comfortable"
+            class="status-filter-select"
+            clearable
+            @update:modelValue="loadData(0)"
+          />
           <v-select
             v-model="pageSize"
             :items="pageSizes"
@@ -391,6 +403,15 @@ const keyword = ref('');
 const page = ref(0);
 const pageSize = ref(10);
 const pageSizes = [10, 20, 30, 50];
+const statusFilter = ref<number | null>(null);
+const statusOptions = [
+  { title: '全部', value: null },
+  { title: '待处理', value: 0 },
+  { title: '待投递', value: 1 },
+  { title: '已过滤', value: 2 },
+  { title: '投递成功', value: 3 },
+  { title: '投递失败', value: 4 },
+];
 const loading = ref(false);
 const jobs = ref<JobRecord[]>([]);
 const totalItems = ref(0);
@@ -443,6 +464,7 @@ const loadData = async (targetPage = page.value) => {
     const response = await fetchJobRecords({
       platform: props.platform,
       ...(kw !== '' ? { keyword: kw } : {}),
+      ...(statusFilter.value !== null ? { status: statusFilter.value } : {}),
       page: targetPage,
       size: pageSize.value,
     });
@@ -630,6 +652,7 @@ watch(
     // 平台变化时，重置分页和搜索条件，重新加载数据
     keyword.value = '';
     page.value = 0;
+    statusFilter.value = null;
     await loadData(0);
   },
   { immediate: true },
@@ -754,6 +777,14 @@ watch(
 
 .page-size-select {
   width: 140px;
+}
+
+.status-filter-select {
+  width: 160px;
+}
+
+.status-filter-select :deep(.v-field) {
+  border-radius: 10px;
 }
 
 .page-size-select :deep(.v-field) {
@@ -1050,6 +1081,7 @@ watch(
   color: #6B7280;
   line-height: 1.6;
   margin: 0;
+  white-space: pre-line;
 }
 
 .dialog-footer {

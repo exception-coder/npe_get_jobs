@@ -1,14 +1,14 @@
-package getjobs.modules.boss.service.playwright;
+package getjobs.modules.getjobs.boss.service.playwright;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.openjson.JSONObject;
 import com.microsoft.playwright.*;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.infrastructure.playwright.PlaywrightService;
-import getjobs.modules.boss.dto.BossApiResponse;
+import getjobs.modules.getjobs.boss.dto.BossApiResponse;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
-import getjobs.utils.BossJobDataConverter;
+import getjobs.modules.getjobs.utils.BossJobDataConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

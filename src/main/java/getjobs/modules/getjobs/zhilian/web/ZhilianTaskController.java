@@ -1,8 +1,8 @@
-package getjobs.modules.zhilian.web;
+package getjobs.modules.getjobs.zhilian.web;
 
 import getjobs.common.dto.ConfigDTO;
-import getjobs.modules.zhilian.service.ZhilianTaskService;
-import getjobs.modules.zhilian.service.ZhilianTaskService.*;
+import getjobs.modules.getjobs.zhilian.service.ZhilianTaskService;
+import getjobs.modules.getjobs.zhilian.service.ZhilianTaskService.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

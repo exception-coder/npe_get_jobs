@@ -1,4 +1,4 @@
-package getjobs.modules.liepin.service;
+package getjobs.modules.getjobs.liepin.service;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;

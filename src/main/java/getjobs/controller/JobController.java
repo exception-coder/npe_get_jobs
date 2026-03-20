@@ -1,7 +1,7 @@
 package getjobs.controller;
 
 import getjobs.repository.entity.JobEntity;
-import getjobs.service.JobService;
+import getjobs.modules.getjobs.service.JobService;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,11 +28,12 @@ public class JobController {
     @GetMapping
     public Page<JobEntity> list(
             @RequestParam(value = "platform", required = false) String platform,
+            @RequestParam(value = "status", required = false) Integer status,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
 
-        return jobService.search(platform, keyword, page, size);
+        return jobService.search(platform, status, keyword, page, size);
     }
 
     @PostMapping("/reset-filter")

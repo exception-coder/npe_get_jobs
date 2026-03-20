@@ -1,4 +1,4 @@
-package getjobs.modules.getjobs.dict.infrastructure.provider.dto.zhilian;
+package getjobs.modules.getjobs.dict.domain.dto.zhilian;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

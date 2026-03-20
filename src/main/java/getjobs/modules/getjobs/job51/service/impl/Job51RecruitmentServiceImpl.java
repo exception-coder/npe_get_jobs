@@ -1,14 +1,14 @@
-package getjobs.modules.job51.service.impl;
+package getjobs.modules.getjobs.job51.service.impl;
 
 import com.microsoft.playwright.Page;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.infrastructure.playwright.PlaywrightService;
-import getjobs.modules.boss.dto.JobDTO;
-import getjobs.modules.job51.service.Job51ElementLocators;
+import getjobs.modules.getjobs.boss.dto.JobDTO;
+import getjobs.modules.getjobs.job51.service.Job51ElementLocators;
 import getjobs.repository.UserProfileRepository;
-import getjobs.service.AbstractRecruitmentService;
-import getjobs.service.ConfigService;
+import getjobs.modules.getjobs.service.AbstractRecruitmentService;
+import getjobs.modules.getjobs.service.ConfigService;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,13 +1,13 @@
-package getjobs.modules.zhilian.service.playwright;
+package getjobs.modules.getjobs.zhilian.service.playwright;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.*;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.infrastructure.playwright.PlaywrightService;
-import getjobs.modules.zhilian.dto.ZhiLianApiResponse;
+import getjobs.modules.getjobs.zhilian.dto.ZhiLianApiResponse;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
-import getjobs.utils.ZhiLianDataConverter;
+import getjobs.modules.getjobs.utils.ZhiLianDataConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

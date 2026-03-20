@@ -1,13 +1,15 @@
-package getjobs.modules.boss.service;
+package getjobs.modules.getjobs.boss.service;
 
 import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.modules.boss.dto.JobDTO;
+import getjobs.modules.getjobs.boss.dto.JobDTO;
 import getjobs.common.enums.JobStatusEnum;
+import getjobs.modules.getjobs.service.JobFilterService;
+import getjobs.modules.getjobs.service.JobService;
+import getjobs.modules.getjobs.service.RecruitmentServiceFactory;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
-import getjobs.service.*;
-import getjobs.service.AbstractRecruitmentService;
+import getjobs.modules.getjobs.service.AbstractRecruitmentService;
 import getjobs.modules.task.dto.TaskUpdatePayload;
 import getjobs.modules.task.enums.TaskStage;
 import getjobs.modules.task.enums.TaskStatus;

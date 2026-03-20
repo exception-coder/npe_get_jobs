@@ -3,7 +3,7 @@ package getjobs.controller;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.repository.entity.ConfigEntity;
-import getjobs.service.ConfigService;
+import getjobs.modules.getjobs.service.ConfigService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

@@ -1,8 +1,8 @@
-package getjobs.modules.liepin.web;
+package getjobs.modules.getjobs.liepin.web;
 
 import getjobs.common.dto.ConfigDTO;
-import getjobs.modules.liepin.service.LiepinTaskService;
-import getjobs.modules.liepin.service.LiepinTaskService.*;
+import getjobs.modules.getjobs.liepin.service.LiepinTaskService;
+import getjobs.modules.getjobs.liepin.service.LiepinTaskService.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

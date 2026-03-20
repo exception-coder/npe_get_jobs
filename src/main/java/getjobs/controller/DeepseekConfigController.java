@@ -37,8 +37,8 @@ public class DeepseekConfigController {
         if (request == null || !StringUtils.hasText(request.getApiKey())) {
             return ResponseEntity.badRequest().body(createResponse(false, "API Key 不能为空"));
         }
-        boolean success = deepseekConfigRefreshService.updateApiKey(request.getApiKey().trim());
-        Map<String, Object> response = createResponse(success, success ? "更新成功" : "更新失败");
+        String error = deepseekConfigRefreshService.updateApiKeyWithValidation(request.getApiKey().trim());
+        Map<String, Object> response = createResponse(error == null, error == null ? "更新成功" : error);
         response.put("apiKey", deepseekConfigRefreshService.getCurrentApiKey());
         return ResponseEntity.ok(response);
     }

@@ -1,4 +1,4 @@
-package getjobs.modules.dict.config;
+package getjobs.modules.getjobs.dict.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

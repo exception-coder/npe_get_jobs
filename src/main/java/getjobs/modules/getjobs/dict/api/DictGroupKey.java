@@ -1,4 +1,4 @@
-package getjobs.modules.dict.api;
+package getjobs.modules.getjobs.dict.api;
 
 import java.util.Arrays;
 

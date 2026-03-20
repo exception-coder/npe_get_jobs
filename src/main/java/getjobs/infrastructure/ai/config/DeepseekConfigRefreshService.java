@@ -1,5 +1,7 @@
 package getjobs.infrastructure.ai.config;
 
+import getjobs.infrastructure.ai.llm.LlmClient;
+import getjobs.infrastructure.ai.llm.LlmMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.cloud.context.environment.EnvironmentChangeEvent;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -47,13 +50,56 @@ public class DeepseekConfigRefreshService {
 
     private final RefreshScope refreshScope;
 
+    private final LlmClient llmClient;
+
     private static final String DYNAMIC_PROPERTY_SOURCE_NAME = "deepseekDynamicConfig";
 
     public DeepseekConfigRefreshService(ConfigurableEnvironment environment,
-            ApplicationContext applicationContext, RefreshScope refreshScope) {
+            ApplicationContext applicationContext, RefreshScope refreshScope, LlmClient llmClient) {
         this.environment = environment;
         this.applicationContext = applicationContext;
         this.refreshScope = refreshScope;
+        this.llmClient = llmClient;
+    }
+
+    /**
+     * 更新 Deepseek API Key，并验证有效性。验证失败时自动回滚到更新前的值。
+     *
+     * @param newApiKey 新的 API Key
+     * @return null 表示更新并验证成功；非 null 为失败原因
+     */
+    public String updateApiKeyWithValidation(String newApiKey) {
+        String previousApiKey = environment.getProperty("spring.ai.deepseek.api-key");
+        try {
+            boolean saved = updateApiKey(newApiKey);
+            if (!saved) {
+                return "配置刷新失败";
+            }
+            String error = validateApiKey();
+            if (error != null) {
+                rollbackApiKey(previousApiKey);
+                return error;
+            }
+            return null;
+        } catch (Exception e) {
+            rollbackApiKey(previousApiKey);
+            log.error("更新 API Key 异常，已回滚", e);
+            return e.getMessage();
+        }
+    }
+
+    private void rollbackApiKey(String previousApiKey) {
+        try {
+            if (previousApiKey != null) {
+                updateApiKey(previousApiKey);
+            } else {
+                updateProperty("spring.ai.deepseek.api-key", "");
+                triggerRefresh(Set.of("spring.ai.deepseek.api-key"));
+            }
+            log.info("API Key 已回滚至更新前的值");
+        } catch (Exception e) {
+            log.error("回滚 API Key 失败", e);
+        }
     }
 
     /**
@@ -77,6 +123,33 @@ public class DeepseekConfigRefreshService {
             log.error("更新 Deepseek API Key 失败", e);
             return false;
         }
+    }
+
+    /**
+     * 验证当前 API Key 是否有效，通过调用 Deepseek 发送一条极简消息探测。
+     *
+     * @return null 表示验证通过；非 null 为 Deepseek 返回的失败原因
+     */
+    public String validateApiKey() {
+        try {
+            llmClient.chat(List.of(LlmMessage.user("hi")));
+            return null;
+        } catch (Exception e) {
+            log.warn("Deepseek API Key 验证失败: {}", e.getMessage());
+            return extractErrorReason(e);
+        }
+    }
+
+    private String extractErrorReason(Exception e) {
+        Throwable cause = e;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        String msg = cause.getMessage();
+        if (msg == null || msg.isBlank()) {
+            return e.getMessage() != null ? e.getMessage() : "未知错误";
+        }
+        return msg;
     }
 
     /**
@@ -196,6 +269,16 @@ public class DeepseekConfigRefreshService {
             case "max-tokens", "maxTokens" -> "spring.ai.deepseek.chat.options.max-tokens";
             default -> simpleKey.startsWith("spring.ai.deepseek.") ? simpleKey : "spring.ai.deepseek." + simpleKey;
         };
+    }
+
+    /**
+     * 主动刷新 ChatModel：强制清空 RefreshScope 缓存，使 ChatModel Bean 以最新配置重新创建。
+     * 用于应用启动完成后确保 ChatModel 已装配最新配置。
+     */
+    public void refreshChatModel() {
+        log.info("主动刷新 Deepseek ChatModel");
+        refreshScope.refreshAll();
+        log.info("Deepseek ChatModel 刷新完成");
     }
 
     private String maskSensitiveValue(String key, String value) {

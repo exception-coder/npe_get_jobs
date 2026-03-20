@@ -44,6 +44,7 @@ export interface PageResponse<T> {
 export interface JobQueryParams {
   platform: PlatformCode | string;
   keyword?: string;
+  status?: number;
   page?: number;
   size?: number;
 }

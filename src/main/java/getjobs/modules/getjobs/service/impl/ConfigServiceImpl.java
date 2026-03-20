@@ -1,8 +1,8 @@
-package getjobs.service.impl;
+package getjobs.modules.getjobs.service.impl;
 
 import getjobs.repository.entity.ConfigEntity;
 import getjobs.repository.ConfigRepository;
-import getjobs.service.ConfigService;
+import getjobs.modules.getjobs.service.ConfigService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

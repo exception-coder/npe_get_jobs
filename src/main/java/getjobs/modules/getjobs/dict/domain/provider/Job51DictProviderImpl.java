@@ -1,4 +1,4 @@
-package getjobs.modules.getjobs.dict.infrastructure.provider;
+package getjobs.modules.getjobs.dict.domain.provider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import getjobs.common.enums.RecruitmentPlatformEnum;
@@ -8,9 +8,9 @@ import getjobs.modules.getjobs.dict.api.DictGroup;
 import getjobs.modules.getjobs.dict.api.DictGroupKey;
 import getjobs.modules.getjobs.dict.api.DictItem;
 import getjobs.modules.getjobs.dict.domain.DictProvider;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.job51.DictJsonResponse;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.job51.Job51CityGroup;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.job51.Job51Response;
+import getjobs.modules.getjobs.dict.domain.dto.job51.DictJsonResponse;
+import getjobs.modules.getjobs.dict.domain.dto.job51.Job51CityGroup;
+import getjobs.modules.getjobs.dict.domain.dto.job51.Job51Response;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;

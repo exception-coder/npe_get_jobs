@@ -1,17 +1,17 @@
-package getjobs.modules.zhilian.service;
+package getjobs.modules.getjobs.zhilian.service;
 
 import getjobs.common.enums.JobStatusEnum;
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.modules.boss.dto.JobDTO;
+import getjobs.modules.getjobs.boss.dto.JobDTO;
 import getjobs.modules.task.dto.TaskUpdatePayload;
 import getjobs.modules.task.enums.TaskStage;
 import getjobs.modules.task.enums.TaskStatus;
 import getjobs.modules.task.event.TaskUpdateEvent;
 import getjobs.repository.JobRepository;
 import getjobs.repository.entity.JobEntity;
-import getjobs.service.JobService;
-import getjobs.service.RecruitmentServiceFactory;
-import getjobs.service.AbstractRecruitmentService;
+import getjobs.modules.getjobs.service.JobService;
+import getjobs.modules.getjobs.service.RecruitmentServiceFactory;
+import getjobs.modules.getjobs.service.AbstractRecruitmentService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;

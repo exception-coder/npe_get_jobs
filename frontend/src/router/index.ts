@@ -38,6 +38,12 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
   {
+    path: '/ai/job-match-rules',
+    name: 'job-match-rules',
+    component: () => import('@/modules/intelligent-job-search/views/AiPromptExtensionView.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/login',
     name: 'login',
     component: () => import('@/modules/login/views/LoginPage.vue'),

@@ -282,6 +282,11 @@ public class PlaywrightService {
                                     "--test-type" // 测试类型（有助于绕过某些检测）
                             )));
 
+            // 等待扩展初始化完成，避免 launchPersistentContext 加载扩展时
+            // 异步打开的后台页与 newPage() 产生内部 page 对象冲突
+            // （Playwright: Cannot find object to call __adopt__: page@...）
+            Thread.sleep(2000);
+
             // 保存 launchPersistentContext 默认打开的空白页面，稍后关闭
             List<Page> defaultPages = new ArrayList<>(context.pages());
             log.info("默认打开的页面数量: {}", defaultPages.size());

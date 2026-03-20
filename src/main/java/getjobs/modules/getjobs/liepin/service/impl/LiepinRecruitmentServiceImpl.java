@@ -1,22 +1,22 @@
-package getjobs.modules.liepin.service.impl;
+package getjobs.modules.getjobs.liepin.service.impl;
 
 import com.microsoft.playwright.Page;
 import getjobs.common.dto.ConfigDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.infrastructure.playwright.PlaywrightService;
 import getjobs.common.util.PageHealthChecker;
-import getjobs.modules.boss.dto.JobDTO;
-import getjobs.service.JobFilterService;
-import getjobs.modules.liepin.service.LiepinElementLocators;
-import getjobs.modules.liepin.service.playwright.LiePinApiMonitorService;
+import getjobs.modules.getjobs.boss.dto.JobDTO;
+import getjobs.modules.getjobs.service.JobFilterService;
+import getjobs.modules.getjobs.liepin.service.LiepinElementLocators;
+import getjobs.modules.getjobs.liepin.service.playwright.LiePinApiMonitorService;
 import getjobs.repository.UserProfileRepository;
 import getjobs.repository.entity.ConfigEntity;
-import getjobs.service.AbstractRecruitmentService;
-import getjobs.service.ConfigService;
-import getjobs.modules.dict.infrastructure.provider.LiepinDictProviderImpl;
-import getjobs.modules.dict.api.DictBundle;
-import getjobs.modules.dict.api.DictGroup;
-import getjobs.modules.dict.api.DictGroupKey;
+import getjobs.modules.getjobs.service.AbstractRecruitmentService;
+import getjobs.modules.getjobs.service.ConfigService;
+import getjobs.modules.getjobs.dict.domain.provider.LiepinDictProviderImpl;
+import getjobs.modules.getjobs.dict.api.DictBundle;
+import getjobs.modules.getjobs.dict.api.DictGroup;
+import getjobs.modules.getjobs.dict.api.DictGroupKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

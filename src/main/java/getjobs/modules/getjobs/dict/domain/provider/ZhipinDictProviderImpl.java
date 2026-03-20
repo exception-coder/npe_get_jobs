@@ -1,4 +1,4 @@
-package getjobs.modules.getjobs.dict.infrastructure.provider;
+package getjobs.modules.getjobs.dict.domain.provider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import getjobs.common.enums.RecruitmentPlatformEnum;
@@ -7,10 +7,10 @@ import getjobs.modules.getjobs.dict.api.DictGroup;
 import getjobs.modules.getjobs.dict.api.DictGroupKey;
 import getjobs.modules.getjobs.dict.api.DictItem;
 import getjobs.modules.getjobs.dict.domain.DictProvider;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.boss.CityGroupData;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.ConditionsData;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.boss.IndustryData;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.boss.ZhipinResponse;
+import getjobs.modules.getjobs.dict.domain.dto.boss.CityGroupData;
+import getjobs.modules.getjobs.dict.domain.dto.ConditionsData;
+import getjobs.modules.getjobs.dict.domain.dto.boss.IndustryData;
+import getjobs.modules.getjobs.dict.domain.dto.boss.ZhipinResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

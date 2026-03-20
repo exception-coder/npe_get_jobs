@@ -6,6 +6,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 /**
  * 主应用类
  * <p>
@@ -32,6 +35,19 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 public class GetJobsApplication {
     public static void main(String[] args) {
+        ensureGetJobsDirectory();
         SpringApplication.run(GetJobsApplication.class, args);
+    }
+
+    private static void ensureGetJobsDirectory() {
+        String userHome = System.getProperty("user.home");
+        if (userHome == null || userHome.isBlank()) {
+            return;
+        }
+        try {
+            Files.createDirectories(Paths.get(userHome, "getjobs"));
+        } catch (Exception e) {
+            System.err.println("[getjobs] 创建 getjobs 目录失败: " + e.getMessage());
+        }
     }
 }

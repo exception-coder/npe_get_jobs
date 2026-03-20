@@ -1,8 +1,7 @@
 package getjobs.controller;
 
 import getjobs.common.dto.ConfigDTO;
-import getjobs.modules.boss.service.BossTaskService;
-import getjobs.modules.boss.service.BossTaskService.*;
+import getjobs.modules.getjobs.boss.service.BossTaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +39,7 @@ public class BossTaskController {
         log.info("接收到Boss登录请求");
 
         try {
-            LoginResult result = bossTaskService.login();
+            BossTaskService.LoginResult result = bossTaskService.login();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", result.isSuccess());
@@ -77,7 +76,7 @@ public class BossTaskController {
         log.info("接收到Boss岗位采集请求");
 
         try {
-            CollectResult result = bossTaskService.collectJobs();
+            BossTaskService.CollectResult result = bossTaskService.collectJobs();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -113,7 +112,7 @@ public class BossTaskController {
         log.info("接收到Boss岗位过滤请求");
 
         try {
-            FilterResult result = bossTaskService.filterJobs();
+            BossTaskService.FilterResult result = bossTaskService.filterJobs();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -151,7 +150,7 @@ public class BossTaskController {
                 request.isEnableActualDelivery());
 
         try {
-            DeliveryResult result = bossTaskService.deliverJobs(
+            BossTaskService.DeliveryResult result = bossTaskService.deliverJobs(
                     request.isEnableActualDelivery());
 
             Map<String, Object> response = new HashMap<>();

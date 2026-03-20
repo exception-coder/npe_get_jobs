@@ -1,4 +1,4 @@
-package getjobs.modules.getjobs.dict.infrastructure.provider.dto.job51;
+package getjobs.modules.getjobs.dict.domain.dto.job51;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
