@@ -1,5 +1,231 @@
 # 开发日志（按时间倒序，最新在上）
 
+## 2026-03-20 - README 开发日志整理（新功能 / BUG修复 / 重大变更）
+
+- 任务：整理当前开发日志内容，按「新功能支持」与「BUG修复」归类，并在 README 中突出重大变更。
+- 修改文件：
+  - `README.md`（新增「新功能支持」「BUG修复」两大板块，并补充重大变更小节）
+  - `docs/dev-log.md`（追加本次整理记录）
+- 关键设计决策：采用“重大变更优先 + 常规条目补充”的结构，让非开发同学也能快速理解版本价值与稳定性改进。
+- 变更原因：当前 dev-log 信息量较大，用户希望在 README 直接查看可读性更高的功能与修复摘要，便于对外展示与内部同步。
+
+## 2026-03-20 - OnboardingDialog 确认时保存用户配置 + 异步 AI 打招呼生成
+
+- 任务：点击「确认并开始求职」时将 AI 解析结果写入公共配置，并触发异步岗位技能分析
+- 修改文件：
+  - `frontend/src/modules/intelligent-job-search/api/onboardingApi.ts`：新增 `saveOnboardingProfile` 函数，调用 `/api/ai/onboarding/save-profile`
+  - `frontend/src/modules/intelligent-job-search/components/OnboardingDialog.vue`：`confirm` 改为 async，先调用 `saveOnboardingProfile` 再执行 `complete`
+  - `src/main/java/getjobs/modules/ai/onboarding/web/OnboardingController.java`：新增 `POST /save-profile` 接口，仅更新目标职位、工作年限、薪资下限、薪资上限、核心技能、职业意向、领域经验、个人亮点；保存后调用 `JobSkillAnalysisAsyncService.analyzeJobSkillAsync` 异步生成 AI 打招呼内容
+
+## 2026-03-20 - 修复 PlaywrightService 启动时 page 对象冲突异常
+
+- 任务：修复应用启动失败，报 `Cannot find object to call __adopt__: page@...`
+- 根本原因：`launchPersistentContext` 加载 Chrome 扩展时，扩展后台页异步打开，导致 Playwright 内部 page 表与 `context.newPage()` 调用时机冲突
+- 修改文件：`src/main/java/getjobs/infrastructure/playwright/PlaywrightService.java`
+- 修复方式：在 `launchPersistentContext` 之后、首次 `newPage()` 之前加 `Thread.sleep(2000)` 等待扩展初始化完成（`BrowserContext` 无 `waitForTimeout` 方法，改用 `Thread.sleep`）
+
+## 2026-03-20 - 启动完成后主动刷新 Deepseek ChatModel
+
+- 任务：应用启动完成时主动触发 Deepseek ChatModel 配置刷新，确保 RefreshScope Bean 以最新配置装配。
+- 变更文件：
+  - 修改 `src/main/java/getjobs/infrastructure/ai/config/DeepseekConfigRefreshService.java`（新增 `refreshChatModel()`：直接调 `refreshScope.refreshAll()` 强制清空 RefreshScope 缓存）
+  - 修改 `src/main/java/getjobs/bootstrap/GetJobsDirectoryBootstrapRunner.java`（注入 `DeepseekConfigRefreshService`，在 `run()` 末尾调用 `refreshChatModel()`）
+- 设计决策：刷新逻辑封装在 Service 方法中，Runner 只负责调用时机编排，保持职责分离。
+
+## 2026-03-20 - DeepseekConfigController API Key 验证失败时自动回滚
+
+- 任务：更新 API Key 验证失败时，自动回滚到更新前的旧值（为空或原有效值）。
+- 变更文件：
+  - 修改 `src/main/java/getjobs/infrastructure/ai/config/DeepseekConfigRefreshService.java`（新增 `updateApiKeyWithValidation()`：保存前记录旧值，验证失败时调 `rollbackApiKey()` 回滚；新增 `rollbackApiKey()`：有旧值则还原，无旧值则清空并触发刷新）
+  - 修改 `src/main/java/getjobs/controller/DeepseekConfigController.java`（`updateApiKey` 改为直接调 `updateApiKeyWithValidation()`，简化 Controller 逻辑）
+- 设计决策：回滚逻辑内聚在 Service 层，Controller 保持薄；回滚失败时只记录日志，不二次抛出。
+
+
+## 2026-03-20 - 修复 OnboardingDialog 弹出两次 + API Key 状态判断错误
+
+- 任务：引导框重复弹出两次；`checkApiKey` 将后端返回的 `"未配置"` 字符串误判为已配置。
+- 变更文件：
+  - 修改 `frontend/src/App.vue`（删除多余的 `<OnboardingDialog />` 及其 import，弹框统一由 `CommonConfigView.vue` 管理）
+  - 修改 `frontend/src/modules/intelligent-job-search/components/OnboardingDialog.vue`（`checkApiKey` 增加 `res.apiKey !== '未配置'` 判断，排除后端未配置时返回的占位字符串）
+- 设计决策：引导框只在 `CommonConfigView` 挂载一处，避免全局 `App.vue` 和页面组件各挂一个导致重复弹出。
+
+
+## 2026-03-20 - DeepseekConfigController 保存 API Key 后增加有效性验证
+
+- 任务：`POST /api/deepseek/api-key` 刷新配置后，通过 Deepseek ChatModel 发送一条极简消息验证 Key 是否有效，无效时将 Deepseek 返回的失败原因透传给前端。
+- 变更文件：
+  - 修改 `src/main/java/getjobs/infrastructure/ai/config/DeepseekConfigRefreshService.java`（注入 `LlmClient`；新增 `validateApiKey()` 方法，调用 `llmClient.chat(List.of(LlmMessage.user("hi")))` 探测，异常时通过 `extractErrorReason()` 提取根因消息返回；新增 `extractErrorReason()` 递归 getCause 提取最底层错误）
+  - 修改 `src/main/java/getjobs/controller/DeepseekConfigController.java`（`updateApiKey` 保存成功后调 `validateApiKey()`，验证失败时 `success=false` 并将 Deepseek 错误原因作为 `message` 返回）
+- 设计决策：验证逻辑放在 `DeepseekConfigRefreshService` 而非 Controller，保持 Controller 薄；探测消息使用最短内容 `"hi"` 减少 token 消耗。
+
+
+## 2026-03-20 - OnboardingDialog API Key 区块改为合并在输入阶段
+
+- 任务：将 API Key 输入区块从独立弹框步骤改为与输入阶段合并显示，保存成功后才解锁「跳过」和「AI 解析」按钮。
+- 变更文件：
+  - 修改 `frontend/src/modules/intelligent-job-search/components/OnboardingDialog.vue`（去掉 `apikey` Step，改用 `apiKeySaved` 布尔标志；API Key 区块内嵌到 `input` 步骤顶部，保存成功后变为绿色已配置提示；底部「跳过」和「AI 解析」按钮增加 `!apiKeySaved` 禁用条件；新增 `.apikey-section`、`.apikey-input-row` 等样式）
+- 设计决策：单一弹框内完成所有配置，避免多弹框体验割裂。
+
+
+## 2026-03-20 - OnboardingDialog 新增 DeepSeek API Key 强制录入步骤
+
+- 任务：引导框增加 `apikey` 步骤作为第一步，强制用户录入 DeepSeek API Key 后才可继续；若后端已有 Key 则自动跳过该步骤。
+- 变更文件：
+  - 修改 `frontend/src/modules/intelligent-job-search/components/OnboardingDialog.vue`（`Step` 类型新增 `'apikey'`；`onMounted` 时调 `GET /api/deepseek/api-key` 检查是否已配置，已配置则直接进 `input` 步骤；新增 `saveApiKey()` 调 `POST /api/deepseek/api-key`，成功后进 `input` 步骤；新增 apikey 阶段 template，含 Key 输入框和错误提示；`headerTitle`/`headerSubtitle` computed 补充 `apikey` 分支）
+- 设计决策：后端已存在 `/api/deepseek/api-key` GET/POST 接口，前端直接复用；`apikey` 步骤不提供跳过按钮，强制录入。
+
+
+## 2026-03-20 - DevToolbar 新增 LocalStorage 管理功能
+
+- 任务：在开发工具栏中补充 LocalStorage 管理入口，方便开发调试时查看和修改本地存储数据。
+- 变更文件：
+  - 修改 `frontend/src/components/DevToolbar.vue`（工具栏新增橙色 LocalStorage 按钮；点击弹出 v-dialog 管理面板，支持增删改查：列表展示所有 key/value、顶部新增行、行内编辑、单条删除、清空全部、手动刷新）
+- 设计决策：管理逻辑完全内聚在 DevToolbar 组件内，不引入额外依赖；弹框仅在 `import.meta.env.DEV` 为 true 时可访问，不影响生产包。
+
+
+## 2026-03-20 - 修复 GetJobsDirectory 目录创建晚于数据源初始化的问题
+
+- 任务：`GetJobsDirectoryBootstrapRunner` 通过 `ApplicationRunner` 在启动后创建 `~/getjobs` 目录，但 SQLite 数据源在 Spring 上下文初始化时就已尝试打开数据库文件，导致目录不存在异常先于 Runner 执行出现。
+- 变更文件：
+  - 修改 `src/main/java/getjobs/GetJobsApplication.java`（`main()` 中在 `SpringApplication.run()` 前调用 `ensureGetJobsDirectory()`，提前创建 `~/getjobs` 目录；新增 `import java.nio.file.Files/Paths`）
+- 设计决策：目录创建前置到 `main()` 方法，保证任何 Spring Bean 初始化之前目录已存在；`GetJobsDirectoryBootstrapRunner` 中的同名方法保留（幂等），不影响去重逻辑。
+- 变更原因：Spring 数据源初始化早于 `ApplicationRunner`，首次启动时 SQLite 因目录不存在报错，需在上下文启动前完成目录创建。
+
+## 2026-03-20 - AI 提示词扩展页：新增调用验证区块
+
+- 任务：在 `AiPromptExtensionView.vue` 每个规则管理卡片右侧补充调用验证区块，保存规则后可直接填入变量验证效果。
+- 变更文件：
+  - 修改 `frontend/src/modules/intelligent-job-search/views/AiPromptExtensionView.vue`（规则区块改为左右两列布局，右侧新增验证卡片；职位匹配验证调用 `/api/ai/job/match-with-reason`，企业评估验证调用 `/api/ai/company/evaluate`；结果展示 matched/reason 及 risk_score chip）
+  - 修改 `src/main/java/getjobs/modules/ai/job/web/JobMatchAiController.java`（新增 POST `/api/ai/job/match-with-reason`，返回 `JobMatchResult` 含 matched/reason/confidence）
+
+## 2026-03-20 - 企业评估补充规则：后端接口 + 前端配置页扩展
+
+- 任务：`company-evaluation-v1.yml` 支持用户自定义扣分/加分规则，`JobMatchRulesView.vue` 新增企业评估规则配置区块。
+- 变更文件：
+  - 修改 `src/main/resources/prompts/company-evaluation-v1.yml`（注入 `{{extra_deductions}}` / `{{extra_bonuses}}` 条件块）
+  - 修改 `src/main/java/getjobs/modules/ai/company/assembler/CompanyPromptVariables.java`（新增两个变量常量）
+  - 修改 `src/main/java/getjobs/modules/ai/company/assembler/CompanyEvaluationPromptAssembler.java`（新增字段 + getter/setter + 注入变量）
+  - 修改 `src/main/java/getjobs/modules/ai/company/web/CompanyEvaluationController.java`（新增 GET/POST `/api/ai/company/extra-rules`）
+  - 新增 `frontend/src/modules/intelligent-job-search/api/companyRulesApi.ts`
+  - 修改 `frontend/src/modules/intelligent-job-search/views/JobMatchRulesView.vue`（新增企业评估规则区块）
+- 设计决策：
+  - 扣分/加分规则分两个独立列表管理，一次 POST 同时提交两者。
+  - 规则存 Spring Bean 内存，服务重启清空（与职位匹配规则一致）。
+
+## 2026-03-20 - 新增 AI 匹配补充规则管理接口与前端配置页
+
+- 任务：提供 REST 接口读写 `JobPromptAssembler.extraRules`，前端新增「AI匹配规则」配置页。
+- 变更文件：
+  - 修改 `src/main/java/getjobs/modules/ai/job/assembler/JobPromptAssembler.java`（新增 `extraRules` 字段 + getter/setter）
+  - 修改 `src/main/java/getjobs/modules/ai/job/web/JobMatchAiController.java`（新增 GET/POST `/api/ai/job/extra-rules`）
+  - 新增 `frontend/src/modules/intelligent-job-search/api/jobMatchRulesApi.ts`
+  - 新增 `frontend/src/modules/intelligent-job-search/views/JobMatchRulesView.vue`
+  - 修改 `frontend/src/router/index.ts`（注册 `/ai/job-match-rules` 路由）
+  - 修改 `frontend/src/App.vue`（侧边栏添加「AI匹配规则」入口，标题/副标题注册）
+- 设计决策：
+  - `extraRules` 存储在 Spring Bean 内存中，服务重启后清空（当前无持久化需求）。
+  - 前端支持动态增删规则条目，保存时过滤空行后提交。
+
+## 2026-03-20 - 职位匹配提示词支持用户动态补充规则
+
+- 任务：`job-match-v1.yml` 提示词及 `JobMatchAiService` 支持传入用户自定义补充规则数组，注入到 GUIDELINES 中，优先级高于默认规则。
+- 变更文件：
+  - 修改 `src/main/resources/prompts/job-match-v1.yml`
+  - 修改 `src/main/java/getjobs/modules/ai/job/assembler/JobPromptVariables.java`
+  - 修改 `src/main/java/getjobs/modules/ai/job/assembler/JobPromptAssembler.java`
+  - 修改 `src/main/java/getjobs/modules/ai/job/service/JobMatchAiService.java`
+- 设计决策：
+  - `extraRules: List<String>` 透传至所有公共方法（`matchWithReason`、`matchByTitle`、`smartMatch`），默认传空列表保持向后兼容。
+  - `formatExtraRules` 将列表格式化为有序编号文本，非空时注入提示词 `{{extra_rules}}` 占位符，空时占位符块自动隐藏（Mustache `{{#extra_rules}}` 条件块）。
+  - 规则示例：`["Java开发技术管理岗（组长、技术负责人）也可接受，无需判定为不符"]`。
+
+## 2026-03-19 - 优化 onboarding-parse-v1 提示词：未提及字段自动补全
+
+- 任务：引导框解析提示词增加智能补全逻辑，当用户未填写薪资、技能、职业意向、亮点、领域经验时，根据岗位和年限自动推断补全。
+- 变更文件：
+  - 修改 `src/main/resources/prompts/onboarding-parse-v1.yml`
+- 设计决策：
+  - 对 minSalary/maxSalary/skills/careerIntent/highlights/domainExperience 六个字段启用补全，其余字段（jobBlacklist/companyBlacklist）未提及仍返回空，不推断。
+  - domainExperience 推断 2-4 个市场需求强、技术挑战大、与岗位技术栈交集大的领域。
+  - 定级规则：1年以下初级，1-3年中级，3-5年高级（保守，不写资深），5-8年资深，8年以上专家/架构师。
+  - jobTitle 和 yearsOfExperience 均未提及时，六个字段均不补全，避免无根据推断。
+- 变更原因：用户填写引导框时往往只写几句话，若大量字段为空则后续 AI 匹配质量差，自动补全可提升首次使用体验。
+
+## 2026-03-19 - 重构调试按钮为通用 DevToolbar 组件
+
+- 任务：将 CommonConfigView 中独立的「引导框调试」按钮提取为可复用的 DevToolbar 调试栏组件，统一管理开发期调试入口。
+- 变更文件：
+  - 新增 `frontend/src/components/DevToolbar.vue`（全局调试栏组件）
+  - 修改 `frontend/src/modules/intelligent-job-search/views/CommonConfigView.vue`（替换独立按钮为 DevToolbar）
+- 设计决策：
+  - `DevToolbar` 接收 `actions: { label, handler, color? }[]` prop，调用方注入具体调试操作，组件本身不耦合业务。
+  - 组件内部通过 `import.meta.env.DEV` 控制渲染，生产构建自动移除，无需调用方处理。
+  - 点击虫子图标展开/收起操作列表，支持后续扩展更多调试项。
+  - 删除 CommonConfigView 中的 `.onboarding-debug-btn` CSS 及 `isDev` 变量，由 DevToolbar 内部处理。
+- 变更原因：后期调试功能会增多，统一入口便于管理，避免各 View 散落调试代码。
+
+## 2026-03-19 - 开发环境引导框调试入口
+
+- 任务：开发环境下随时可点击按钮重新弹出 OnboardingDialog，方便调试引导流程。
+- 变更文件：
+  - 修改 `frontend/src/modules/intelligent-job-search/components/OnboardingDialog.vue`（暴露 `open()` 方法）
+  - 修改 `frontend/src/modules/intelligent-job-search/views/CommonConfigView.vue`（添加调试按钮）
+- 设计决策：
+  - `OnboardingDialog` 新增 `open()` 方法（重置 step 为 input 并显示对话框），通过 `defineExpose` 暴露给父组件。
+  - `CommonConfigView` 用 `import.meta.env.DEV` 控制按钮仅在开发环境渲染，生产构建自动移除。
+  - 按钮固定定位于右下角，不影响正常布局。
+- 变更原因：引导框首次使用后 localStorage 标记为已完成，无法重复触发，需要调试入口绕过该限制。
+
+## 2026-03-19 - 重构 OnboardingParseService 提示词外置化
+
+- 任务：将 `OnboardingParseService` 中硬编码的 system prompt 迁移到 `prompts/` 目录下的 YAML 文件，遵循与 `CompanyEvaluationAiService` 一致的模板化模式。
+- 变更文件：
+  - 新增 `src/main/resources/prompts/onboarding-parse-v1.yml`（求职信息结构化提取提示词）
+  - 新增 `src/main/java/getjobs/modules/ai/onboarding/assembler/OnboardingPromptVariables.java`
+  - 新增 `src/main/java/getjobs/modules/ai/onboarding/assembler/OnboardingPromptAssembler.java`
+  - 重写 `src/main/java/getjobs/modules/ai/onboarding/service/OnboardingParseService.java`
+- 设计决策：
+  - 新增 `OnboardingPromptAssembler`，注入 `TemplateRepository` + `PromptRenderer`，与 `CompanyEvaluationPromptAssembler` 结构完全一致。
+  - `OnboardingParseService.parse(String)` 保持原有公开签名，内部委托 `OnboardingPromptAssembler` 组装消息后调用 `LlmClient`。
+  - `DEFAULT_TEMPLATE_ID = "onboarding-parse-v1"` 对应新建的 yml 文件。
+- 变更原因：提示词硬编码在 Java 代码中不便于迭代优化，外置 YAML 可独立调整 prompt 内容，无需重新编译。
+
+## 2026-03-19 - 引导弹框升级为 AI 驱动的自然语言配置
+
+- 任务：将首次使用引导弹框从传统表单升级为「下一代 AI 应用」体验：用户用自然语言描述自己，AI 自动解析并填充所有候选人画像字段。
+- 变更文件：
+  - 新增 `src/main/java/getjobs/modules/ai/onboarding/dto/OnboardingParseRequest.java`
+  - 新增 `src/main/java/getjobs/modules/ai/onboarding/dto/OnboardingParseResponse.java`
+  - 新增 `src/main/java/getjobs/modules/ai/onboarding/service/OnboardingParseService.java`
+  - 新增 `src/main/java/getjobs/modules/ai/onboarding/web/OnboardingController.java`
+  - 新增 `frontend/src/modules/intelligent-job-search/api/onboardingApi.ts`
+  - 重写 `frontend/src/modules/intelligent-job-search/components/OnboardingDialog.vue`
+  - 修改 `frontend/src/modules/intelligent-job-search/views/CommonConfigView.vue`
+- 设计决策：
+  - 后端新增 `POST /api/ai/onboarding/parse`，复用 `LlmClient`，system prompt 约束只提取用户明确提及的字段，未提及返回 null 或空数组，不编造。
+  - 前端三阶段 UI：input（自然语言输入 + 地理定位）→ parsing（脉冲动画 + 滚动提示文案）→ confirm（分组可内联编辑结果）。
+  - onOnboardingDone 扩展为接收全量字段写入 state.form。
+- 变更原因：传统表单引导体验落后；AI 驱动自然语言配置是下一代应用的核心差异，降低填写门槛同时提升配置完整度。
+
+## 2026-03-19 - 新增首次使用引导弹框与浏览器定位
+
+- 任务：CommonConfigView 初始化时弹出引导对话框，邀请用户填写目标职位、工作年限、薪资期望，并通过浏览器 Geolocation API 推送所在位置。
+- 变更文件：
+  - 新增 `frontend/src/modules/intelligent-job-search/components/OnboardingDialog.vue`
+  - 修改 `frontend/src/modules/intelligent-job-search/views/CommonConfigView.vue`
+- 设计决策：
+  - 引导弹框仅首次显示，通过 `localStorage` 键 `onboarding_completed` 标记已完成，刷新后不再弹出。
+  - 对话框打开时自动调用 `navigator.geolocation.getCurrentPosition`；若被拒绝则显示「授权获取」按钮供手动触发；位置坐标通过 `done` 事件向父组件透传。
+  - 用户点击「跳过」时不触发 `done` 事件，表单保持原有加载值；点击「开始求职」校验必填项后将数据写入 `state.form`。
+- 变更原因：用户首次使用时缺少引导，容易跳过候选人画像配置，导致 AI 匹配精度下降。
+
+## 2026-03-18 - 完善 git-smart-push：新分支推送与 upstream 判断
+
+- 任务：补充 `git-smart-push` Skill，在推送步骤中明确“如何判断当前分支是否新分支/是否已设置 upstream”，并给出对应的 `git push -u` 推荐用法。
+- 变更文件：`.cursor/skills/git-smart-push/SKILL.md`。
+- 设计决策：通过 `git rev-parse @{u}` 判断是否设置上游分支，通过 `git ls-remote --heads origin <branch>` 判断远端是否存在同名分支；两者任一不满足即视为新分支，推送时使用 `-u` 建立跟踪。
+- 变更原因：把“新分支也一并推送到远端”的逻辑从错误处理提升为主流程步骤，减少遗漏与重复操作。
+
 ## 2026-03-18 - 创建 release/v1.1.0 分支并更新 pom 版本号
 
 - 任务：按“先更新 `pom.xml` 版本号再打分支”的流程，从 `main` 创建新分支 `release/v1.1.0`。
@@ -413,3 +639,47 @@
 - 变更文件：`/.gitignore`（新增 1 条忽略规则）。
 - 设计决策：使用精确路径忽略，仅针对该本地文件，不影响其他环境配置文件的版本管理。
 - 变更原因：该文件通常用于本地调试（可能包含 API Key 等敏感信息），不应进入版本控制。
+
+## 2026-03-19 补充获取所有平台字典数据接口
+
+### 任务描述
+
+新增 `GET /dicts` 接口，返回所有平台的字典数据列表。
+
+### 修改文件
+
+- `src/main/java/getjobs/modules/getjobs/dict/service/DictFacade.java` — 新增 `fetchAllPlatforms()` 方法，遍历所有 `RecruitmentPlatformEnum` 枚举值并聚合结果
+- `src/main/java/getjobs/modules/getjobs/dict/web/DictController.java` — 新增 `GET /dicts` 端点，调用 `dictFacade.fetchAllPlatforms()`
+
+### 关键设计决策
+
+- 复用现有 `DictProviderRegistry` + `DictFacade` 链路，无需改动基础设施层
+- 返回 `List<DictBundle>`，每个元素对应一个平台
+
+## 2026-03-19 修复顶部栏与侧边栏重叠
+
+- 任务：修复页面顶部栏（`v-app-bar`）与侧边栏（`vue-sidebar-menu` 折叠展开）在顶部区域发生重叠的问题
+- 变更文件：`frontend/src/App.vue`（给 `.app-sidebar` 增加 `padding-top: 64px` 预留顶部栏高度）
+- 关键设计决策：保留顶部栏 `fixed` 布局假设，通过侧边栏容器手动对齐顶部偏移
+- 变更原因：侧边栏不在 `v-main` 的自动偏移流程中，导致展开面板从视口顶部开始
+
+## 2026-03-19 deleteAllByPlatform 排除已投递岗位
+
+**任务描述**：删除平台所有岗位时，已投递岗位（投递成功/失败）不应被删除。
+
+**修改文件**：
+- `src/main/java/getjobs/repository/JobRepository.java`：新增 `deleteByPlatformAndStatusNotIn` 方法，用 JPQL 排除指定状态
+- `src/main/java/getjobs/modules/getjobs/service/JobService.java`：`deleteAllByPlatform` 改用新方法，排除 status=3（投递成功）和 status=4（投递失败）
+
+**关键决策**：以 `JobStatusEnum.DELIVERED_SUCCESS` 和 `DELIVERED_FAILED` 作为排除条件，避免硬编码魔法数字。
+
+## 2026-03-19 分页查询接口增加岗位状态筛选
+
+**任务描述**：`GET /api/jobs` 分页查询支持按 status 过滤，不传则查全部。
+
+**修改文件**：
+- `src/main/java/getjobs/repository/JobRepository.java`：`search` JPQL 增加 `:status IS NULL OR j.status = :status` 条件
+- `src/main/java/getjobs/modules/getjobs/service/JobService.java`：`search` 方法签名增加 `Integer status` 参数
+- `src/main/java/getjobs/controller/JobController.java`：`list` 接口增加 `@RequestParam(required = false) Integer status`
+- `frontend/src/modules/intelligent-job-search/api/jobRecordsApi.ts`：`JobQueryParams` 增加可选 `status` 字段
+- `frontend/src/modules/intelligent-job-search/views/PlatformRecordsView.vue`：搜索栏增加状态筛选下拉，切换平台时重置筛选条件
