@@ -5,7 +5,7 @@ import getjobs.infrastructure.task.contract.ScheduledTask;
 import getjobs.infrastructure.task.domain.TaskConfig;
 import getjobs.modules.task.quickdelivery.dto.DeliveryFlowOptions;
 import getjobs.modules.task.quickdelivery.dto.QuickDeliveryResult;
-import getjobs.service.JobDeliveryService;
+import getjobs.modules.getjobs.service.JobDeliveryService;
 import lombok.extern.slf4j.Slf4j;
 
 /**

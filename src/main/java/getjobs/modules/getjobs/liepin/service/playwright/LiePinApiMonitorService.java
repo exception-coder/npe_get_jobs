@@ -1,4 +1,4 @@
-package getjobs.modules.liepin.service.playwright;
+package getjobs.modules.getjobs.liepin.service.playwright;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.Page;
@@ -6,10 +6,10 @@ import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.Response;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.infrastructure.playwright.PlaywrightService;
-import getjobs.modules.liepin.dto.LiePinApiResponse;
+import getjobs.modules.getjobs.liepin.dto.LiePinApiResponse;
 import getjobs.repository.JobRepository;
 import getjobs.repository.entity.JobEntity;
-import getjobs.utils.LiePinDataConverter;
+import getjobs.modules.getjobs.utils.LiePinDataConverter;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

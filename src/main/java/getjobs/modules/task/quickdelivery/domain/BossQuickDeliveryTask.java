@@ -4,7 +4,7 @@ import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.infrastructure.task.contract.ScheduledTask;
 import getjobs.infrastructure.task.domain.TaskConfig;
 import getjobs.modules.task.quickdelivery.dto.QuickDeliveryResult;
-import getjobs.service.JobDeliveryService;
+import getjobs.modules.getjobs.service.JobDeliveryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

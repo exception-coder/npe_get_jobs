@@ -1,8 +1,8 @@
-package getjobs.modules.getjobs.dict.infrastructure.config;
+package getjobs.modules.getjobs.dict.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.zhilian.ZhilianDictItem;
+import getjobs.modules.getjobs.dict.domain.dto.zhilian.ZhilianDictItem;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

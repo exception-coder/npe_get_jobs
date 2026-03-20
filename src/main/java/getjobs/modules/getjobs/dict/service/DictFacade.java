@@ -1,11 +1,13 @@
-package getjobs.modules.dict.service;
+package getjobs.modules.getjobs.dict.service;
 
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.modules.dict.api.DictBundle;
-import getjobs.modules.dict.api.DictGroup;
-import getjobs.modules.dict.service.registry.DictProviderRegistry;
+import getjobs.modules.getjobs.dict.api.DictBundle;
+import getjobs.modules.getjobs.dict.api.DictGroup;
+import getjobs.modules.getjobs.dict.service.registry.DictProviderRegistry;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -23,5 +25,11 @@ public class DictFacade {
 
     public Optional<DictGroup> fetchByKey(RecruitmentPlatformEnum platform, String key) {
         return registry.get(platform).fetchByKey(key);
+    }
+
+    public List<DictBundle> fetchAllPlatforms() {
+        return Arrays.stream(RecruitmentPlatformEnum.values())
+                .map(p -> registry.get(p).fetchAll())
+                .toList();
     }
 }

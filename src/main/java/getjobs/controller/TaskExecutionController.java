@@ -1,7 +1,7 @@
 package getjobs.controller;
 
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.service.TaskExecutionManager;
+import getjobs.modules.getjobs.service.TaskExecutionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

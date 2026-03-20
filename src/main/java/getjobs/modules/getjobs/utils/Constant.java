@@ -1,4 +1,4 @@
-package getjobs.utils;
+package getjobs.modules.getjobs.utils;
 
 /**
  * @author loks666

@@ -1,13 +1,13 @@
-package getjobs.modules.job51.service.playwright;
+package getjobs.modules.getjobs.job51.service.playwright;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.*;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import getjobs.infrastructure.playwright.PlaywrightService;
-import getjobs.modules.job51.dto.Job51ApiResponse;
+import getjobs.modules.getjobs.job51.dto.Job51ApiResponse;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
-import getjobs.utils.Job51DataConverter;
+import getjobs.modules.getjobs.utils.Job51DataConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package getjobs.modules.job51.dto;
+package getjobs.modules.getjobs.job51.dto;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;

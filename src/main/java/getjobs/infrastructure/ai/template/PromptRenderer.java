@@ -1,4 +1,4 @@
-package getjobs.modules.ai.infrastructure.template;
+package getjobs.infrastructure.ai.template;
 
 import com.samskivert.mustache.Mustache;
 import org.springframework.stereotype.Component;

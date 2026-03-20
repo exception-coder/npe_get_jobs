@@ -1,5 +1,6 @@
 <template>
   <div class="config-container">
+    <OnboardingDialog ref="onboardingDialog" @done="onOnboardingDone" />
     <v-row dense>
       <v-col cols="12" xl="7">
         <!-- 黑名单过滤配置 -->
@@ -481,6 +482,7 @@
         </div>
       </v-col>
     </v-row>
+    <DevToolbar :actions="devActions" />
   </div>
 </template>
 
@@ -489,10 +491,17 @@ import { watch, ref } from 'vue';
 import { useSnackbarStore } from '@/stores/snackbar';
 import { useCommonConfigState } from '../state/commonConfigState';
 import { useCommonConfigService } from '../service/commonConfigService';
+import OnboardingDialog from '../components/OnboardingDialog.vue';
+import DevToolbar from '@/components/DevToolbar.vue';
 
 const snackbar = useSnackbarStore();
 const state = useCommonConfigState();
 const service = useCommonConfigService(state, snackbar);
+const onboardingDialog = ref<InstanceType<typeof OnboardingDialog> | null>(null);
+
+const devActions = [
+  { label: '引导框调试', handler: () => onboardingDialog.value?.open() },
+];
 
 // 功能开关配置
 const featureFlags = ref({
@@ -508,6 +517,33 @@ watch(
 );
 
 service.loadConfig();
+
+const openOnboarding = () => onboardingDialog.value?.open();
+
+const onOnboardingDone = (data: {
+  jobTitle: string | null;
+  yearsOfExperience: string | null;
+  minSalary: number | null;
+  maxSalary: number | null;
+  skills: string[];
+  careerIntent: string | null;
+  domainExperience: string[];
+  highlights: string[];
+  jobBlacklist: string[];
+  companyBlacklist: string[];
+  location: { latitude: number; longitude: number } | null;
+}) => {
+  if (data.jobTitle) state.form.jobTitle = data.jobTitle;
+  if (data.yearsOfExperience) state.form.yearsOfExperience = data.yearsOfExperience;
+  if (data.minSalary != null) state.form.minSalary = String(data.minSalary);
+  if (data.maxSalary != null) state.form.maxSalary = String(data.maxSalary);
+  if (data.skills?.length) state.form.skills = data.skills;
+  if (data.careerIntent) state.form.careerIntent = data.careerIntent;
+  if (data.domainExperience?.length) state.form.domainExperience = data.domainExperience;
+  if (data.highlights?.length) state.form.highlights = data.highlights;
+  if (data.jobBlacklist?.length) state.form.jobBlacklist = data.jobBlacklist;
+  if (data.companyBlacklist?.length) state.form.companyBlacklist = data.companyBlacklist;
+};
 </script>
 
 <style scoped>

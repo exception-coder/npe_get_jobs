@@ -1,4 +1,4 @@
-package getjobs.modules.getjobs.dict.infrastructure.provider;
+package getjobs.modules.getjobs.dict.domain.provider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import getjobs.common.enums.RecruitmentPlatformEnum;
@@ -7,10 +7,10 @@ import getjobs.modules.getjobs.dict.api.DictGroup;
 import getjobs.modules.getjobs.dict.api.DictGroupKey;
 import getjobs.modules.getjobs.dict.api.DictItem;
 import getjobs.modules.getjobs.dict.domain.DictProvider;
-import getjobs.modules.getjobs.dict.infrastructure.config.ZhilianDictConfig;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.zhilian.ZhilianBaseData;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.zhilian.ZhilianDictItem;
-import getjobs.modules.getjobs.dict.infrastructure.provider.dto.zhilian.ZhilianResponse;
+import getjobs.modules.getjobs.dict.config.ZhilianDictConfig;
+import getjobs.modules.getjobs.dict.domain.dto.zhilian.ZhilianBaseData;
+import getjobs.modules.getjobs.dict.domain.dto.zhilian.ZhilianDictItem;
+import getjobs.modules.getjobs.dict.domain.dto.zhilian.ZhilianResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;

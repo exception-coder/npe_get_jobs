@@ -1,4 +1,4 @@
-package getjobs.service;
+package getjobs.modules.getjobs.service;
 
 import getjobs.repository.entity.ConfigEntity;
 

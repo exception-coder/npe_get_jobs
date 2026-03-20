@@ -1,4 +1,4 @@
-package getjobs.service;
+package getjobs.modules.getjobs.service;
 
 import getjobs.modules.getjobs.boss.dto.JobDTO;
 import getjobs.common.enums.RecruitmentPlatformEnum;

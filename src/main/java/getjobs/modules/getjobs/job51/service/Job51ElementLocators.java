@@ -1,4 +1,4 @@
-package getjobs.modules.job51.service;
+package getjobs.modules.getjobs.job51.service;
 
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Locator;

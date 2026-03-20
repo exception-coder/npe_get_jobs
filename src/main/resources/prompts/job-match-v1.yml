@@ -13,7 +13,12 @@ segments:
       2. 若 JD 的核心职责与候选人期望从事的工作内容一致或高度相关 → matched: true
       3. 若核心职责不一致、方向不同，或仅偶尔提及而非常规主责 → matched: false
       4. 无法判断时 → matched: false
-      
+      {{#extra_rules}}
+
+      【用户补充判定规则】（优先级高于上述默认规则，逐条遵守）：
+      {{extra_rules}}
+      {{/extra_rules}}
+
       返回格式说明：
       - matched: 布尔值，true 表示匹配，false 表示不匹配
       - reason: 字符串，简要说明判定依据（30-100字）

@@ -1,4 +1,4 @@
-package getjobs.modules.ai.infrastructure.validate;
+package getjobs.infrastructure.ai.validate;
 
 import org.springframework.stereotype.Component;
 

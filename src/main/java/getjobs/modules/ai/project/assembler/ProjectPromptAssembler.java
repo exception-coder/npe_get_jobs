@@ -1,9 +1,9 @@
 package getjobs.modules.ai.project.assembler;
 
 import getjobs.infrastructure.ai.llm.LlmMessage;
-import getjobs.modules.ai.infrastructure.template.PromptRenderer;
-import getjobs.modules.ai.infrastructure.template.PromptTemplate;
-import getjobs.modules.ai.infrastructure.template.TemplateRepository;
+import getjobs.infrastructure.ai.template.PromptRenderer;
+import getjobs.infrastructure.ai.template.PromptTemplate;
+import getjobs.infrastructure.ai.template.TemplateRepository;
 import getjobs.modules.ai.project.dto.BaseProjectOptimizeRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

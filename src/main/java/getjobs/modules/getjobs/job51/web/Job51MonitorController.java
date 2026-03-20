@@ -1,6 +1,6 @@
-package getjobs.modules.job51.web;
+package getjobs.modules.getjobs.job51.web;
 
-import getjobs.modules.job51.service.playwright.Job51ApiMonitorService;
+import getjobs.modules.getjobs.job51.service.playwright.Job51ApiMonitorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

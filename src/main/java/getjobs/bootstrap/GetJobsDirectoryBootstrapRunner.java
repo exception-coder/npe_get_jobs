@@ -1,5 +1,6 @@
 package getjobs.bootstrap;
 
+import getjobs.infrastructure.ai.config.DeepseekConfigRefreshService;
 import getjobs.repository.JobRepository;
 import getjobs.repository.entity.JobEntity;
 import lombok.RequiredArgsConstructor;
@@ -28,11 +29,13 @@ public class GetJobsDirectoryBootstrapRunner implements ApplicationRunner, Order
 
     private final JobRepository jobRepository;
     private final TransactionTemplate transactionTemplate;
+    private final DeepseekConfigRefreshService deepseekConfigRefreshService;
 
     @Override
     public void run(ApplicationArguments args) {
         ensureGetJobsDirectory();
         deduplicateJobByEncryptJobId();
+        deepseekConfigRefreshService.refreshChatModel();
     }
 
     private void ensureGetJobsDirectory() {

@@ -1,15 +1,17 @@
-package getjobs.modules.dict.web;
+package getjobs.modules.getjobs.dict.web;
 
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.modules.dict.api.DictBundle;
-import getjobs.modules.dict.api.DictGroup;
-import getjobs.modules.dict.service.DictFacade;
-import getjobs.modules.dict.infrastructure.provider.Job51DictProviderImpl;
+import getjobs.modules.getjobs.dict.api.DictBundle;
+import getjobs.modules.getjobs.dict.api.DictGroup;
+import getjobs.modules.getjobs.dict.service.DictFacade;
+import getjobs.modules.getjobs.dict.domain.provider.Job51DictProviderImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/dicts")
@@ -32,6 +34,16 @@ public class DictController {
     @GetMapping("/{platform}")
     public DictBundle all(@PathVariable("platform") RecruitmentPlatformEnum platform) {
         return dictFacade.fetchAll(platform);
+    }
+
+    /**
+     * 获取所有平台字典数据
+     *
+     * @return 所有平台字典数据列表
+     */
+    @GetMapping
+    public List<DictBundle> allPlatforms() {
+        return dictFacade.fetchAllPlatforms();
     }
 
     // 取某一分组（如 payTypeList）

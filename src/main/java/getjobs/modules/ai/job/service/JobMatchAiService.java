@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -49,7 +50,11 @@ public class JobMatchAiService {
      * @return 匹配结果，包含是否匹配和判定原因。
      */
     public JobMatchResult matchWithReason(String myJd, String jobDescription) {
-        return matchWithReason(myJd, jobDescription, DEFAULT_TEMPLATE_ID);
+        return matchWithReason(myJd, jobDescription, DEFAULT_TEMPLATE_ID, Collections.emptyList());
+    }
+
+    public JobMatchResult matchWithReason(String myJd, String jobDescription, List<String> extraRules) {
+        return matchWithReason(myJd, jobDescription, DEFAULT_TEMPLATE_ID, extraRules);
     }
 
     /**
@@ -61,7 +66,11 @@ public class JobMatchAiService {
      * @return 匹配结果，包含是否匹配和判定原因。
      */
     public JobMatchResult matchWithReason(String myJd, String jobDescription, String templateId) {
-        List<LlmMessage> messages = assembler.assemble(templateId, myJd, jobDescription);
+        return matchWithReason(myJd, jobDescription, templateId, Collections.emptyList());
+    }
+
+    public JobMatchResult matchWithReason(String myJd, String jobDescription, String templateId, List<String> extraRules) {
+        List<LlmMessage> messages = assembler.assemble(templateId, myJd, jobDescription, extraRules);
         String rawResponse = llmClient.chat(messages).trim();
 
         JobMatchResult result = parseJobMatchResult(rawResponse);
@@ -83,7 +92,11 @@ public class JobMatchAiService {
      * @return 匹配结果，包含是否匹配、判定原因和置信度
      */
     public JobMatchResult matchByTitle(String myJd, String jobTitle) {
-        return matchByTitle(myJd, jobTitle, DEFAULT_TITLE_TEMPLATE_ID);
+        return matchByTitle(myJd, jobTitle, DEFAULT_TITLE_TEMPLATE_ID, Collections.emptyList());
+    }
+
+    public JobMatchResult matchByTitle(String myJd, String jobTitle, List<String> extraRules) {
+        return matchByTitle(myJd, jobTitle, DEFAULT_TITLE_TEMPLATE_ID, extraRules);
     }
 
     /**
@@ -95,7 +108,11 @@ public class JobMatchAiService {
      * @return 匹配结果，包含是否匹配、判定原因和置信度
      */
     public JobMatchResult matchByTitle(String myJd, String jobTitle, String templateId) {
-        List<LlmMessage> messages = assembler.assembleByTitle(templateId, myJd, jobTitle);
+        return matchByTitle(myJd, jobTitle, templateId, Collections.emptyList());
+    }
+
+    public JobMatchResult matchByTitle(String myJd, String jobTitle, String templateId, List<String> extraRules) {
+        List<LlmMessage> messages = assembler.assembleByTitle(templateId, myJd, jobTitle, extraRules);
         String rawResponse = llmClient.chat(messages).trim();
 
         JobMatchResult result = parseJobMatchResult(rawResponse);
@@ -121,7 +138,11 @@ public class JobMatchAiService {
      * @throws IllegalArgumentException 如果职位描述和职位名称都为空
      */
     public JobMatchResult smartMatch(String myJd, String jobDescription, String jobTitle) {
-        return smartMatch(myJd, jobDescription, jobTitle, DEFAULT_TEMPLATE_ID, DEFAULT_TITLE_TEMPLATE_ID);
+        return smartMatch(myJd, jobDescription, jobTitle, Collections.emptyList());
+    }
+
+    public JobMatchResult smartMatch(String myJd, String jobDescription, String jobTitle, List<String> extraRules) {
+        return smartMatch(myJd, jobDescription, jobTitle, DEFAULT_TEMPLATE_ID, DEFAULT_TITLE_TEMPLATE_ID, extraRules);
     }
 
     /**
@@ -137,19 +158,21 @@ public class JobMatchAiService {
      */
     public JobMatchResult smartMatch(String myJd, String jobDescription, String jobTitle,
             String fullMatchTemplateId, String titleMatchTemplateId) {
-        // 判断是否有有效的职位描述
+        return smartMatch(myJd, jobDescription, jobTitle, fullMatchTemplateId, titleMatchTemplateId, Collections.emptyList());
+    }
+
+    public JobMatchResult smartMatch(String myJd, String jobDescription, String jobTitle,
+            String fullMatchTemplateId, String titleMatchTemplateId, List<String> extraRules) {
         boolean hasValidJd = StringUtils.hasText(jobDescription)
                 && jobDescription.trim().length() >= MIN_JD_LENGTH;
 
         if (hasValidJd) {
-            // 使用完整职位描述匹配
             log.debug("Using full job description match - JD length: {}", jobDescription.length());
-            return matchWithReason(myJd, jobDescription, fullMatchTemplateId);
+            return matchWithReason(myJd, jobDescription, fullMatchTemplateId, extraRules);
         } else if (StringUtils.hasText(jobTitle)) {
-            // 使用职位名称推断匹配
             log.debug("Using job title inference match - JD length: {}, title: {}",
                     jobDescription != null ? jobDescription.length() : 0, jobTitle);
-            return matchByTitle(myJd, jobTitle, titleMatchTemplateId);
+            return matchByTitle(myJd, jobTitle, titleMatchTemplateId, extraRules);
         } else {
             throw new IllegalArgumentException(
                     "Both jobDescription and jobTitle are empty. At least one must be provided.");

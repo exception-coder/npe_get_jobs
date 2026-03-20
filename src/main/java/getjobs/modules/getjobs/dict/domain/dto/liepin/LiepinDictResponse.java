@@ -1,4 +1,4 @@
-package getjobs.modules.getjobs.dict.infrastructure.provider.dto.liepin;
+package getjobs.modules.getjobs.dict.domain.dto.liepin;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

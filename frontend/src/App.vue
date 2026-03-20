@@ -165,8 +165,8 @@ const railWidth = 80;
 const showAppBar = computed(() => {
   const routeName = route.name as string;
   const routePath = route.path;
-  return routePath === '/common' || 
-         ['platform-config', 'platform-records', 'resume-optimizer', 'company-evaluation'].includes(routeName);
+  return routePath === '/common' ||
+         ['platform-config', 'platform-records', 'resume-optimizer', 'company-evaluation', 'job-match-rules'].includes(routeName);
 });
 
 const showDrawer = computed(() => route.name !== 'login');
@@ -179,6 +179,7 @@ const pageTitle = computed(() => {
   if (path.includes('/records')) return '岗位明细';
   if (path.includes('/resume-optimizer')) return '简历优化';
   if (path === '/company-evaluation') return '企业评估';
+  if (path === '/ai/job-match-rules') return 'AI 提示词扩展';
   return '智能求职助手';
 });
 
@@ -189,6 +190,7 @@ const pageSubtitle = computed(() => {
   if (path.includes('/records')) return '查看和管理岗位信息';
   if (path.includes('/resume-optimizer')) return '优化简历内容和格式';
   if (path === '/company-evaluation') return 'AI 多维度评估企业是否值得投递';
+  if (path === '/ai/job-match-rules') return '管理各类 AI 功能的提示词扩展属性';
   return 'AI驱动的智能求职解决方案';
 });
 
@@ -226,6 +228,7 @@ const navMenu = computed(() => [
         })),
       },
       { href: '/company-evaluation', title: '企业评估', icon: 'mdi mdi-office-building-cog-outline' },
+      { href: '/ai/job-match-rules', title: 'AI提示词扩展', icon: 'mdi mdi-tune-variant' },
     ],
   },
   {
@@ -318,6 +321,9 @@ const themeStyles = computed(() => ({
   --vsm-dropdown-bg: v-bind('currentTheme.drawerBg');
   --vsm-toggle-btn-color: v-bind('currentTheme.textSecondary');
   border-right: 1px solid v-bind('currentTheme.divider');
+  /* v-app-bar 默认 fixed 会盖在页面最上方，需给侧边栏预留顶部栏高度 */
+  padding-top: 64px;
+  box-sizing: border-box;
 }
 
 .sidebar-header {

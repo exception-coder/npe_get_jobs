@@ -1,4 +1,4 @@
-package getjobs.utils;
+package getjobs.modules.getjobs.utils;
 
 import com.microsoft.playwright.*;
 import lombok.extern.slf4j.Slf4j;

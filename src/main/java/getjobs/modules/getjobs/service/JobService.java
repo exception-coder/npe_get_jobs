@@ -1,4 +1,4 @@
-package getjobs.service;
+package getjobs.modules.getjobs.service;
 
 import getjobs.common.enums.JobStatusEnum;
 import getjobs.common.enums.RecruitmentPlatformEnum;
@@ -72,9 +72,9 @@ public class JobService {
      * @param size     每页大小
      * @return 分页结果
      */
-    public Page<JobEntity> search(String platform, String keyword, int page, int size) {
+    public Page<JobEntity> search(String platform, Integer status, String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        return jobRepository.search(platform, keyword, pageable);
+        return jobRepository.search(platform, status, keyword, pageable);
     }
 
     /**
@@ -270,7 +270,8 @@ public class JobService {
         if (platform == null || platform.trim().isEmpty()) {
             throw new IllegalArgumentException("platform不能为空");
         }
-        jobRepository.deleteByPlatform(platform);
+        jobRepository.deleteByPlatformAndStatusNotIn(platform,
+                List.of(JobStatusEnum.DELIVERED_SUCCESS.getCode(), JobStatusEnum.DELIVERED_FAILED.getCode()));
     }
 
     /**

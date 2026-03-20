@@ -4,7 +4,7 @@ import getjobs.repository.entity.ConfigEntity;
 import getjobs.repository.entity.UserProfile;
 import getjobs.repository.ConfigRepository;
 import getjobs.repository.UserProfileRepository;
-import getjobs.utils.SpringContextUtil;
+import getjobs.modules.getjobs.utils.SpringContextUtil;
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import lombok.Data;
 import lombok.SneakyThrows;

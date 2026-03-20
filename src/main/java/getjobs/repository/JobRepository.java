@@ -15,11 +15,13 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
 
     @Query("SELECT j FROM JobEntity j " +
             "WHERE (:platform IS NULL OR LOWER(j.platform) = LOWER(:platform)) " +
+            "AND (:status IS NULL OR j.status = :status) " +
             "AND ( :keyword IS NULL " +
             "   OR LOWER(j.jobTitle) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "   OR LOWER(j.companyName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "   OR LOWER(j.hrName) LIKE LOWER(CONCAT('%', :keyword, '%')) )")
     Page<JobEntity> search(@Param("platform") String platform,
+            @Param("status") Integer status,
             @Param("keyword") String keyword,
             Pageable pageable);
 
@@ -126,11 +128,14 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
     List<JobEntity> findByPlatform(String platform);
 
     /**
-     * 根据平台删除职位
+     * 根据平台删除职位（排除已投递状态）
      *
-     * @param platform 平台名称
+     * @param platform       平台名称
+     * @param excludeStatuses 排除的状态列表
      */
-    void deleteByPlatform(String platform);
+    @Modifying
+    @Query("DELETE FROM JobEntity j WHERE j.platform = :platform AND j.status NOT IN :excludeStatuses")
+    void deleteByPlatformAndStatusNotIn(@Param("platform") String platform, @Param("excludeStatuses") List<Integer> excludeStatuses);
 
     /**
      * 删除指定平台下岗位描述（jobPostDescription）为空的记录（监控接口额外拉取、非点击岗位卡搜索的数据）

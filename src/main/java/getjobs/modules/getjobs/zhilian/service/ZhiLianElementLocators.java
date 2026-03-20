@@ -1,4 +1,4 @@
-package getjobs.modules.zhilian.service;
+package getjobs.modules.getjobs.zhilian.service;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;

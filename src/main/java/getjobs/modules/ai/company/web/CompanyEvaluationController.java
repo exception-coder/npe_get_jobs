@@ -1,6 +1,7 @@
 package getjobs.modules.ai.company.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import getjobs.modules.ai.company.assembler.CompanyEvaluationPromptAssembler;
 import getjobs.modules.ai.company.dto.CompanyEvaluationDeleteResponse;
 import getjobs.modules.ai.company.dto.CompanyEvaluationEvaluateResponse;
 import getjobs.modules.ai.company.dto.CompanyEvaluationListItem;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -43,13 +45,16 @@ public class CompanyEvaluationController {
     private final CompanyEvaluationAiService companyEvaluationAiService;
     private final CompanyEvaluationRepository companyEvaluationRepository;
     private final ObjectMapper objectMapper;
+    private final CompanyEvaluationPromptAssembler companyEvaluationPromptAssembler;
 
     public CompanyEvaluationController(CompanyEvaluationAiService companyEvaluationAiService,
                                       CompanyEvaluationRepository companyEvaluationRepository,
-                                      ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      CompanyEvaluationPromptAssembler companyEvaluationPromptAssembler) {
         this.companyEvaluationAiService = companyEvaluationAiService;
         this.companyEvaluationRepository = companyEvaluationRepository;
         this.objectMapper = objectMapper;
+        this.companyEvaluationPromptAssembler = companyEvaluationPromptAssembler;
     }
 
     /**
@@ -142,6 +147,23 @@ public class CompanyEvaluationController {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    @GetMapping("/extra-rules")
+    public Map<String, List<String>> getExtraRules() {
+        return Map.of(
+                "deductions", companyEvaluationPromptAssembler.getExtraDeductions(),
+                "bonuses", companyEvaluationPromptAssembler.getExtraBonuses()
+        );
+    }
+
+    @PostMapping("/extra-rules")
+    public Map<String, Object> saveExtraRules(@RequestBody Map<String, List<String>> body) {
+        List<String> deductions = body.getOrDefault("deductions", List.of());
+        List<String> bonuses = body.getOrDefault("bonuses", List.of());
+        companyEvaluationPromptAssembler.setExtraDeductions(deductions);
+        companyEvaluationPromptAssembler.setExtraBonuses(bonuses);
+        return Map.of("success", true);
     }
 
     private CompanyEvaluationListItem toListItem(CompanyEvaluationEntity entity) {

@@ -1,8 +1,7 @@
 package getjobs.controller;
 
 import getjobs.common.dto.ConfigDTO;
-import getjobs.modules.job51.service.Job51TaskService;
-import getjobs.modules.job51.service.Job51TaskService.*;
+import getjobs.modules.getjobs.job51.service.Job51TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +39,7 @@ public class Job51TaskController {
         log.info("接收到51job登录请求");
 
         try {
-            LoginResult result = job51TaskService.login();
+            Job51TaskService.LoginResult result = job51TaskService.login();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", result.isSuccess());
@@ -77,7 +76,7 @@ public class Job51TaskController {
         log.info("接收到51job岗位采集请求");
 
         try {
-            CollectResult result = job51TaskService.collectJobs();
+            Job51TaskService.CollectResult result = job51TaskService.collectJobs();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -113,7 +112,7 @@ public class Job51TaskController {
         log.info("接收到51job岗位过滤请求");
 
         try {
-            FilterResult result = job51TaskService.filterJobs();
+            Job51TaskService.FilterResult result = job51TaskService.filterJobs();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -151,7 +150,7 @@ public class Job51TaskController {
                 request.isEnableActualDelivery());
 
         try {
-            DeliveryResult result = job51TaskService.deliverJobs(
+            Job51TaskService.DeliveryResult result = job51TaskService.deliverJobs(
                     request.isEnableActualDelivery());
 
             Map<String, Object> response = new HashMap<>();

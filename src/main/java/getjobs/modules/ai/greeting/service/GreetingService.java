@@ -5,9 +5,9 @@ import getjobs.modules.ai.greeting.ab.ExperimentService;
 import getjobs.modules.ai.greeting.assembler.PromptAssembler;
 import getjobs.modules.ai.greeting.dto.GreetingRequest;
 import getjobs.modules.ai.greeting.dto.GreetingResponse;
-import getjobs.modules.ai.infrastructure.extract.KeywordExtractor;
-import getjobs.modules.ai.infrastructure.validate.KeywordCoverageValidator;
-import getjobs.modules.ai.infrastructure.validate.LengthValidator;
+import getjobs.infrastructure.ai.extract.KeywordExtractor;
+import getjobs.infrastructure.ai.validate.KeywordCoverageValidator;
+import getjobs.infrastructure.ai.validate.LengthValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

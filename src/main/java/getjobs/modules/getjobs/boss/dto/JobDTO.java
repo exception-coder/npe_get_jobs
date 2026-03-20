@@ -1,4 +1,4 @@
-package getjobs.modules.boss.dto;
+package getjobs.modules.getjobs.boss.dto;
 
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import lombok.Data;

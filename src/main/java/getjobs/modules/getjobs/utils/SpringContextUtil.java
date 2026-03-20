@@ -1,4 +1,4 @@
-package getjobs.utils;
+package getjobs.modules.getjobs.utils;
 
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;

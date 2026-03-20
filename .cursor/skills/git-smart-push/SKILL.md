@@ -215,9 +215,35 @@ git commit -m "<生成的 commit 信息>"
 
 根据远程仓库类型和 URL 格式，使用不同的推送方式：
 
+#### 6.1 先判断是否“新分支”（是否已有 upstream / 远端是否存在同名分支）
+
+> 目标：如果当前分支是新建的（远端还没有、或本地还没设置跟踪），**推送时必须用 `-u`**，这样后续直接 `git push`/`git pull` 才不会报错。
+
+```bash
+cd <project_root>
+
+# 查看当前分支名
+git branch --show-current
+
+# 1) 检查本地是否已设置 upstream（若未设置会报错，属于正常情况）
+git rev-parse --abbrev-ref --symbolic-full-name @{u}
+
+# 2) 检查远端是否已有同名分支（有输出表示存在）
+git ls-remote --heads origin <branch>
+```
+
+**判断：**
+- 若 `@{u}` 报错（无 upstream）或 `ls-remote` 无输出（远端无该分支）→ 视为**新分支**：用 `git push -u origin <branch>`
+- 否则 → 视为**已有分支**：用 `git push origin <branch>`
+
 **SSH 方式（推荐）：**
 ```bash
 git push origin <branch>
+```
+
+**新分支（推荐，建立 upstream）：**
+```bash
+git push -u origin <branch>
 ```
 
 **HTTPS 方式（需要认证）：**

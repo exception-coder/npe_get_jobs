@@ -26,4 +26,9 @@ public final class JobPromptVariables {
      * 职位名称
      */
     public static final String JOB_TITLE = "job_title";
+
+    /**
+     * 用户自定义补充规则（动态注入到 GUIDELINES 中）
+     */
+    public static final String EXTRA_RULES = "extra_rules";
 }
