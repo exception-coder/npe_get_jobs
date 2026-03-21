@@ -9,6 +9,7 @@ docs/images/
 ├── readme/                      # 根目录 README.md 使用的图片
 │   ├── common-config.png       # 公共配置截图
 │   ├── platform-config.png     # 平台配置截图
+│   ├── glm-invitation.png      # 智谱 GLM 编程搭子邀请活动海报
 │   └── ...
 ├── anti-crawler-detection/      # 反爬虫相关文档的图片
 │   ├── detection-flow.png
