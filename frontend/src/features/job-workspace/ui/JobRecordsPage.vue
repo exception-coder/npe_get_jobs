@@ -1,0 +1,37 @@
+<template>
+  <section class="records-page">
+    <header class="records-heading"><div><p>JOB LEDGER</p><h2>{{ meta?.displayName ?? platform }} 岗位记录</h2><span>{{ total }} 条历史记录，用于筛选审计与避免重复联系。</span></div><div class="heading-actions"><button @click="load(0)"><i class="mdi mdi-refresh" /> 刷新</button><router-link :to="`/platform/${platform}/records/legacy`">高级管理</router-link></div></header>
+
+    <form class="record-filters" @submit.prevent="load(0)"><label>搜索<input v-model="keyword" placeholder="岗位或公司" /></label><label>状态<select v-model="status"><option value="">全部状态</option><option value="0">待处理</option><option value="1">待联系</option><option value="2">已过滤</option><option value="3">联系成功</option><option value="4">联系失败</option></select></label><button type="submit">应用筛选</button></form>
+
+    <div v-if="error" class="record-state error" role="alert"><strong>岗位记录暂时不可用</strong><span>{{ error }}</span><button @click="load(page)">重试</button></div>
+    <div v-else-if="loading" class="record-state" role="status">正在读取岗位记录…</div>
+    <div v-else-if="!jobs.length" class="record-state"><strong>{{ keyword || status !== '' ? '没有符合条件的记录' : '尚无岗位记录' }}</strong><span>{{ keyword || status !== '' ? '清除筛选后查看完整记录。' : '从运行中心发起一次平台筛选，结果会出现在这里。' }}</span><router-link to="/runs">前往运行中心</router-link></div>
+
+    <template v-else>
+      <div class="records-table-wrap"><table><thead><tr><th>岗位与公司</th><th>地点 / 薪资</th><th>匹配</th><th>状态</th><th>更新时间</th><th></th></tr></thead><tbody><tr v-for="job in jobs" :key="job.id"><td><strong>{{ job.jobTitle }}</strong><span>{{ job.companyName || '未知公司' }}</span></td><td><strong>{{ job.workCity || '—' }}</strong><span>{{ job.salaryRange || '薪资面议' }}</span></td><td><span :class="['match-mark', job.aiMatched === true ? 'yes' : job.aiMatched === false ? 'no' : 'unknown']">{{ aiLabel(job.aiMatched) }}</span><small>{{ job.aiMatchReason || '暂无匹配说明' }}</small></td><td><span class="status-mark">{{ statusLabel(job.status) }}</span></td><td>{{ formatDate(job.publishTime) }}</td><td><a v-if="job.jobUrl" :href="job.jobUrl" target="_blank" rel="noreferrer" aria-label="打开岗位"><i class="mdi mdi-arrow-top-right" /></a></td></tr></tbody></table></div>
+      <footer class="pagination"><span>第 {{ page + 1 }} 页</span><div><button :disabled="page === 0" @click="load(page - 1)">上一页</button><button :disabled="(page + 1) * size >= total" @click="load(page + 1)">下一页</button></div></footer>
+    </template>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue';
+import { fetchJobRecords, type JobRecord } from '@/modules/intelligent-job-search/api/jobRecordsApi';
+import type { PlatformCode } from '@/modules/intelligent-job-search/api/platformConfigApi';
+import { PLATFORM_METAS } from '@/modules/intelligent-job-search/constants/platformMeta';
+
+const props = defineProps<{ platform: PlatformCode }>();
+const meta = computed(() => PLATFORM_METAS[props.platform]);
+const jobs = ref<JobRecord[]>([]); const total = ref(0); const page = ref(0); const size = 20; const keyword = ref(''); const status = ref<string>(''); const loading = ref(false); const error = ref('');
+async function load(target = 0) { loading.value = true; error.value = ''; try { const result = await fetchJobRecords({ platform: props.platform, page: target, size, ...(keyword.value.trim() ? { keyword: keyword.value.trim() } : {}), ...(status.value !== '' ? { status: Number(status.value) } : {}) }); jobs.value = result.content ?? []; total.value = result.totalElements ?? 0; page.value = result.number ?? target; } catch (reason) { error.value = reason instanceof Error ? reason.message : '加载失败'; } finally { loading.value = false; } }
+function statusLabel(value?: number) { return ({ 0: '待处理', 1: '待联系', 2: '已过滤', 3: '联系成功', 4: '联系失败' } as Record<number, string>)[value ?? 0] ?? '未知'; }
+function aiLabel(value?: boolean | null) { return value === true ? '匹配' : value === false ? '不匹配' : '未判断'; }
+function formatDate(value?: string) { return value ? new Date(value).toLocaleDateString('zh-CN') : '—'; }
+watch(() => props.platform, () => load(0), { immediate: true });
+</script>
+
+<style scoped lang="scss">
+.records-page { max-width: 1240px; margin: 0 auto; padding: var(--space-7); }.records-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 28px; }.records-heading p { margin: 0 0 7px; color: var(--accent); font-size: 10px; font-weight: 750; letter-spacing: .17em; }.records-heading h2 { margin: 0; color: var(--ink-strong); font: 560 clamp(1.8rem, 3vw, 2.5rem) var(--font-display); letter-spacing: -.025em; }.records-heading span { display: block; margin-top: 7px; color: var(--ink-muted); font-size: 12px; }.heading-actions { display: flex; align-items: center; gap: 12px; }.heading-actions button, .heading-actions a, .record-filters button, .record-state button, .record-state a, .pagination button { display: inline-flex; min-height: 36px; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface); padding: 0 12px; color: var(--ink); font-size: 11px; font-weight: 700; text-decoration: none; cursor: pointer; }.record-filters { display: grid; grid-template-columns: minmax(220px, 1fr) 180px auto; gap: 12px; align-items: end; padding: 18px 0; border-block: 1px solid var(--line); }.record-filters label { display: grid; gap: 6px; color: var(--ink-faint); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }.record-filters input, .record-filters select { height: 40px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); padding: 0 11px; color: var(--ink); }.record-filters button { border-color: var(--accent); background: var(--accent); color: white; }.record-state { display: flex; min-height: 220px; align-items: flex-start; justify-content: center; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--line); color: var(--ink-muted); }.record-state strong { color: var(--ink-strong); font: 560 22px var(--font-display); }.record-state span { font-size: 12px; }.record-state.error { border-color: var(--danger-line); }.records-table-wrap { overflow-x: auto; }.records-table-wrap table { width: 100%; min-width: 880px; border-collapse: collapse; text-align: left; }.records-table-wrap th { padding: 11px 10px; color: var(--ink-faint); font-size: 9px; letter-spacing: .09em; text-transform: uppercase; }.records-table-wrap td { padding: 14px 10px; border-top: 1px solid var(--line); font-size: 11px; vertical-align: top; }.records-table-wrap td strong, .records-table-wrap td span, .records-table-wrap td small { display: block; }.records-table-wrap td span, .records-table-wrap td small { margin-top: 4px; color: var(--ink-faint); }.match-mark.yes { color: var(--success); }.match-mark.no { color: var(--danger); }.status-mark { color: var(--ink) !important; }.records-table-wrap a { color: var(--accent); font-size: 18px; }.pagination { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 11px; }.pagination div { display: flex; gap: 8px; }.pagination button:disabled { opacity: .4; cursor: not-allowed; }
+@media (max-width: 760px) { .records-page { padding: 22px 16px; }.records-heading { align-items: flex-start; flex-direction: column; }.record-filters { grid-template-columns: 1fr; }.record-filters button { width: 100%; } }
+</style>

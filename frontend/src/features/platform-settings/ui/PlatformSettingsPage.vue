@@ -364,9 +364,9 @@
 import { computed, watch, toRef, reactive, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSnackbarStore } from '@/stores/snackbar';
-import type { PlatformCode } from '../api/platformConfigApi';
-import { usePlatformState } from '../state/platformState';
-import { usePlatformService } from '../service/platformService';
+import type { PlatformCode } from '@/modules/intelligent-job-search/api/platformConfigApi';
+import { usePlatformState } from '@/modules/intelligent-job-search/state/platformState';
+import { usePlatformService } from '@/modules/intelligent-job-search/service/platformService';
 import CascaderSelect from '@/components/CascaderSelect.vue';
 
 const DELIVERY_FLOW_STORAGE_PREFIX = 'npe_get_jobs.deliveryFlowControl';

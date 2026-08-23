@@ -1,53 +1,18 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
+import { featureRoutes } from '@/app/featureRegistry';
 import { checkAuthStatus } from '@/common/infrastructure/auth/auth';
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/common',
+    redirect: '/workspace',
   },
-  {
-    path: '/common',
-    component: () => import('@/modules/intelligent-job-search/views/CommonConfigView.vue'),
-    meta: { public: true },
-  },
-  {
-    path: '/platform/:platform/config',
-    name: 'platform-config',
-    component: () => import('@/modules/intelligent-job-search/views/PlatformConfigView.vue'),
-    props: true,
-    meta: { public: true },
-  },
-  {
-    path: '/platform/:platform/records',
-    name: 'platform-records',
-    component: () => import('@/modules/intelligent-job-search/views/PlatformRecordsView.vue'),
-    props: true,
-    meta: { public: true },
-  },
-  {
-    path: '/resume-optimizer',
-    name: 'resume-optimizer',
-    component: () => import('@/modules/vitaPolish/views/ResumeOptimizer.vue'),
-    meta: { public: true },
-  },
-  {
-    path: '/company-evaluation',
-    name: 'company-evaluation',
-    component: () => import('@/modules/intelligent-job-search/views/CompanyEvaluationView.vue'),
-    meta: { public: true },
-  },
-  {
-    path: '/ai/job-match-rules',
-    name: 'job-match-rules',
-    component: () => import('@/modules/intelligent-job-search/views/AiPromptExtensionView.vue'),
-    meta: { public: true },
-  },
+  ...featureRoutes,
   {
     path: '/login',
     name: 'login',
     component: () => import('@/modules/login/views/LoginPage.vue'),
-    meta: { public: true }, 
+    meta: { public: true, shell: false },
   },
   {
     path: '/:pathMatch(.*)*',

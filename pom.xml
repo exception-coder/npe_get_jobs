@@ -201,11 +201,17 @@
         <!-- ===================== -->
         <!-- 自动化/浏览器驱动   -->
         <!-- ===================== -->
-        <!-- Playwright（浏览器自动化/抓取/端到端测试） -->
+        <!-- 旧平台实现的编译兼容依赖；运行态已禁用，平台迁移到 Patchright sidecar 后删除。 -->
         <dependency>
             <groupId>com.microsoft.playwright</groupId>
             <artifactId>playwright</artifactId>
             <version>1.51.0</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
         <!-- JWT 鉴权 -->
         <dependency>

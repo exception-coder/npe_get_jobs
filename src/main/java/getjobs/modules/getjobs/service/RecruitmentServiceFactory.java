@@ -1,15 +1,11 @@
 package getjobs.modules.getjobs.service;
 
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.modules.getjobs.boss.service.impl.BossRecruitmentServiceImpl;
-import getjobs.modules.getjobs.job51.service.impl.Job51RecruitmentServiceImpl;
-import getjobs.modules.getjobs.liepin.service.impl.LiepinRecruitmentServiceImpl;
-import getjobs.modules.getjobs.zhilian.service.impl.ZhiLianRecruitmentServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,29 +22,19 @@ import java.util.Map;
 public class RecruitmentServiceFactory {
 
     private final Map<RecruitmentPlatformEnum, RecruitmentService> serviceMap = new HashMap<>();
+    private final Map<String, RecruitmentService> serviceCodeMap = new HashMap<>();
 
-    private final BossRecruitmentServiceImpl bossRecruitmentService;
-    private final Job51RecruitmentServiceImpl job51RecruitmentService;
-    private final ZhiLianRecruitmentServiceImpl zhiLianRecruitmentService;
-    private final LiepinRecruitmentServiceImpl liepinRecruitmentService;
-
-    public RecruitmentServiceFactory(BossRecruitmentServiceImpl bossRecruitmentService,
-                                     Job51RecruitmentServiceImpl job51RecruitmentService,
-                                     ZhiLianRecruitmentServiceImpl zhiLianRecruitmentService, LiepinRecruitmentServiceImpl liepinRecruitmentService) {
-        this.bossRecruitmentService = bossRecruitmentService;
-        this.job51RecruitmentService = job51RecruitmentService;
-        this.zhiLianRecruitmentService = zhiLianRecruitmentService;
-        this.liepinRecruitmentService = liepinRecruitmentService;
-    }
-
-    @PostConstruct
-    public void initServices() {
-        // 初始化各平台服务
-        serviceMap.put(RecruitmentPlatformEnum.BOSS_ZHIPIN, bossRecruitmentService);
-        serviceMap.put(RecruitmentPlatformEnum.JOB_51, job51RecruitmentService);
-        serviceMap.put(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN, zhiLianRecruitmentService);
-        serviceMap.put(RecruitmentPlatformEnum.LIEPIN, liepinRecruitmentService);
-
+    public RecruitmentServiceFactory(List<RecruitmentService> discoveredServices) {
+        for (RecruitmentService service : discoveredServices) {
+            RecruitmentService previous = serviceMap.putIfAbsent(service.getPlatform(), service);
+            if (previous != null) {
+                throw new IllegalStateException("招聘平台服务重复注册: " + service.getPlatform());
+            }
+            serviceCodeMap.put(service.getPlatform().getPlatformCode(), service);
+            if (service.getPlatform() == RecruitmentPlatformEnum.JOB_51) {
+                serviceCodeMap.put("job51", service);
+            }
+        }
         log.info("招聘服务工厂初始化完成，支持平台: {}", serviceMap.keySet());
     }
 
@@ -74,12 +60,12 @@ public class RecruitmentServiceFactory {
      * @return 招聘服务实例
      */
     public RecruitmentService getService(String platformCode) {
-        RecruitmentPlatformEnum platform = RecruitmentPlatformEnum.getByCode(platformCode);
-        if (platform == null) {
+        RecruitmentService service = serviceCodeMap.get(platformCode);
+        if (service == null) {
             log.error("未找到平台代码对应的招聘平台: {}", platformCode);
             throw new IllegalArgumentException("未找到平台代码对应的招聘平台: " + platformCode);
         }
-        return getService(platform);
+        return service;
     }
 
     /**
@@ -108,7 +94,6 @@ public class RecruitmentServiceFactory {
      * @return 是否支持
      */
     public boolean isSupported(String platformCode) {
-        RecruitmentPlatformEnum platform = RecruitmentPlatformEnum.getByCode(platformCode);
-        return platform != null && isSupported(platform);
+        return serviceCodeMap.containsKey(platformCode);
     }
 }

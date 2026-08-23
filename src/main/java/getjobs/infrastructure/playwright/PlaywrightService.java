@@ -10,6 +10,7 @@ import getjobs.common.util.StealthScriptManager;
 import lombok.extern.slf4j.Slf4j;
 import com.github.openjson.JSONArray;
 import com.github.openjson.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -169,6 +170,9 @@ public class PlaywrightService {
 
     private final CookieManager cookieManager;
 
+    @Value("${playwright.enabled:false}")
+    private boolean enabled;
+
     private Playwright playwright;
     // 注意：使用 launchPersistentContext 时，Browser 嵌入在 BrowserContext 中
     private BrowserContext context;
@@ -206,6 +210,10 @@ public class PlaywrightService {
 
     @PostConstruct
     public void init() {
+        if (!enabled) {
+            log.warn("旧 Playwright 服务已禁用；浏览器自动化由 Patchright sidecar 接管");
+            return;
+        }
         try {
             log.info("=== 开始初始化 Playwright 服务 ===");
             log.info("（数据库已就绪，可以加载平台配置和Cookie）");

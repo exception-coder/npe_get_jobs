@@ -389,9 +389,9 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import { fetchJobRecords, toggleFavorite, updateContacted, resetJobFilter, deleteAllJobs, type JobRecord } from '../api/jobRecordsApi';
-import type { PlatformCode } from '../api/platformConfigApi';
-import { PLATFORM_METAS } from '../constants/platformMeta';
+import { fetchJobRecords, toggleFavorite, updateContacted, resetJobFilter, deleteAllJobs, type JobRecord } from '@/modules/intelligent-job-search/api/jobRecordsApi';
+import type { PlatformCode } from '@/modules/intelligent-job-search/api/platformConfigApi';
+import { PLATFORM_METAS } from '@/modules/intelligent-job-search/constants/platformMeta';
 import { useSnackbarStore } from '@/stores/snackbar';
 
 const props = defineProps<{ platform: PlatformCode }>();

@@ -1,0 +1,16 @@
+{
+  "name": "npe-recruitment-browser",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "patchright": "1.60.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

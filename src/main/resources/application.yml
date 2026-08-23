@@ -80,9 +80,14 @@ async:
   # 线程空闲时间（秒）
   keep-alive-seconds: 60
 
-# Playwright 配置
+# 旧 Playwright 控制链仅保留在兼容层，默认不再启动。
 playwright:
-  # 是否启用 Playwright 服务（默认：true）
-  # 设置为 false 时将跳过 Playwright 初始化，适用于不需要浏览器自动化功能的场景
-  enabled: true
+  enabled: false
+
+recruitment:
+  browser:
+    enabled: true
+    auto-start: true
+    base-url: http://127.0.0.1:17321
+    working-directory: node-services/recruitment-browser
 
