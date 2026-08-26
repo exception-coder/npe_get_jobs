@@ -221,10 +221,7 @@ if (response.isSuccess()) {
 
 ### Q: 如何设置不同环境的配置？
 
-A: 在不同的配置文件中设置：
-- `application-dev.yml` - 开发环境
-- `application-test.yml` - 测试环境
-- `application-prod.yml` - 生产环境
+A: 通用配置保留在 `application.yml`，本机密钥放在不会进入 Git 的根目录 `.env`；部署环境通过系统环境变量覆盖。仓库不再维护 dev/prod 配置样例。
 
 ### Q: 如何处理超时？
 
