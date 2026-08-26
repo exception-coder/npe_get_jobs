@@ -9,6 +9,22 @@ export interface RecruitmentJob {
   salary: string;
   description: string;
   href: string;
+  facts: RecruitmentJobFacts;
+}
+
+export interface RecruitmentJobFacts {
+  experience: string | null;
+  degree: string | null;
+  companyIndustry: string | null;
+  companyStage: string | null;
+  companyScale: string | null;
+  recruiterName: string | null;
+  recruiterTitle: string | null;
+  recruiterOnline: boolean | null;
+  recruiterActiveText: string | null;
+  labels: string[];
+  skills: string[];
+  benefits: string[];
 }
 
 export interface ContactResult {

@@ -25,7 +25,7 @@ class RecruitmentJobRegistryServiceTest {
                 "boss-1", "Java高级工程师", "示例公司", "广州", "25-40K", "Spring Boot",
                 "https://www.zhipin.com/job_detail/boss-1.html",
                 new RecruitmentJobFacts("5-10年", "本科", "互联网", "已上市", "1000-9999人",
-                        "张经理", "招聘经理", "boss-user-1", "boss-company-1", "security-1",
+                        "张经理", "招聘经理", true, "刚刚活跃", "boss-user-1", "boss-company-1", "security-1",
                         List.of("五险一金"), List.of("Java", "Spring"), List.of("年终奖")));
 
         JobRegistrationResult result = service.register("boss", List.of(job));
@@ -38,6 +38,8 @@ class RecruitmentJobRegistryServiceTest {
         assertThat(captor.getValue().getJobExperience()).isEqualTo("5-10年");
         assertThat(captor.getValue().getCompanyScale()).isEqualTo("1000-9999人");
         assertThat(captor.getValue().getHrName()).isEqualTo("张经理");
+        assertThat(captor.getValue().getHrOnline()).isTrue();
+        assertThat(captor.getValue().getHrActiveTime()).isEqualTo("刚刚活跃");
         assertThat(captor.getValue().getSkills()).isEqualTo("Java,Spring");
         assertThat(captor.getValue().getStatus()).isZero();
     }

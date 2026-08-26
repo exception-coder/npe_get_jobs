@@ -9,6 +9,7 @@ export interface JobRecord {
   workCity?: string;
   jobType?: number;
   salaryRange?: string;
+  salaryDesc?: string;
   description?: string;
   publishTime?: string;
   status?: number;
@@ -20,6 +21,14 @@ export interface JobRecord {
   brandIntroduce?: string;
   brandLabels?: string | string[];
   hrName?: string;
+  hrTitle?: string;
+  hrOnline?: boolean | null;
+  hrActiveTime?: string;
+  jobExperience?: string;
+  jobDegree?: string;
+  jobLabels?: string | string[];
+  skills?: string | string[];
+  welfareList?: string | string[];
   // AI匹配相关字段
   aiMatched?: boolean | null;
   aiMatchScore?: string;

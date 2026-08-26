@@ -11,6 +11,8 @@ public record RecruitmentJobFacts(
         String companyScale,
         String recruiterName,
         String recruiterTitle,
+        Boolean recruiterOnline,
+        String recruiterActiveText,
         String recruiterId,
         String companyId,
         String securityId,
@@ -26,7 +28,7 @@ public record RecruitmentJobFacts(
 
     public static RecruitmentJobFacts empty() {
         return new RecruitmentJobFacts(null, null, null, null, null, null, null,
-                null, null, null, List.of(), List.of(), List.of());
+                null, null, null, null, null, List.of(), List.of(), List.of());
     }
 
     private static List<String> copy(List<String> values) {

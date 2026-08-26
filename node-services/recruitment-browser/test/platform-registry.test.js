@@ -123,6 +123,7 @@ test('BOSS search API jobs retain normalized facts without DOM parsing', () => {
     brandName: '示例科技', cityName: '广州', areaDistrict: '天河区', businessDistrict: '棠下',
     jobExperience: '5-10年', jobDegree: '本科', brandIndustry: '互联网',
     brandStageName: '已上市', brandScaleName: '1000-9999人', bossName: '张经理',
+    bossTitle: '招聘经理', bossOnline: true, bossActiveTimeDesc: '刚刚活跃',
     skills: ['Java', 'Spring'], jobLabels: ['五险一金'], welfareList: ['年终奖'],
   });
 
@@ -130,4 +131,6 @@ test('BOSS search API jobs retain normalized facts without DOM parsing', () => {
   assert.equal(job.salary, '25-40K');
   assert.deepEqual(job.facts.skills, ['Java', 'Spring']);
   assert.equal(job.facts.companyScale, '1000-9999人');
+  assert.equal(job.facts.recruiterOnline, true);
+  assert.equal(job.facts.recruiterActiveText, '刚刚活跃');
 });

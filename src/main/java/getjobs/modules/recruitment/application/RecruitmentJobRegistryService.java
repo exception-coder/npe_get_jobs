@@ -64,6 +64,8 @@ public class RecruitmentJobRegistryService {
         entity.setCompanyScale(job.facts().companyScale());
         entity.setHrName(job.facts().recruiterName());
         entity.setHrTitle(job.facts().recruiterTitle());
+        entity.setHrOnline(job.facts().recruiterOnline());
+        entity.setHrActiveTime(job.facts().recruiterActiveText());
         entity.setEncryptHrId(job.facts().recruiterId());
         entity.setEncryptCompanyId(job.facts().companyId());
         entity.setSecurityId(job.facts().securityId());

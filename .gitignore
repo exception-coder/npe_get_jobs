@@ -36,6 +36,7 @@ cookie.json
 .env
 chromedriver
 *.jpg
+!docs/images/readme/*.jpg
 
 ### Node / Frontend ###
 node_modules/

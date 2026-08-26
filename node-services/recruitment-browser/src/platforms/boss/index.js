@@ -44,6 +44,8 @@ export const mapBossApiJob = (item) => ({
     companyScale: item.brandScaleName || null,
     recruiterName: item.bossName || null,
     recruiterTitle: item.bossTitle || null,
+    recruiterOnline: typeof item.bossOnline === 'boolean' ? item.bossOnline : null,
+    recruiterActiveText: item.bossActiveTimeDesc || item.activeTimeDesc || null,
     recruiterId: item.encryptBossId || null,
     companyId: item.encryptBrandId || null,
     securityId: item.securityId || null,
