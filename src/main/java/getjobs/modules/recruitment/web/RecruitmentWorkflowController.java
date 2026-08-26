@@ -25,7 +25,7 @@ public class RecruitmentWorkflowController {
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)
     public RecruitmentWorkflowSnapshot start(@RequestBody StartWorkflowRequest request) {
-        return workflowService.start(request.platform());
+        return workflowService.start(request.platform(), request.goalId());
     }
 
     @GetMapping("/{taskId}")
@@ -39,6 +39,6 @@ public class RecruitmentWorkflowController {
         return workflowService.confirmContact(taskId);
     }
 
-    public record StartWorkflowRequest(String platform) {
+    public record StartWorkflowRequest(String platform, Long goalId) {
     }
 }

@@ -1,215 +1,62 @@
 <template>
   <div class="company-evaluation-container">
-    <!-- 发起评估 -->
-    <div class="modern-card" :class="{ loading: evaluating }">
-      <div class="card-header">
-        <div class="header-icon-wrapper eval">
-          <v-icon size="24">mdi-office-building-cog-outline</v-icon>
+    <section class="evaluation-entry" :class="{ loading: evaluating }">
+      <header><p>企业判断</p><h4>这家公司值得进一步了解吗？</h4><span>输入企业名称或一段公司描述，系统会整理风险信号和判断依据。</span></header>
+      <form @submit.prevent="runEvaluate"><input v-model.trim="companyNameInput" :disabled="evaluating" placeholder="企业名称或公司描述" /><button type="submit" :disabled="evaluating || !companyNameInput">{{ evaluating ? '正在判断…' : '开始判断' }}</button></form>
+      <p v-if="evaluateError" class="evaluation-error">{{ evaluateError }}</p>
+      <div v-if="lastResult" class="result-preview"><h3 class="result-preview-title">本次判断</h3><ResultCard :result="lastResult" /></div>
+    </section>
+
+    <section class="history-section" :class="{ loading: loadingList }">
+      <header>
+        <div><p>判断记录</p><h4>最近了解过的企业</h4><span>共 {{ totalElements }} 条，按时间倒序</span></div>
+        <div class="history-actions">
+          <button type="button" :disabled="loadingList" @click="loadPage(0)">刷新</button>
+          <button type="button" :disabled="!selected.length || deleting" @click="openConfirm('删除所选记录', `确定删除所选 ${selected.length} 条评估记录？`, handleDeleteSelected)">删除所选</button>
+          <button type="button" class="danger" :disabled="deleting || totalElements === 0" @click="openConfirm('全部删除', '确定删除全部评估记录？', handleDeleteAll)">清空记录</button>
         </div>
-        <div class="header-content">
-          <h2 class="card-title">企业评估</h2>
-          <p class="card-subtitle">输入企业名称或公司描述，AI 评估欠薪风险与外包/皮包属性</p>
-        </div>
+      </header>
+
+      <div v-if="listItems.length" class="history-list">
+        <article v-for="item in listItems" :key="item.id">
+          <label class="history-check"><input v-model="selected" type="checkbox" :value="item" /><span class="sr-only">选择此记录</span></label>
+          <button type="button" class="history-main" :disabled="!item.result" @click="openDetail(item)">
+            <strong>{{ truncate(item.company_info, 60) }}</strong>
+            <span>{{ formatDate(item.created_at) }}</span>
+          </button>
+          <div class="history-result">
+            <strong v-if="item.result" :data-tone="recommendationTone(item.result.recommendation_code)">{{ item.result.recommendation_level || item.result.recommendation_code }}</strong>
+            <span>{{ item.result?.total_score ?? '-' }} 分</span>
+          </div>
+        </article>
       </div>
-      <div class="card-body">
-        <div class="eval-form">
-          <v-text-field
-            v-model="companyNameInput"
-            label="企业名称或公司描述"
-            placeholder="例如：某某科技有限公司"
-            variant="outlined"
-            density="comfortable"
-            class="eval-input"
-            clearable
-            :disabled="evaluating"
-            @keyup.enter="runEvaluate"
-          >
-            <template #prepend-inner>
-              <v-icon color="primary">mdi-domain</v-icon>
-            </template>
-          </v-text-field>
-          <v-btn-toggle
-            v-model="selectedPlatform"
-            mandatory
-            density="comfortable"
-            color="primary"
-            class="platform-toggle"
-            :disabled="evaluating"
-          >
-            <v-btn
-              v-for="opt in platformOptions"
-              :key="opt.value"
-              :value="opt.value"
-              size="large"
-            >
-              {{ opt.title }}
-            </v-btn>
-          </v-btn-toggle>
-          <v-btn
-            color="primary"
-            size="large"
-            :loading="evaluating"
-            :disabled="!companyNameInput?.trim()"
-            class="eval-btn"
-            @click="runEvaluate"
-          >
-            <v-icon start>mdi-robot</v-icon>
-            评估
-          </v-btn>
-        </div>
-        <v-alert v-if="evaluateError" type="error" density="compact" class="mt-3" closable>
-          {{ evaluateError }}
-        </v-alert>
-        <!-- 本次评估结果 -->
-        <div v-if="lastResult" class="result-preview mt-4">
-          <v-divider class="mb-3" />
-          <h3 class="result-preview-title">本次评估结果</h3>
-          <ResultCard :result="lastResult" />
-        </div>
-      </div>
+      <p v-else class="empty-history">{{ loadingList ? '正在读取记录…' : '还没有企业判断记录' }}</p>
+
+      <footer v-if="totalPages > 1">
+        <button type="button" :disabled="page === 0" @click="onPageChange(page)">上一页</button>
+        <span>{{ page + 1 }} / {{ totalPages }}</span>
+        <button type="button" :disabled="page + 1 >= totalPages" @click="onPageChange(page + 2)">下一页</button>
+      </footer>
+    </section>
+
+    <div v-if="confirmDialog.visible" class="dialog-backdrop" role="presentation" @click.self="confirmDialog.visible = false">
+      <section class="plain-dialog" role="dialog" aria-modal="true" :aria-label="confirmDialog.title">
+        <h3>{{ confirmDialog.title }}</h3><p>{{ confirmDialog.message }}</p>
+        <footer><button type="button" @click="confirmDialog.visible = false">取消</button><button type="button" class="primary" @click="confirmDialog.confirm">确定</button></footer>
+      </section>
     </div>
 
-    <!-- 历史记录 -->
-    <div class="modern-card mt-6" :class="{ loading: loadingList }">
-      <div class="card-header">
-        <div class="header-icon-wrapper list">
-          <v-icon size="24">mdi-format-list-bulleted</v-icon>
-        </div>
-        <div class="header-content">
-          <h2 class="card-title">评估记录</h2>
-          <p class="card-subtitle">共 {{ totalElements }} 条，按时间倒序</p>
-        </div>
-        <div class="header-actions">
-          <v-btn
-            variant="outlined"
-            color="error"
-            size="small"
-            :disabled="!selected.length || deleting"
-            :loading="deleting"
-            @click="openConfirm('删除所选记录', `确定删除所选 ${selected.length} 条评估记录？`, handleDeleteSelected)"
-          >
-            <v-icon start>mdi-delete-outline</v-icon>
-            勾选删除
-          </v-btn>
-          <v-btn
-            variant="flat"
-            color="error"
-            size="small"
-            :disabled="deleting || totalElements === 0"
-            :loading="deleting"
-            @click="openConfirm('全部删除', '确定删除全部评估记录？', handleDeleteAll)"
-          >
-            <v-icon start>mdi-delete-sweep</v-icon>
-            全部删除
-          </v-btn>
-          <v-btn variant="outlined" color="primary" size="small" @click="loadPage(0)">
-            <v-icon start>mdi-reload</v-icon>
-            刷新
-          </v-btn>
-        </div>
-      </div>
-      <div class="card-body">
-        <v-data-table-server
-          v-model="selected"
-          :headers="listHeaders"
-          :items="listItems"
-          :items-length="totalElements"
-          :loading="loadingList"
-          :page="page + 1"
-          :items-per-page="pageSize"
-          item-value="id"
-          show-select
-          return-object
-          loading-text="加载中..."
-          class="modern-table"
-          @update:options="onListOptionsUpdate"
-        >
-          <template #item.company_info="{ item }">
-            <span class="company-info-cell">{{ truncate(item.company_info, 60) }}</span>
-          </template>
-          <template #item.result="{ item }">
-            <template v-if="item.result">
-              <v-chip
-                :color="recommendationColor(item.result.recommendation_code)"
-                size="small"
-                variant="flat"
-              >
-                {{ item.result.recommendation_level || item.result.recommendation_code }}
-              </v-chip>
-              <span class="ml-2">{{ item.result.total_score ?? '-' }} 分</span>
-            </template>
-            <span v-else class="text-medium-emphasis">-</span>
-          </template>
-          <template #item.created_at="{ item }">
-            {{ formatDate(item.created_at) }}
-          </template>
-          <template #item.actions="{ item }">
-            <v-btn
-              v-if="item.result"
-              variant="text"
-              size="small"
-              color="primary"
-              @click="openDetail(item)"
-            >
-              详情
-            </v-btn>
-          </template>
-        </v-data-table-server>
-        <div class="pagination-wrapper">
-          <v-pagination
-            v-model="pageOneBased"
-            :length="totalPages"
-            :total-visible="7"
-            density="comfortable"
-            @update:model-value="onPageChange"
-          />
-        </div>
-      </div>
+    <div v-if="detailDialog && detailItem?.result" class="dialog-backdrop" role="presentation" @click.self="detailDialog = false">
+      <section class="plain-dialog detail-dialog" role="dialog" aria-modal="true" aria-label="企业评估详情">
+        <header><h3>{{ detailItem.result.company_name || '企业评估详情' }}</h3><button type="button" @click="detailDialog = false">关闭</button></header>
+        <ResultCard :result="detailItem.result" />
+      </section>
     </div>
-
-    <!-- 删除确认弹窗 -->
-    <v-dialog v-model="confirmDialog.visible" max-width="480">
-      <div class="modern-card dialog-card confirm-dialog">
-        <div class="dialog-header">
-          <v-icon size="32" color="warning">mdi-alert-circle-outline</v-icon>
-          <h3 class="dialog-title">{{ confirmDialog.title }}</h3>
-        </div>
-        <div class="dialog-body">
-          <p class="dialog-message">{{ confirmDialog.message }}</p>
-        </div>
-        <div class="dialog-footer">
-          <v-btn variant="outlined" size="large" @click="confirmDialog.visible = false">
-            取消
-          </v-btn>
-          <v-btn color="primary" size="large" @click="confirmDialog.confirm">
-            确定
-          </v-btn>
-        </div>
-      </div>
-    </v-dialog>
-
-    <!-- 详情弹窗 -->
-    <v-dialog v-model="detailDialog" max-width="640" persistent>
-      <v-card v-if="detailItem?.result">
-        <v-card-title class="d-flex align-center">
-          <v-icon start>mdi-office-building</v-icon>
-          {{ detailItem.result.company_name || '企业评估详情' }}
-        </v-card-title>
-        <v-divider />
-        <v-card-text>
-          <ResultCard :result="detailItem.result" />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn color="primary" variant="text" @click="detailDialog = false">关闭</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive } from 'vue';
 import {
   evaluateCompany,
   fetchCompanyEvaluationPage,
@@ -226,10 +73,6 @@ const evaluating = ref(false);
 const evaluateError = ref('');
 const lastResult = ref<CompanyEvaluationResult | null>(null);
 
-const platformOptions = [
-  { title: 'Deepseek', value: 'DEEPSEEK' },
-  { title: '千问 (Qwen)', value: 'QWEN' },
-];
 const selectedPlatform = ref('DEEPSEEK');
 
 const listItems = ref<CompanyEvaluationListItem[]>([]);
@@ -264,18 +107,6 @@ function openConfirm(title: string, message: string, onConfirm: () => void) {
   confirmDialog.visible = true;
 }
 
-const pageOneBased = computed({
-  get: () => page.value + 1,
-  set: (v: number) => { page.value = Math.max(0, v - 1); },
-});
-
-const listHeaders = [
-  { title: '公司信息', key: 'company_info', sortable: false, width: '40%' },
-  { title: '推荐等级 / 总分', key: 'result', sortable: false, width: '28%' },
-  { title: '评估时间', key: 'created_at', sortable: false, width: '18%' },
-  { title: '', key: 'actions', sortable: false, width: '14%' },
-];
-
 async function runEvaluate() {
   const name = companyNameInput.value?.trim();
   if (!name) return;
@@ -297,14 +128,14 @@ async function runEvaluate() {
   }
 }
 
-function recommendationColor(code?: string): string {
-  if (!code) return 'grey';
+function recommendationTone(code?: string): string {
+  if (!code) return 'neutral';
   switch (code.toUpperCase()) {
-    case 'STRONGLY_RECOMMENDED': return 'success';
-    case 'RECOMMENDED': return 'primary';
-    case 'CAUTIOUS': return 'warning';
-    case 'NOT_RECOMMENDED': return 'error';
-    default: return 'grey';
+    case 'STRONGLY_RECOMMENDED':
+    case 'RECOMMENDED': return 'positive';
+    case 'CAUTIOUS': return 'cautious';
+    case 'NOT_RECOMMENDED': return 'negative';
+    default: return 'neutral';
   }
 }
 
@@ -325,12 +156,6 @@ function formatDate(v: string | number[]): string {
 function openDetail(item: CompanyEvaluationListItem) {
   detailItem.value = item;
   detailDialog.value = true;
-}
-
-function onListOptionsUpdate(opts: { page?: number; itemsPerPage?: number }) {
-  if (opts.page != null) page.value = opts.page - 1;
-  if (opts.itemsPerPage != null) pageSize.value = opts.itemsPerPage;
-  loadPage(page.value);
 }
 
 function onPageChange(oneBased: number) {
@@ -397,75 +222,54 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-.modern-card {
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  background: rgb(var(--v-theme-surface));
-  overflow: hidden;
-}
-
-.modern-card.loading {
-  pointer-events: none;
-  opacity: 0.85;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-  background: rgba(0, 0, 0, 0.02);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.header-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.header-icon-wrapper.eval { background: rgba(22, 119, 255, 0.12); }
-.header-icon-wrapper.list { background: rgba(0, 184, 107, 0.12); }
-
-.header-content { flex: 1; }
-.card-title { font-size: 18px; font-weight: 600; margin: 0 0 4px 0; }
-.card-subtitle { font-size: 13px; color: rgba(0, 0, 0, 0.6); margin: 0; }
-
-.header-actions { flex-shrink: 0; }
-
-.card-body { padding: 24px; }
-
-.eval-form {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.platform-toggle {
-  flex-shrink: 0;
-  height: 48px;
-}
-
-.eval-input { flex: 1; min-width: 260px; }
-.eval-btn { flex-shrink: 0; }
+.evaluation-entry { padding: 34px 0 38px; border-top: 1px solid var(--line); }.evaluation-entry.loading { pointer-events: none; opacity: .6; }.evaluation-entry header p { margin: 0 0 6px; color: var(--accent); font-size: 9px; font-weight: 750; letter-spacing: .08em; }.evaluation-entry h4 { margin: 0; color: var(--ink-strong); font: 560 20px var(--font-display); }.evaluation-entry header span { display: block; margin-top: 7px; color: var(--ink-faint); font-size: 10px; }.evaluation-entry form { display: flex; gap: 8px; margin-top: 22px; }.evaluation-entry form input { min-width: 0; flex: 1; height: 44px; border: 1px solid var(--line-strong, #d4cec5); border-radius: 9px; outline: 0; background: color-mix(in srgb, var(--surface) 72%, transparent); padding: 0 12px; color: var(--ink-strong); font-size: 11px; }.evaluation-entry form input:focus { border-color: var(--accent); }.evaluation-entry form button { min-width: 92px; border: 0; border-radius: 22px; background: var(--ink-strong); color: white; font-size: 10px; font-weight: 700; cursor: pointer; }.evaluation-entry form button:disabled { opacity: .4; }.evaluation-error { margin: 12px 0 0; color: var(--danger); font-size: 10px; }.evaluation-entry .result-preview { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
 
 .result-preview-title { font-size: 15px; font-weight: 600; margin: 0 0 12px 0; }
+.evaluation-entry form input { height: 38px; border-radius: 8px; }
 
-.company-info-cell { font-size: 13px; }
+.history-section { padding: 34px 0; border-top: 1px solid var(--line); color: var(--ink-strong); }
+.history-section.loading { opacity: .65; }
+.history-section > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+.history-section header p { margin: 0 0 6px; color: var(--accent); font-size: 9px; font-weight: 750; letter-spacing: .08em; }
+.history-section h4 { margin: 0; font: 560 20px var(--font-display); }
+.history-section header span { display: block; margin-top: 7px; color: var(--ink-faint); font-size: 10px; }
+.history-actions { display: flex; gap: 6px; }
+.history-actions button, .history-section > footer button { min-height: 32px; border: 1px solid var(--line); border-radius: 16px; background: transparent; padding: 0 11px; color: var(--ink-muted); font-size: 10px; font-weight: 650; cursor: pointer; }
+.history-actions button.danger { color: var(--danger); }
+.history-actions button:disabled, .history-section > footer button:disabled { opacity: .35; cursor: default; }
+.history-list { border-top: 1px solid var(--line); }
+.history-list article { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(130px, auto); align-items: center; gap: 12px; min-height: 66px; border-bottom: 1px solid var(--line); }
+.history-check { display: grid; place-items: center; }
+.history-check input { width: 14px; height: 14px; accent-color: var(--ink-strong); }
+.history-main { display: grid; gap: 5px; border: 0; background: transparent; padding: 12px 0; color: var(--ink-strong); text-align: left; cursor: pointer; }
+.history-main strong { overflow: hidden; font-size: 11px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.history-main span, .history-result span { color: var(--ink-faint); font-size: 9px; }
+.history-result { display: flex; align-items: baseline; justify-content: flex-end; gap: 8px; }
+.history-result strong { font-size: 10px; font-weight: 700; }
+.history-result strong[data-tone='positive'] { color: var(--success); }
+.history-result strong[data-tone='cautious'] { color: var(--warning, #9a6b2f); }
+.history-result strong[data-tone='negative'] { color: var(--danger); }
+.empty-history { margin: 0; padding: 34px 0; border-block: 1px solid var(--line); color: var(--ink-faint); font-size: 10px; text-align: center; }
+.history-section > footer { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 18px; }
+.history-section > footer span { color: var(--ink-faint); font-size: 9px; }
 
-.pagination-wrapper { margin-top: 16px; display: flex; justify-content: center; }
+.dialog-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; background: rgb(22 20 17 / 32%); padding: 20px; }
+.plain-dialog { width: min(420px, 100%); border: 1px solid var(--line); border-radius: 12px; background: var(--surface, #fff); box-shadow: 0 18px 60px rgb(22 20 17 / 14%); padding: 22px; color: var(--ink-strong); }
+.plain-dialog h3 { margin: 0; font: 560 18px var(--font-display); }
+.plain-dialog > p { margin: 10px 0 0; color: var(--ink-muted); font-size: 11px; line-height: 1.6; }
+.plain-dialog > footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+.plain-dialog button { min-height: 34px; border: 1px solid var(--line); border-radius: 17px; background: transparent; padding: 0 14px; color: var(--ink-muted); font-size: 10px; font-weight: 650; cursor: pointer; }
+.plain-dialog button.primary { border-color: var(--ink-strong); background: var(--ink-strong); color: white; }
+.plain-dialog.detail-dialog { width: min(680px, 100%); max-height: calc(100vh - 40px); overflow: auto; }
+.detail-dialog > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.detail-dialog > header button { border: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
-.modern-table { border-radius: 8px; overflow: hidden; }
-
-/* 确认弹窗 */
-.confirm-dialog.dialog-card { padding: 0; overflow: hidden; }
-.confirm-dialog .dialog-header { display: flex; align-items: center; gap: 12px; padding: 20px 24px; }
-.confirm-dialog .dialog-title { margin: 0; font-size: 18px; font-weight: 600; }
-.confirm-dialog .dialog-body { padding: 0 24px 16px; }
-.confirm-dialog .dialog-message { margin: 0; color: rgba(0, 0, 0, 0.7); }
-.confirm-dialog .dialog-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid rgba(0, 0, 0, 0.08); }
+@media (max-width: 720px) {
+  .company-evaluation-container { padding: 12px; }
+  .history-section > header { flex-direction: column; }
+  .history-actions { flex-wrap: wrap; }
+  .history-list article { grid-template-columns: 24px minmax(0, 1fr); }
+  .history-result { grid-column: 2; justify-content: flex-start; padding-bottom: 12px; }
+}
 </style>

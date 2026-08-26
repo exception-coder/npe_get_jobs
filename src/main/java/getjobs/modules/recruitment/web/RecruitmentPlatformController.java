@@ -3,6 +3,7 @@ package getjobs.modules.recruitment.web;
 import getjobs.modules.recruitment.application.RecruitmentPlatformRegistry;
 import getjobs.modules.recruitment.browser.BrowserAutomationPort;
 import getjobs.modules.recruitment.browser.BrowserSession;
+import getjobs.modules.recruitment.browser.BrowserSessionStatus;
 import getjobs.modules.recruitment.browser.OpenBrowserSessionCommand;
 import getjobs.modules.recruitment.domain.PlatformDescriptor;
 import getjobs.modules.recruitment.spi.RecruitmentPlatformPlugin;
@@ -43,6 +44,22 @@ public class RecruitmentPlatformController {
         OpenSessionRequest safeRequest = request == null ? new OpenSessionRequest(null, false) : request;
         return browserAutomation.openSession(new OpenBrowserSessionCommand(
                 plugin.descriptor().id(), safeRequest.profile(), plugin.loginUrl(), safeRequest.headless()));
+    }
+
+    /**
+     * Checks whether an opened persistent session is authenticated.
+     *
+     * @param platform recruitment platform code
+     * @param sessionId opened browser session identifier
+     * @return current authentication status
+     */
+    @GetMapping("/{platform}/sessions/{sessionId}/status")
+    public BrowserSessionStatus sessionStatus(
+            @PathVariable String platform,
+            @PathVariable String sessionId
+    ) {
+        RecruitmentPlatformPlugin plugin = platformRegistry.require(platform);
+        return browserAutomation.sessionStatus(plugin.descriptor().id(), sessionId);
     }
 
     public record OpenSessionRequest(String profile, boolean headless) {

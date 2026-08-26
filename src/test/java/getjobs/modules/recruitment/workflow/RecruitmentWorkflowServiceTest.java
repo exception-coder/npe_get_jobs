@@ -12,6 +12,7 @@ import getjobs.modules.recruitment.browser.BrowserSessionStatus;
 import getjobs.modules.recruitment.domain.ContactResult;
 import getjobs.modules.recruitment.domain.PlatformDescriptor;
 import getjobs.modules.recruitment.domain.RecruitmentJob;
+import getjobs.modules.recruitment.domain.RecruitmentGoalConditions;
 import getjobs.modules.recruitment.domain.RecruitmentPlatformId;
 import getjobs.modules.recruitment.spi.RecruitmentContactCapability;
 import getjobs.modules.recruitment.spi.RecruitmentDiscoveryCapability;
@@ -26,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -38,14 +40,16 @@ class RecruitmentWorkflowServiceTest {
         FakePlugin plugin = new FakePlugin(job);
         RecruitmentSearchPlanService planService = mock(RecruitmentSearchPlanService.class);
         RecruitmentJobSelectionService selectionService = mock(RecruitmentJobSelectionService.class);
-        when(planService.resolve(plugin.descriptor().id()))
-                .thenReturn(new RecruitmentSearchPlan(List.of(new BrowserSearch("Java", "101020100")), Map.of(), "hello"));
-        when(selectionService.select(List.of(job))).thenReturn(List.of(job));
+        RecruitmentGoalConditions goal = new RecruitmentGoalConditions("Java Engineer", List.of("Java Engineer"),
+                List.of(), null, null, null, null, List.of(), List.of(), List.of(), List.of(), null, Map.of());
+        when(planService.resolve(plugin.descriptor().id(), 1L))
+                .thenReturn(new RecruitmentSearchPlan(List.of(new BrowserSearch("Java", "101020100")), Map.of(), "hello", goal));
+        when(selectionService.select(List.of(job), goal)).thenReturn(List.of(job));
         TaskExecutor directExecutor = Runnable::run;
         RecruitmentWorkflowService service = new RecruitmentWorkflowService(
                 new RecruitmentPlatformRegistry(List.of(plugin)), planService, selectionService, directExecutor);
 
-        RecruitmentWorkflowSnapshot preview = service.start("boss");
+        RecruitmentWorkflowSnapshot preview = service.start("boss", 1L);
 
         assertThat(preview.status()).isEqualTo(WorkflowStatus.AWAITING_CONFIRMATION);
         assertThat(preview.contactConfirmationRequired()).isTrue();
@@ -58,12 +62,31 @@ class RecruitmentWorkflowServiceTest {
         assertThat(plugin.contactCalls).hasValue(1);
     }
 
+    @Test
+    void rejectsWorkflowStartBeforePlatformLogin() {
+        FakePlugin plugin = new FakePlugin(null);
+        plugin.authenticated = false;
+        RecruitmentWorkflowService service = new RecruitmentWorkflowService(
+                new RecruitmentPlatformRegistry(List.of(plugin)),
+                mock(RecruitmentSearchPlanService.class),
+                mock(RecruitmentJobSelectionService.class),
+                Runnable::run);
+
+        assertThatThrownBy(() -> service.start("boss", 1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("scan to log in before starting");
+        assertThat(plugin.discoveryCalls).hasValue(0);
+        assertThat(plugin.contactCalls).hasValue(0);
+    }
+
     private static final class FakePlugin implements RecruitmentPlatformPlugin,
             RecruitmentSessionCapability, RecruitmentDiscoveryCapability, RecruitmentContactCapability {
         private final PlatformDescriptor descriptor = new PlatformDescriptor(
                 RecruitmentPlatformId.of("boss"), "BOSS直聘", "mdi-test", 10, Set.of());
         private final RecruitmentJob job;
+        private final AtomicInteger discoveryCalls = new AtomicInteger();
         private final AtomicInteger contactCalls = new AtomicInteger();
+        private boolean authenticated = true;
 
         private FakePlugin(RecruitmentJob job) {
             this.job = job;
@@ -86,11 +109,12 @@ class RecruitmentWorkflowServiceTest {
 
         @Override
         public BrowserSessionStatus sessionStatus(String sessionId) {
-            return new BrowserSessionStatus(true, loginUrl(), null);
+            return new BrowserSessionStatus(authenticated, loginUrl(), authenticated ? null : "OPEN_LOGIN_SESSION");
         }
 
         @Override
         public BrowserJobDiscoveryResult discover(String sessionId, RecruitmentSearchPlan plan) {
+            discoveryCalls.incrementAndGet();
             return new BrowserJobDiscoveryResult(List.of(job), 1, false);
         }
 

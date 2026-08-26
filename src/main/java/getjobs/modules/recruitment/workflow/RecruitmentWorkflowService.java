@@ -48,15 +48,24 @@ public class RecruitmentWorkflowService {
         this.taskExecutor = taskExecutor;
     }
 
-    public RecruitmentWorkflowSnapshot start(String platform) {
+    public RecruitmentWorkflowSnapshot start(String platform, Long goalId) {
         RecruitmentPlatformPlugin plugin = platformRegistry.require(platform);
+        RecruitmentSessionCapability sessionCapability = requireCapability(
+                plugin, RecruitmentSessionCapability.class);
+        BrowserSession session = sessionCapability.openSession(DEFAULT_PROFILE, false);
+        BrowserSessionStatus sessionStatus = sessionCapability.sessionStatus(session.sessionId());
+        if (!sessionStatus.authenticated()) {
+            throw new IllegalStateException("platform session is not authenticated; scan to log in before starting");
+        }
+
         UUID taskId = UUID.randomUUID();
         UUID existing = activePlatforms.putIfAbsent(plugin.descriptor().id().value(), taskId);
         if (existing != null) {
             throw new IllegalStateException("workflow already running: " + existing);
         }
 
-        WorkflowRun run = new WorkflowRun(taskId, plugin.descriptor().id().value());
+        WorkflowRun run = new WorkflowRun(taskId, plugin.descriptor().id().value(), goalId);
+        run.sessionId(session.sessionId());
         tasks.put(taskId, run);
         run.update(snapshot(run, WorkflowStatus.QUEUED, WorkflowStage.DISCOVER, null, null, false));
         taskExecutor.execute(() -> executePreview(run, plugin));
@@ -85,27 +94,17 @@ public class RecruitmentWorkflowService {
 
     private void executePreview(WorkflowRun run, RecruitmentPlatformPlugin plugin) {
         try {
-            RecruitmentSessionCapability sessionCapability = requireCapability(
-                    plugin, RecruitmentSessionCapability.class);
             RecruitmentDiscoveryCapability discoveryCapability = requireCapability(
                     plugin, RecruitmentDiscoveryCapability.class);
-            BrowserSession session = sessionCapability.openSession(DEFAULT_PROFILE, false);
-            run.sessionId(session.sessionId());
-            BrowserSessionStatus status = sessionCapability.sessionStatus(session.sessionId());
-            if (!status.authenticated()) {
-                run.update(snapshot(run, WorkflowStatus.BLOCKED, WorkflowStage.DISCOVER,
-                        "platform session is not authenticated", status.recoveryAction(), false));
-                return;
-            }
 
             run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.DISCOVER, null, null, false));
-            RecruitmentSearchPlan plan = searchPlanService.resolve(plugin.descriptor().id());
+            RecruitmentSearchPlan plan = searchPlanService.resolve(plugin.descriptor().id(), run.goalId());
             run.searchPlan(plan);
-            BrowserJobDiscoveryResult discovery = discoveryCapability.discover(session.sessionId(), plan);
+            BrowserJobDiscoveryResult discovery = discoveryCapability.discover(run.sessionId(), plan);
             run.discovered(discovery.jobs());
 
             run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.FILTER, null, null, false));
-            List<RecruitmentJob> selected = selectionService.select(discovery.jobs());
+            List<RecruitmentJob> selected = selectionService.select(discovery.jobs(), plan.goal());
             run.selected(selected);
             run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.MATCH, null, null, false));
 
@@ -164,7 +163,7 @@ public class RecruitmentWorkflowService {
                 .filter(result -> result.status() == ContactResult.ContactStatus.SUCCEEDED)
                 .count();
         return new RecruitmentWorkflowSnapshot(
-                run.taskId(), run.platform(), status, stage,
+                run.taskId(), run.platform(), run.goalId(), status, stage,
                 run.discovered().size(), run.selected().size(), run.selected().size(), contacted,
                 error, recoveryAction, confirmationRequired, run.selected(), run.contactResults(), Instant.now());
     }
@@ -172,6 +171,7 @@ public class RecruitmentWorkflowService {
     private static final class WorkflowRun {
         private final UUID taskId;
         private final String platform;
+        private final Long goalId;
         private volatile RecruitmentWorkflowSnapshot snapshot;
         private volatile String sessionId;
         private volatile RecruitmentSearchPlan searchPlan;
@@ -179,13 +179,15 @@ public class RecruitmentWorkflowService {
         private volatile List<RecruitmentJob> selected = List.of();
         private volatile List<ContactResult> contactResults = List.of();
 
-        private WorkflowRun(UUID taskId, String platform) {
+        private WorkflowRun(UUID taskId, String platform, Long goalId) {
             this.taskId = taskId;
             this.platform = platform;
+            this.goalId = goalId;
         }
 
         UUID taskId() { return taskId; }
         String platform() { return platform; }
+        Long goalId() { return goalId; }
         RecruitmentWorkflowSnapshot snapshot() { return snapshot; }
         void update(RecruitmentWorkflowSnapshot value) { snapshot = value; }
         String sessionId() { return sessionId; }

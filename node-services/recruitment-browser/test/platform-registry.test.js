@@ -47,3 +47,21 @@ test('contact action is side-effect free until explicitly confirmed', async () =
     reason: 'CONTACT_CONFIRMATION_REQUIRED',
   }]);
 });
+
+test('BOSS session remains blocked when the login entry is visible', async () => {
+  const visibleSelectors = new Set([
+    'a.header-login-btn, a[href="/web/user/"], a[href*="/web/user/?intent=0"]',
+  ]);
+  const page = {
+    url: () => 'https://www.zhipin.com/',
+    locator: (selector) => ({
+      first() { return this; },
+      isVisible: async () => visibleSelectors.has(selector),
+    }),
+  };
+
+  const result = await boss.actions.sessionStatus({ page });
+
+  assert.equal(result.authenticated, false);
+  assert.equal(result.recoveryAction, 'OPEN_LOGIN_SESSION');
+});

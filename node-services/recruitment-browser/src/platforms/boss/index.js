@@ -18,8 +18,19 @@ const definition = {
     industry: filters.industry, stage: filters.stage,
   }),
   authenticated: async (page) => {
-    if (await page.locator('a.header-login-btn').isVisible().catch(() => false)) return false;
-    return page.locator('a[ka="header-message"], a[ka="header-resume"], li.nav-figure').first().isVisible().catch(() => false);
+    if (page.url().includes('/web/user')) return false;
+    const loginEntry = page.locator([
+      'a.header-login-btn',
+      'a[href="/web/user/"]',
+      'a[href*="/web/user/?intent=0"]',
+    ].join(', ')).first();
+    if (await loginEntry.isVisible().catch(() => false)) return false;
+    return page.locator([
+      'a[ka="header-message"]',
+      'a[ka="header-resume"]',
+      'a[href*="/web/geek/chat"]',
+      'li.nav-figure',
+    ].join(', ')).first().isVisible().catch(() => false);
   },
   contact: async (page, job, input) => {
     await page.goto(job.href, { waitUntil: 'domcontentloaded', timeout: 45_000 });

@@ -1,6 +1,7 @@
 package getjobs.modules.recruitment.application;
 
 import getjobs.modules.recruitment.browser.BrowserSearch;
+import getjobs.modules.recruitment.domain.RecruitmentGoalConditions;
 
 import java.util.List;
 import java.util.Map;
@@ -9,7 +10,8 @@ import java.util.Map;
 public record RecruitmentSearchPlan(
         List<BrowserSearch> searches,
         Map<String, Object> filters,
-        String greeting
+        String greeting,
+        RecruitmentGoalConditions goal
 ) {
     public RecruitmentSearchPlan {
         searches = List.copyOf(searches);

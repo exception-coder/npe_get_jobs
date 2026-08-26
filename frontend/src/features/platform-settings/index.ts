@@ -5,10 +5,7 @@ const manifest: FeatureManifest = {
   order: 12,
   routes: [{
     path: '/platform/:platform/config',
-    name: 'platform-config',
-    component: () => import('./ui/PlatformSessionPage.vue'),
-    props: true,
-    meta: { public: true, title: '平台配置', subtitle: '管理账号会话与平台专属参数' },
+    redirect: (to) => ({ path: '/workspace', query: { platform: String(to.params.platform), view: 'operate', sources: 'open' } }),
   }, {
     path: '/platform/:platform/config/legacy',
     name: 'platform-config-legacy',
@@ -16,7 +13,7 @@ const manifest: FeatureManifest = {
     props: true,
     meta: { public: true, title: '高级平台配置', subtitle: '迁移期完整参数入口' },
   }],
-  navigation: [{ title: '平台会话', icon: 'mdi mdi-connection', platformLinks: 'config', group: 'platforms' }],
+  navigation: [],
 };
 
 export default manifest;

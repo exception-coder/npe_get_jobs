@@ -5,10 +5,7 @@ const manifest: FeatureManifest = {
   order: 11,
   routes: [{
     path: '/platform/:platform/records',
-    name: 'platform-records',
-    component: () => import('./ui/JobRecordsPage.vue'),
-    props: true,
-    meta: { public: true, title: '岗位工作台', subtitle: '筛选、匹配并推进候选岗位' },
+    redirect: (to) => ({ path: '/workspace', query: { platform: String(to.params.platform), view: 'history' } }),
   }, {
     path: '/platform/:platform/records/legacy',
     name: 'platform-records-legacy',
@@ -16,7 +13,7 @@ const manifest: FeatureManifest = {
     props: true,
     meta: { public: true, title: '旧版岗位明细', subtitle: '迁移期兼容入口' },
   }],
-  navigation: [{ title: '岗位记录', icon: 'mdi mdi-format-list-checks', platformLinks: 'records', group: 'platforms' }],
+  navigation: [],
 };
 
 export default manifest;

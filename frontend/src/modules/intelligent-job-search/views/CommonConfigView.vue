@@ -1,921 +1,108 @@
 <template>
-  <div class="config-container">
-    <OnboardingDialog ref="onboardingDialog" @done="onOnboardingDone" />
-    <v-row dense>
-      <v-col cols="12" xl="7">
-        <!-- 黑名单过滤配置 -->
-        <div class="modern-card" :class="{ 'loading': state.loading }">
-          <div class="card-header">
-            <div class="header-icon-wrapper shield">
-              <v-icon size="24">mdi-shield-alert-outline</v-icon>
-            </div>
-            <div class="header-content">
-              <h2 class="card-title">黑名单过滤配置</h2>
-              <p class="card-subtitle">智能过滤不匹配的岗位和公司</p>
-            </div>
-          </div>
-          
-          <div class="card-body">
-            <v-form ref="state.blacklistForm">
-              <div class="form-section">
-                <div class="info-tip">
-                  <v-icon size="18" class="tip-icon">mdi-lightbulb-on-outline</v-icon>
-                  <span>关键字过滤，包含关键字的岗位或描述将被过滤</span>
-                </div>
-                <v-combobox
-                  v-model="state.form.jobBlacklist"
-                  label="岗位黑名单关键字"
-                  chips
-                  multiple
-                  closable-chips
-                  hide-selected
-                  clearable
-                  variant="outlined"
-                  density="comfortable"
-                  class="modern-input"
-                >
-                  <template #prepend-inner>
-                    <v-icon color="error">mdi-briefcase-remove-outline</v-icon>
-                  </template>
-                </v-combobox>
-              </div>
+  <form ref="formElement" class="asset-editor" :aria-busy="state.loading" @submit.prevent="save">
+    <div v-if="state.loading" class="loading-line" />
 
-              <div class="form-section">
-                <div class="info-tip">
-                  <v-icon size="18" class="tip-icon">mdi-lightbulb-on-outline</v-icon>
-                  <span>关键字过滤，包含关键字的公司将被过滤</span>
-                </div>
-                <v-combobox
-                  v-model="state.form.companyBlacklist"
-                  label="公司黑名单关键字"
-                  chips
-                  multiple
-                  closable-chips
-                  hide-selected
-                  clearable
-                  variant="outlined"
-                  density="comfortable"
-                  class="modern-input"
-                >
-                  <template #prepend-inner>
-                    <v-icon color="error">mdi-office-building-remove-outline</v-icon>
-                  </template>
-                </v-combobox>
-              </div>
-            </v-form>
-          </div>
-        </div>
+    <section class="asset-section" aria-labelledby="profile-title">
+      <header class="section-heading">
+        <div><p>候选人画像</p><h4 id="profile-title">你是谁，以及你擅长什么</h4></div>
+        <span>用于岗位匹配，不会发送给招聘方</span>
+      </header>
+      <div class="field-grid">
+        <label class="field"><span>当前职位</span><input v-model.trim="state.form.jobTitle" required placeholder="例如：Java 高级工程师" /></label>
+        <label class="field"><span>工作经验</span><input v-model.trim="state.form.yearsOfExperience" required placeholder="例如：5 年" /></label>
+        <label class="field field-wide"><span>核心技能</span><input v-model="skillsText" placeholder="Java、Spring Boot、MySQL、Redis" /><small>使用逗号分隔</small></label>
+        <label class="field field-wide"><span>职业方向</span><textarea v-model.trim="state.form.careerIntent" required minlength="10" maxlength="120" rows="3" placeholder="简要说明你希望承担的职责和发展方向" /><small>{{ state.form.careerIntent.length }}/120</small></label>
+        <label class="field"><span>领域经验</span><input v-model="domainsText" placeholder="电商、供应链、SaaS" /></label>
+        <label class="field"><span>个人亮点</span><input v-model="highlightsText" placeholder="高并发、技术带队、复杂系统重构" /><small>最多 5 项</small></label>
+      </div>
+    </section>
 
-        <!-- 候选人画像 -->
-        <div class="modern-card mt-6" :class="{ 'loading': state.loading }">
-          <div class="card-header">
-            <div class="header-icon-wrapper profile">
-              <v-icon size="24">mdi-account-badge-outline</v-icon>
-            </div>
-            <div class="header-content">
-              <h2 class="card-title">候选人画像</h2>
-              <p class="card-subtitle">完善个人信息，提升 AI 匹配精准度</p>
-            </div>
-          </div>
-          
-          <div class="card-body">
-            <v-form ref="state.profileForm">
-              <div class="info-tip mb-4">
-                <v-icon size="18" class="tip-icon">mdi-lightbulb-on-outline</v-icon>
-                <span>用于 AI 职位匹配，请填写自己实际应聘的职位名称</span>
-              </div>
+    <section class="asset-section" aria-labelledby="preference-title">
+      <header class="section-heading">
+        <div><p>筛选边界</p><h4 id="preference-title">哪些机会不需要带回来</h4></div>
+        <span>平台搜索之后再次执行无副作用过滤</span>
+      </header>
+      <div class="field-grid">
+        <label class="field"><span>排除岗位关键词</span><input v-model="jobsText" placeholder="销售、实施、驻场" /><small>使用逗号分隔</small></label>
+        <label class="field"><span>排除公司关键词</span><input v-model="companiesText" placeholder="外包、人力资源" /><small>使用逗号分隔</small></label>
+        <label class="field"><span>期望月薪下限</span><div class="input-suffix"><input v-model="state.form.minSalary" min="0" type="number" placeholder="25" /><span>K</span></div></label>
+        <label class="field"><span>期望月薪上限</span><div class="input-suffix"><input v-model="state.form.maxSalary" min="0" type="number" placeholder="40" /><span>K</span></div></label>
+      </div>
+    </section>
 
-              <v-row dense>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="state.form.jobTitle"
-                    label="目标职位名称"
-                    :rules="[state.rules.required]"
-                    variant="outlined"
-                    density="comfortable"
-                    class="modern-input"
-                  >
-                    <template #prepend-inner>
-                      <v-icon color="primary">mdi-briefcase-outline</v-icon>
-                    </template>
-                  </v-text-field>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="state.form.yearsOfExperience"
-                    label="工作年限"
-                    placeholder="例如：5-8年"
-                    :rules="[state.rules.required]"
-                    variant="outlined"
-                    density="comfortable"
-                    class="modern-input"
-                  >
-                    <template #prepend-inner>
-                      <v-icon color="primary">mdi-timeline-clock-outline</v-icon>
-                    </template>
-                  </v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-combobox
-                    v-model="state.form.skills"
-                    label="核心技能"
-                    placeholder="输入后按回车添加，如：Java、Spring Boot、MySQL"
-                    hint="选填。例如：Java、Spring Boot、MySQL、Redis、微服务"
-                    persistent-hint
-                    chips
-                    multiple
-                    closable-chips
-                    hide-selected
-                    clearable
-                    variant="outlined"
-                    density="comfortable"
-                    class="modern-input"
-                  >
-                    <template #prepend-inner>
-                      <v-icon color="primary">mdi-code-tags</v-icon>
-                    </template>
-                  </v-combobox>
-                </v-col>
-                <v-col cols="12">
-                  <v-textarea
-                    v-model="state.form.careerIntent"
-                    label="职业意向"
-                    placeholder="例：寻求 3-5 年经验的高级 Java 开发岗位，偏向后端与微服务，希望参与高并发与分布式系统设计"
-                    hint="建议 10-120 字，简要说明目标岗位与方向"
-                    persistent-hint
-                    :counter="120"
-                    :rules="[state.rules.careerIntent]"
-                    rows="3"
-                    auto-grow
-                    variant="outlined"
-                    density="comfortable"
-                    class="modern-input"
-                  >
-                    <template #prepend-inner>
-                      <v-icon color="primary">mdi-target-account</v-icon>
-                    </template>
-                  </v-textarea>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-combobox
-                    v-model="state.form.domainExperience"
-                    label="领域经验"
-                    chips
-                    multiple
-                    closable-chips
-                    hide-selected
-                    variant="outlined"
-                    density="comfortable"
-                    class="modern-input"
-                  >
-                    <template #prepend-inner>
-                      <v-icon color="primary">mdi-domain</v-icon>
-                    </template>
-                  </v-combobox>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-combobox
-                    v-model="state.form.highlights"
-                    label="个人亮点"
-                    :rules="[state.rules.maxHighlights]"
-                    chips
-                    multiple
-                    closable-chips
-                    hide-selected
-                    variant="outlined"
-                    density="comfortable"
-                    class="modern-input"
-                  >
-                    <template #prepend-inner>
-                      <v-icon color="primary">mdi-star-circle-outline</v-icon>
-                    </template>
-                  </v-combobox>
-                </v-col>
-              </v-row>
-            </v-form>
-          </div>
-        </div>
-      </v-col>
+    <section class="asset-section" aria-labelledby="contact-title">
+      <header class="section-heading">
+        <div><p>联系与投递</p><h4 id="contact-title">确认后如何介绍你</h4></div>
+        <span>任何实际联系仍需要逐次确认</span>
+      </header>
+      <div class="field-grid">
+        <label class="field field-wide"><span>默认招呼语</span><textarea v-model.trim="state.form.sayHiContent" rows="3" placeholder="简洁说明经验、匹配点和沟通意愿" /></label>
+        <label class="field field-wide"><span>图片简历路径</span><input v-model.trim="state.form.resumeImagePath" placeholder="选择或粘贴本机图片简历路径" /></label>
+      </div>
+      <div class="setting-list">
+        <label><span><strong>岗位语义匹配</strong><small>根据候选人画像和岗位描述补充判断</small></span><input v-model="state.form.enableAIJobMatch" type="checkbox" /></label>
+        <label><span><strong>生成个性化招呼</strong><small>确认联系后再生成，不自动发送</small></span><input v-model="state.form.enableAIGreeting" type="checkbox" /></label>
+        <label><span><strong>投递时附带图片简历</strong><small>仅在平台支持且路径有效时使用</small></span><input v-model="state.form.sendImgResume" type="checkbox" /></label>
+      </div>
+      <div v-if="state.aiGreetingMessage" class="generated-copy">
+        <div><span>上次生成的招呼语</span><button type="button" @click="service.copyAIGreeting">复制</button></div>
+        <p>{{ state.aiGreetingMessage }}</p>
+      </div>
+    </section>
 
-      <v-col cols="12" xl="5">
-        <!-- AI 配置 -->
-        <div class="modern-card" :class="{ 'loading': state.loading }">
-          <div class="card-header">
-            <div class="header-icon-wrapper ai">
-              <v-icon size="24">mdi-robot-outline</v-icon>
-            </div>
-            <div class="header-content">
-              <h2 class="card-title">AI 配置</h2>
-              <p class="card-subtitle">配置 AI 服务，开启智能求职</p>
-            </div>
-          </div>
-          
-          <div class="card-body">
-            <v-form>
-              <v-select
-                v-model="state.form.aiPlatform"
-                label="AI 平台"
-                :items="Array.isArray(state.aiPlatforms) ? state.aiPlatforms : []"
-                item-title="label"
-                item-value="value"
-                variant="outlined"
-                density="comfortable"
-                hint="当前仅支持 Deepseek"
-                persistent-hint
-                disabled
-                class="modern-input mb-3"
-              >
-                <template #prepend-inner>
-                  <v-icon color="primary">mdi-robot</v-icon>
-                </template>
-              </v-select>
+    <details class="service-settings">
+      <summary><span><strong>模型服务</strong><small>只有需要更换或补充密钥时才展开</small></span><i class="mdi mdi-chevron-down" /></summary>
+      <div class="service-fields">
+        <label class="field"><span>服务</span><select v-model="state.form.aiPlatform" disabled><option v-for="item in state.aiPlatforms" :key="item.value" :value="item.value">{{ item.label }}</option></select></label>
+        <label class="field"><span>API Key</span><div class="secret-input"><input v-model.trim="state.form.aiPlatformKey" :type="state.showSecret ? 'text' : 'password'" autocomplete="off" placeholder="sk-…" /><button type="button" @click="state.showSecret = !state.showSecret">{{ state.showSecret ? '隐藏' : '显示' }}</button></div></label>
+      </div>
+    </details>
 
-              <div class="warning-tip mb-4">
-                <v-icon size="20" class="tip-icon">mdi-alert-circle-outline</v-icon>
-                <div class="tip-content">
-                  <strong>重要提示</strong>
-                  <p>请配置自己的 Deepseek API Key 并保存，否则一切 AI 功能无法使用</p>
-                </div>
-              </div>
-
-              <v-text-field
-                v-model="state.form.aiPlatformKey"
-                :type="state.showSecret ? 'text' : 'password'"
-                label="API Key"
-                variant="outlined"
-                density="comfortable"
-                class="modern-input"
-              >
-                <template #prepend-inner>
-                  <v-icon color="warning">mdi-key-variant</v-icon>
-                </template>
-                <template #append-inner>
-                  <v-btn
-                    :icon="state.showSecret ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
-                    variant="text"
-                    size="small"
-                    @click="state.showSecret = !state.showSecret"
-                  />
-                </template>
-              </v-text-field>
-
-              <div class="divider-line" />
-
-              <div class="switch-group">
-                <div class="switch-item">
-                  <div class="switch-info">
-                    <div class="switch-label">
-                      <v-icon size="20" color="primary">mdi-target</v-icon>
-                      <span>启用 AI 职位匹配</span>
-                    </div>
-                    <p class="switch-desc">智能分析岗位匹配度，推荐最适合的职位</p>
-                  </div>
-                  <v-switch
-                    v-model="state.form.enableAIJobMatch"
-                    color="primary"
-                    hide-details
-                    inset
-                  />
-                </div>
-
-                <div class="info-tip mb-3">
-                  <v-icon size="18" class="tip-icon">mdi-lightbulb-on-outline</v-icon>
-                  <span>不建议开启「AI 智能打招呼」：较消耗 Token；有实力不需要，没实力易浪费机会</span>
-                </div>
-
-                <div class="switch-item">
-                  <div class="switch-info">
-                    <div class="switch-label">
-                      <v-icon size="20" color="primary">mdi-chat-processing-outline</v-icon>
-                      <span>启用 AI 智能打招呼</span>
-                    </div>
-                    <p class="switch-desc">AI 自动生成个性化打招呼内容</p>
-                  </div>
-                  <v-switch
-                    v-model="state.form.enableAIGreeting"
-                    color="primary"
-                    hide-details
-                    inset
-                  />
-                </div>
-              </div>
-            </v-form>
-          </div>
-        </div>
-
-        <!-- 简历与沟通配置 -->
-        <div class="modern-card mt-6" :class="{ 'loading': state.loading }">
-          <div class="card-header">
-            <div class="header-icon-wrapper resume">
-              <v-icon size="24">mdi-clipboard-text-outline</v-icon>
-            </div>
-            <div class="header-content">
-              <h2 class="card-title">简历与沟通配置</h2>
-              <p class="card-subtitle">管理简历和沟通相关设置</p>
-            </div>
-          </div>
-          
-          <div class="card-body">
-            <v-row dense>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="state.form.minSalary"
-                  type="number"
-                  label="期望薪资下限 (K)"
-                  variant="outlined"
-                  density="comfortable"
-                  class="modern-input"
-                >
-                  <template #prepend-inner>
-                    <v-icon color="success">mdi-currency-cny</v-icon>
-                  </template>
-                </v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="state.form.maxSalary"
-                  type="number"
-                  label="期望薪资上限 (K)"
-                  variant="outlined"
-                  density="comfortable"
-                  class="modern-input"
-                >
-                  <template #prepend-inner>
-                    <v-icon color="success">mdi-currency-cny</v-icon>
-                  </template>
-                </v-text-field>
-              </v-col>
-              <v-col cols="12">
-                <v-text-field
-                  v-model="state.form.resumeImagePath"
-                  label="简历图片路径"
-                  placeholder="如 /Users/xxx/resume.png"
-                  variant="outlined"
-                  density="comfortable"
-                  class="modern-input"
-                >
-                  <template #prepend-inner>
-                    <v-icon color="info">mdi-image-outline</v-icon>
-                  </template>
-                </v-text-field>
-              </v-col>
-              <v-col cols="12">
-                <v-textarea
-                  v-model="state.form.sayHiContent"
-                  label="默认打招呼内容"
-                  rows="3"
-                  auto-grow
-                  variant="outlined"
-                  density="comfortable"
-                  class="modern-input"
-                >
-                  <template #prepend-inner>
-                    <v-icon color="primary">mdi-chat-processing-outline</v-icon>
-                  </template>
-                </v-textarea>
-              </v-col>
-              <v-col cols="12">
-                <div class="ai-suggestion-box">
-                  <div class="suggestion-header">
-                    <v-icon size="20" color="primary">mdi-robot</v-icon>
-                    <span>AI 建议打招呼内容</span>
-                    <v-btn
-                      icon="mdi-content-copy"
-                      variant="text"
-                      size="small"
-                      @click="service.copyAIGreeting"
-                    />
-                  </div>
-                  <v-textarea
-                    v-model="state.aiGreetingMessage"
-                    rows="3"
-                    auto-grow
-                    readonly
-                    variant="outlined"
-                    density="comfortable"
-                    class="modern-input suggestion-textarea"
-                    hide-details
-                  />
-                </div>
-              </v-col>
-            </v-row>
-
-            <div class="divider-line" v-if="featureFlags.showHrStatusFilter" />
-
-            <v-combobox
-              v-if="featureFlags.showHrStatusFilter"
-              v-model="state.form.hrStatusKeywords"
-              label="HR 状态过滤关键词"
-              chips
-              multiple
-              closable-chips
-              hide-selected
-              variant="outlined"
-              density="comfortable"
-              class="modern-input"
-            >
-              <template #prepend-inner>
-                <v-icon color="error">mdi-account-cancel-outline</v-icon>
-              </template>
-            </v-combobox>
-
-            <div class="divider-line" v-if="!featureFlags.showHrStatusFilter || featureFlags.showRecommendJobs" />
-
-            <div class="switch-group">
-              <div class="switch-item">
-                <div class="switch-info">
-                  <div class="switch-label">
-                    <v-icon size="20" color="primary">mdi-file-image-outline</v-icon>
-                    <span>投递时发送图片简历</span>
-                  </div>
-                  <p class="switch-desc">自动附带图片格式简历</p>
-                </div>
-                <v-switch
-                  v-model="state.form.sendImgResume"
-                  color="primary"
-                  hide-details
-                  inset
-                />
-              </div>
-
-              <div class="switch-item" v-if="featureFlags.showRecommendJobs">
-                <div class="switch-info">
-                  <div class="switch-label">
-                    <v-icon size="20" color="primary">mdi-thumb-up-outline</v-icon>
-                    <span>接收平台推荐</span>
-                  </div>
-                  <p class="switch-desc">允许平台推荐相关职位</p>
-                </div>
-                <v-switch
-                  v-model="state.form.recommendJobs"
-                  color="primary"
-                  hide-details
-                  inset
-                />
-              </div>
-            </div>
-          </div>
-
-          <div class="card-footer">
-            <v-btn
-              variant="outlined"
-              size="large"
-              class="action-btn secondary"
-              @click="service.resetForm"
-              :disabled="state.loading"
-            >
-              <v-icon start>mdi-refresh</v-icon>
-              重置
-            </v-btn>
-            <v-btn
-              color="primary"
-              size="large"
-              class="action-btn primary"
-              @click="service.handleSave"
-              :loading="state.saving"
-              :disabled="state.loading"
-            >
-              <v-icon start>mdi-content-save-outline</v-icon>
-              保存配置
-            </v-btn>
-          </div>
-        </div>
-      </v-col>
-    </v-row>
-    <DevToolbar :actions="devActions" />
-  </div>
+    <footer class="editor-actions">
+      <span>修改只影响后续任务</span>
+      <div><button type="button" class="quiet" :disabled="state.loading || state.saving" @click="service.resetForm">恢复</button><button type="submit" class="save" :disabled="state.loading || state.saving">{{ state.saving ? '正在保存…' : '保存资产' }}</button></div>
+    </footer>
+  </form>
 </template>
 
 <script setup lang="ts">
-import { watch, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useSnackbarStore } from '@/stores/snackbar';
 import { useCommonConfigState } from '../state/commonConfigState';
 import { useCommonConfigService } from '../service/commonConfigService';
-import OnboardingDialog from '../components/OnboardingDialog.vue';
-import DevToolbar from '@/components/DevToolbar.vue';
 
 const snackbar = useSnackbarStore();
 const state = useCommonConfigState();
 const service = useCommonConfigService(state, snackbar);
-const onboardingDialog = ref<InstanceType<typeof OnboardingDialog> | null>(null);
+const formElement = ref<HTMLFormElement | null>(null);
 
-const devActions = [
-  { label: '引导框调试', handler: () => onboardingDialog.value?.open() },
-];
+function listModel(read: () => string[], write: (value: string[]) => void) {
+  return computed({
+    get: () => read().join('、'),
+    set: (value: string) => write(value.split(/[、,，\n]/).map((item) => item.trim()).filter(Boolean)),
+  });
+}
 
-// 功能开关配置
-const featureFlags = ref({
-  showHrStatusFilter: false,    // HR 状态过滤关键词（暂时隐藏，后续可能启用）
-  showRecommendJobs: false,     // 接收平台推荐（暂时隐藏，后续可能启用）
+const skillsText = listModel(() => state.form.skills, (value) => { state.form.skills = value; });
+const domainsText = listModel(() => state.form.domainExperience, (value) => { state.form.domainExperience = value; });
+const highlightsText = listModel(() => state.form.highlights, (value) => { state.form.highlights = value.slice(0, 5); });
+const jobsText = listModel(() => state.form.jobBlacklist, (value) => { state.form.jobBlacklist = value; });
+const companiesText = listModel(() => state.form.companyBlacklist, (value) => { state.form.companyBlacklist = value; });
+
+async function save() {
+  if (!formElement.value?.reportValidity()) return;
+  await service.handleSave();
+}
+
+watch(() => state.form.aiPlatform, (platform) => {
+  state.form.aiPlatformKey = state.aiConfigsCache[platform] ?? '';
 });
 
-watch(
-  () => state.form.aiPlatform,
-  (platform) => {
-    state.form.aiPlatformKey = state.aiConfigsCache[platform] ?? '';
-  },
-);
-
-service.loadConfig();
-
-const openOnboarding = () => onboardingDialog.value?.open();
-
-const onOnboardingDone = (data: {
-  jobTitle: string | null;
-  yearsOfExperience: string | null;
-  minSalary: number | null;
-  maxSalary: number | null;
-  skills: string[];
-  careerIntent: string | null;
-  domainExperience: string[];
-  highlights: string[];
-  jobBlacklist: string[];
-  companyBlacklist: string[];
-  location: { latitude: number; longitude: number } | null;
-}) => {
-  if (data.jobTitle) state.form.jobTitle = data.jobTitle;
-  if (data.yearsOfExperience) state.form.yearsOfExperience = data.yearsOfExperience;
-  if (data.minSalary != null) state.form.minSalary = String(data.minSalary);
-  if (data.maxSalary != null) state.form.maxSalary = String(data.maxSalary);
-  if (data.skills?.length) state.form.skills = data.skills;
-  if (data.careerIntent) state.form.careerIntent = data.careerIntent;
-  if (data.domainExperience?.length) state.form.domainExperience = data.domainExperience;
-  if (data.highlights?.length) state.form.highlights = data.highlights;
-  if (data.jobBlacklist?.length) state.form.jobBlacklist = data.jobBlacklist;
-  if (data.companyBlacklist?.length) state.form.companyBlacklist = data.companyBlacklist;
-};
+void service.loadConfig();
 </script>
 
 <style scoped>
-/* 容器样式 */
-.config-container {
-  padding: 24px;
-  max-width: 1600px;
-  margin: 0 auto;
-}
-
-/* 现代卡片样式 */
-.modern-card {
-  background: #FFFFFF;
-  border-radius: 16px;
-  border: 1px solid #E5E7EB;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-}
-
-.modern-card:hover {
-  border-color: #D1D5DB;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  transform: translateY(-2px);
-}
-
-.modern-card.loading {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.modern-card.loading::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, #1677FF, transparent);
-  animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-/* 卡片头部 */
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 24px 28px;
-  background: linear-gradient(135deg, #F9FAFB 0%, #FFFFFF 100%);
-  border-bottom: 1px solid #F3F4F6;
-}
-
-.header-icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-
-.header-icon-wrapper.shield {
-  background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
-  color: #DC2626;
-}
-
-.header-icon-wrapper.profile {
-  background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
-  color: #2563EB;
-}
-
-.header-icon-wrapper.ai {
-  background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%);
-  color: #4F46E5;
-}
-
-.header-icon-wrapper.resume {
-  background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
-  color: #059669;
-}
-
-.modern-card:hover .header-icon-wrapper {
-  transform: scale(1.05) rotate(3deg);
-}
-
-.header-content {
-  flex: 1;
-}
-
-.card-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
-  margin: 0;
-}
-
-.card-subtitle {
-  font-size: 13px;
-  font-weight: 500;
-  color: #6B7280;
-  margin: 4px 0 0;
-  line-height: 1.4;
-}
-
-/* 卡片主体 */
-.card-body {
-  padding: 28px;
-}
-
-/* 表单区域 */
-.form-section {
-  margin-bottom: 24px;
-}
-
-.form-section:last-child {
-  margin-bottom: 0;
-}
-
-/* 提示信息 */
-.info-tip {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
-  border-radius: 10px;
-  border-left: 3px solid #3B82F6;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #1E40AF;
-  line-height: 1.5;
-}
-
-.info-tip .tip-icon {
-  color: #3B82F6;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.warning-tip {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
-  border-radius: 10px;
-  border-left: 3px solid #F59E0B;
-}
-
-.warning-tip .tip-icon {
-  color: #D97706;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.warning-tip .tip-content {
-  flex: 1;
-}
-
-.warning-tip strong {
-  display: block;
-  font-size: 14px;
-  font-weight: 700;
-  color: #92400E;
-  margin-bottom: 4px;
-}
-
-.warning-tip p {
-  font-size: 13px;
-  color: #78350F;
-  margin: 0;
-  line-height: 1.5;
-}
-
-/* 现代输入框样式 */
-.modern-input :deep(.v-field) {
-  border-radius: 10px;
-  transition: all 0.2s ease;
-}
-
-.modern-input :deep(.v-field:hover) {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.modern-input :deep(.v-field--focused) {
-  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.12);
-}
-
-.modern-input :deep(.v-chip) {
-  border-radius: 6px;
-  font-weight: 500;
-}
-
-/* 分割线 */
-.divider-line {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #E5E7EB, transparent);
-  margin: 24px 0;
-}
-
-/* 开关组 */
-.switch-group {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.switch-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  background: #F9FAFB;
-  border-radius: 10px;
-  transition: all 0.2s ease;
-}
-
-.switch-item:hover {
-  background: #F3F4F6;
-}
-
-.switch-info {
-  flex: 1;
-}
-
-.switch-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 4px;
-}
-
-.switch-desc {
-  font-size: 13px;
-  color: #6B7280;
-  margin: 0;
-  line-height: 1.4;
-}
-
-/* AI 建议框 */
-.ai-suggestion-box {
-  background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
-  border-radius: 12px;
-  padding: 16px;
-  border: 1px solid #BAE6FD;
-}
-
-.suggestion-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #0C4A6E;
-}
-
-.suggestion-header span {
-  flex: 1;
-}
-
-.suggestion-textarea :deep(.v-field) {
-  background: #FFFFFF !important;
-}
-
-/* 卡片底部 */
-.card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 20px 28px;
-  background: #F9FAFB;
-  border-top: 1px solid #F3F4F6;
-}
-
-.action-btn {
-  min-width: 120px;
-  height: 44px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 14px;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  transition: all 0.2s ease;
-}
-
-.action-btn.secondary {
-  border-width: 2px;
-}
-
-.action-btn.secondary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.action-btn.primary {
-  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.2);
-}
-
-.action-btn.primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(22, 119, 255, 0.3);
-}
-
-/* 响应式设计 */
-@media (max-width: 960px) {
-  .config-container {
-    padding: 16px;
-  }
-
-  .card-header {
-    padding: 20px;
-  }
-
-  .card-body {
-    padding: 20px;
-  }
-
-  .card-footer {
-    padding: 16px 20px;
-    flex-direction: column;
-  }
-
-  .action-btn {
-    width: 100%;
-  }
-
-  .card-title {
-    font-size: 18px;
-  }
-
-  .card-subtitle {
-    font-size: 12px;
-  }
-}
-
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.modern-card {
-  animation: fadeIn 0.4s ease-out;
-}
-
-.modern-card:nth-child(2) {
-  animation-delay: 0.1s;
-}
-
-.modern-card:nth-child(3) {
-  animation-delay: 0.2s;
-}
+.asset-editor { position: relative; color: var(--ink-strong); }.loading-line { position: absolute; top: 0; right: 0; left: 0; height: 1px; overflow: hidden; background: var(--line); }.loading-line::after { position: absolute; width: 28%; height: 100%; background: var(--accent); content: ''; animation: loading 1.2s ease-in-out infinite; }.asset-section { display: grid; grid-template-columns: minmax(190px, 240px) minmax(0, 1fr); gap: 46px; padding: 34px 0; border-top: 1px solid var(--line); }.section-heading p { margin: 0 0 6px; color: var(--accent); font-size: 9px; font-weight: 750; letter-spacing: .09em; }.section-heading h4 { margin: 0; font: 560 19px/1.25 var(--font-display); letter-spacing: -.015em; }.section-heading > span { display: block; margin-top: 8px; color: var(--ink-faint); font-size: 10px; line-height: 1.5; }.field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }.field { display: grid; align-content: start; gap: 7px; min-width: 0; }.field-wide { grid-column: 1 / -1; }.field > span { color: var(--ink-muted); font-size: 10px; font-weight: 700; }.field small { color: var(--ink-faint); font-size: 9px; }.field input, .field textarea, .field select { width: 100%; border: 1px solid var(--line-strong, #d4cec5); border-radius: 9px; outline: none; background: color-mix(in srgb, var(--surface) 74%, transparent); padding: 10px 12px; color: var(--ink-strong); font: inherit; font-size: 12px; line-height: 1.5; transition: border-color var(--motion-fast), background var(--motion-fast); }.field input, .field select { height: 42px; }.field textarea { min-height: 86px; resize: vertical; }.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); background: var(--surface); }.field input::placeholder, .field textarea::placeholder { color: var(--ink-faint); }.input-suffix, .secret-input { position: relative; }.input-suffix input { padding-right: 36px; }.input-suffix span { position: absolute; top: 50%; right: 13px; color: var(--ink-faint); font-size: 10px; transform: translateY(-50%); }.setting-list { grid-column: 2; display: grid; margin-top: -8px; border-top: 1px solid var(--line); }.setting-list > label { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 62px; border-bottom: 1px solid var(--line); cursor: pointer; }.setting-list label > span { display: grid; gap: 3px; }.setting-list strong { font-size: 11px; }.setting-list small { color: var(--ink-faint); font-size: 9px; }.setting-list input { width: 32px; height: 18px; accent-color: var(--ink-strong); }.generated-copy { grid-column: 2; margin-top: 18px; padding: 15px 16px; border-left: 2px solid var(--accent); background: color-mix(in srgb, var(--selection) 54%, transparent); }.generated-copy > div { display: flex; align-items: center; justify-content: space-between; color: var(--ink-faint); font-size: 9px; }.generated-copy button { border: 0; background: transparent; color: var(--accent); font-size: 9px; cursor: pointer; }.generated-copy p { margin: 8px 0 0; color: var(--ink-muted); font-size: 10px; line-height: 1.6; }.service-settings { border-top: 1px solid var(--line); }.service-settings summary { display: flex; min-height: 72px; align-items: center; justify-content: space-between; gap: 24px; list-style: none; cursor: pointer; }.service-settings summary::-webkit-details-marker { display: none; }.service-settings summary > span { display: grid; gap: 4px; }.service-settings summary strong { font-size: 11px; }.service-settings summary small { color: var(--ink-faint); font-size: 9px; }.service-settings[open] summary i { transform: rotate(180deg); }.service-fields { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; padding: 0 0 28px 286px; }.secret-input input { padding-right: 58px; }.secret-input button { position: absolute; top: 50%; right: 9px; border: 0; background: transparent; color: var(--accent); font-size: 9px; transform: translateY(-50%); cursor: pointer; }.editor-actions { position: sticky; z-index: 8; bottom: 12px; display: flex; min-height: 60px; align-items: center; justify-content: space-between; gap: 20px; margin-top: 16px; padding: 10px 12px 10px 18px; border: 1px solid color-mix(in srgb, var(--line) 80%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--surface) 91%, transparent); box-shadow: 0 12px 32px rgb(57 48 39 / 9%); backdrop-filter: blur(18px); }.editor-actions > span { color: var(--ink-faint); font-size: 9px; }.editor-actions > div { display: flex; gap: 7px; }.editor-actions button { min-height: 36px; border: 0; border-radius: 18px; padding: 0 14px; font-size: 10px; font-weight: 700; cursor: pointer; }.editor-actions button:disabled { cursor: not-allowed; opacity: .45; }.editor-actions .quiet { background: transparent; color: var(--ink-muted); }.editor-actions .save { background: var(--ink-strong); color: white; }@keyframes loading { from { transform: translateX(-100%); } to { transform: translateX(460%); } }
+@media (max-width: 760px) { .asset-section { grid-template-columns: 1fr; gap: 22px; padding: 28px 0; }.field-grid { grid-template-columns: 1fr; }.field-wide { grid-column: auto; }.setting-list, .generated-copy { grid-column: 1; }.service-fields { grid-template-columns: 1fr; padding: 0 0 24px; }.editor-actions > span { display: none; }.editor-actions { justify-content: flex-end; } }
+.field input, .field select { height: 38px; border-radius: 8px; }
 </style>
-

@@ -20,6 +20,7 @@ export interface ContactResult {
 export interface WorkflowSnapshot {
   taskId: string;
   platform: string;
+  goalId: number;
   status: WorkflowStatus;
   stage: WorkflowStage;
   discovered: number;
@@ -34,11 +35,37 @@ export interface WorkflowSnapshot {
   updatedAt: string;
 }
 
+export interface RecruitmentGoal {
+  id: number;
+  rawGoal: string;
+  summary: string;
+  keywords: string[];
+  cities: string[];
+  minSalaryK: number | null;
+  maxSalaryK: number | null;
+  minExperienceYears: number | null;
+  maxExperienceYears: number | null;
+  industries: string[];
+  skills: string[];
+  excludedKeywords: string[];
+  preferredCompanyTypes: string[];
+  jobType: string | null;
+  additionalConditions: Record<string, string>;
+  interpreterVersion: string;
+  active: boolean;
+}
+
 export interface BrowserSession {
   sessionId: string;
   platformId: string;
   profile?: string;
   currentUrl: string;
+}
+
+export interface BrowserSessionStatus {
+  authenticated: boolean;
+  currentUrl: string;
+  recoveryAction: string | null;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -51,10 +78,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-export function startWorkflow(platform: string): Promise<WorkflowSnapshot> {
+export function interpretRecruitmentGoal(goal: string): Promise<RecruitmentGoal> {
+  return request('/api/recruitment/goals/interpret', {
+    method: 'POST',
+    body: JSON.stringify({ goal }),
+  });
+}
+
+export function loadActiveRecruitmentGoal(): Promise<RecruitmentGoal | null> {
+  return request('/api/recruitment/goals/active');
+}
+
+export function startWorkflow(platform: string, goalId: number): Promise<WorkflowSnapshot> {
   return request('/api/recruitment/workflows', {
     method: 'POST',
-    body: JSON.stringify({ platform }),
+    body: JSON.stringify({ platform, goalId }),
   });
 }
 
@@ -71,4 +109,8 @@ export function openPlatformSession(platform: string): Promise<BrowserSession> {
     method: 'POST',
     body: JSON.stringify({ profile: 'default', headless: false }),
   });
+}
+
+export function loadPlatformSessionStatus(platform: string, sessionId: string): Promise<BrowserSessionStatus> {
+  return request(`/api/recruitment/platforms/${encodeURIComponent(platform)}/sessions/${encodeURIComponent(sessionId)}/status`);
 }

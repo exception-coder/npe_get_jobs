@@ -6,12 +6,12 @@ const isBrowser = typeof window !== 'undefined'
 
 export const createDefaultResume = () => ({
   personalInfo: {
-    name: '张三',
-    title: '高级Java开发工程师',
-    phone: '138-8888-8888',
+    name: '张凯',
+    title: '',
+    phone: '',
     email: '425485346@qq.com',
     location: '广州 · 可远程',
-    experience: '8年以上',
+    experience: '',
     coreSkills: [],
     linkedin: '',
   },

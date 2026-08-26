@@ -10,6 +10,7 @@ import getjobs.modules.recruitment.domain.RecruitmentJob;
 public record RecruitmentWorkflowSnapshot(
         UUID taskId,
         String platform,
+        Long goalId,
         WorkflowStatus status,
         WorkflowStage stage,
         int discovered,
