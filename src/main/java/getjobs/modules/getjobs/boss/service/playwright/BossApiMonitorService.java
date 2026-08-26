@@ -53,6 +53,10 @@ public class BossApiMonitorService {
     public void setupJobApiMonitor() {
         try {
             Page page = playwrightService.getPage(RecruitmentPlatformEnum.BOSS_ZHIPIN);
+            if (page == null) {
+                log.debug("旧 BOSS Playwright 监控未启用");
+                return;
+            }
 
             // 监听岗位搜索接口
             // setupJobSearchMonitor(ctx);

@@ -3,7 +3,6 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 config.yaml
-src/main/resources/application-gpt-local.yml
 ### IntelliJ IDEA ###
 *.iws
 *.iml

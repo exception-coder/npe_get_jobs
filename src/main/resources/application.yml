@@ -1,86 +1,64 @@
 server:
+  port: 8081
   compression:
     enabled: true
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
-    min-response-size: 2048 # 字节，约 2KB，避免压缩超小响应
-  port: 8081
+    mime-types: application/json,text/html,text/plain,application/javascript,text/css
+    min-response-size: 2048
 
 spring:
-  profiles:
-    active: dev,gpt,actuator,auth,dict,access,async,webclient
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - classpath:application-gpt.yml
+      - classpath:application-auth.yml
+      - classpath:application-dict.yml
   application:
     name: npe-get-jobs
   web:
     resources:
       static-locations: classpath:/dist/
   datasource:
-    # SQLite 主数据源（默认数据源）
     url: 'jdbc:sqlite:${user.home}/getjobs/npe_get_jobs.db?journal_mode=WAL&synchronous=NORMAL&cache_size=-64000&foreign_keys=ON&busy_timeout=30000'
     driver-class-name: org.sqlite.JDBC
     hikari:
-      maximum-pool-size: 5      # WAL 模式支持并发读，5个连接适合中等并发查询场景
-      minimum-idle: 2           # 保持 2 个连接常驻，应对突发查询
-      connection-timeout: 30000 # 连接超时 30 秒
-      idle-timeout: 600000      # 空闲连接 10 分钟后回收
-      max-lifetime: 1800000     # 连接最大存活时间 30 分钟
-    username:
-    password:
-    # MySQL 数据源配置
-    mysql:
-#      driver-class-name: com.mysql.cj.jdbc.Driver
-      username: root
-      driver-class-name: com.mysql.jdbc.Driver
-      hikari:
-        maximum-pool-size: 10      # MySQL 连接池最大连接数
-        minimum-idle: 5           # 最小空闲连接数
-        connection-timeout: 30000 # 连接超时 30 秒
-        idle-timeout: 600000      # 空闲连接 10 分钟后回收
-        max-lifetime: 1800000     # 连接最大存活时间 30 分钟
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
   sql:
     init:
-      mode: never               # 数据库已持久化，无需每次启动执行 SQL 脚本
+      mode: never
   jpa:
-    # 默认 JPA 配置（SQLite）
+    open-in-view: false
     hibernate:
-      ddl-auto: update          # 保留表结构和数据，仅更新 schema 变更
-    show-sql: true
+      ddl-auto: update
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
         dialect: org.hibernate.community.dialect.SQLiteDialect
-    database-platform: org.hibernate.community.dialect.SQLiteDialect 
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+  mustache:
+    check-template-location: false
 
 logging:
   level:
     root: INFO
-    ai: DEBUG
-    # 包路径：本包内代码的 debug 日志（如 DeepseekApiHttpClientConfig）
-    getjobs.infrastructure.ai: DEBUG
-    # wiretap 使用的 logger 名（与 DeepseekApiHttpClientConfig.DEEPSEEK_HTTP_LOGGER 一致），用于完整 HTTP 请求/响应
-    DeepseekApiHttp: DEBUG
-    getjobs.common.infrastructure.tomcat: DEBUG  # 启用 NonHttpProbeValve 的 DEBUG 日志
-    org.apache.coyote: DEBUG
-    org.apache.tomcat.util.net: INFO
-#    org.hibernate.SQL: debug
-#    org.hibernate.orm.jdbc.bind: trace
-#    org.hibernate.type.descriptor.sql.BasicBinder: trace
-#    com.zaxxer.hikari: debug
-#    org.hibernate.engine.jdbc.spi.SqlStatementLogger: trace
-#    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: debug
-
+    getjobs.modules.recruitment: INFO
+    getjobs.infrastructure.ai: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
 async:
-  # 核心线程数（默认：4，0表示根据CPU核心数动态计算）
   core-pool-size: 4
-  # 最大线程数（默认：8，0表示根据CPU核心数动态计算）
   max-pool-size: 8
-  # 队列容量
   queue-capacity: 100
-  # 线程空闲时间（秒）
   keep-alive-seconds: 60
 
-# 旧 Playwright 控制链仅保留在兼容层，默认不再启动。
+proxy:
+  host: ${HTTP_PROXY_HOST:}
+  port: ${HTTP_PROXY_PORT:0}
+
 playwright:
   enabled: false
 
@@ -88,6 +66,5 @@ recruitment:
   browser:
     enabled: true
     auto-start: true
-    base-url: http://127.0.0.1:17321
+    base-url: ${RECRUITMENT_BROWSER_BASE_URL:http://127.0.0.1:17321}
     working-directory: node-services/recruitment-browser
-

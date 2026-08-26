@@ -57,6 +57,8 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
      */
     JobEntity findByEncryptJobId(String encryptJobId);
 
+    List<JobEntity> findAllByPlatformAndEncryptJobIdOrderByCreatedAtDesc(String platform, String encryptJobId);
+
     /**
      * 查找状态不等于指定值的职位
      *

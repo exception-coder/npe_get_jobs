@@ -98,7 +98,7 @@ public class RecruitmentSearchPlanService {
 
     private Map<String, Object> buildFilters(ConfigEntity config) {
         if (config == null) {
-            return Map.of();
+            return new LinkedHashMap<>();
         }
         Map<String, Object> filters = new LinkedHashMap<>();
         put(filters, "jobType", config.getJobType());

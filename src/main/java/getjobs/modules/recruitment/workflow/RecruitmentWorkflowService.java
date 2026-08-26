@@ -1,16 +1,19 @@
 package getjobs.modules.recruitment.workflow;
 
 import getjobs.modules.recruitment.application.RecruitmentJobSelectionService;
+import getjobs.modules.recruitment.application.RecruitmentJobRegistryService;
 import getjobs.modules.recruitment.application.RecruitmentPlatformRegistry;
 import getjobs.modules.recruitment.application.RecruitmentSearchPlan;
 import getjobs.modules.recruitment.application.RecruitmentSearchPlanService;
 import getjobs.modules.recruitment.browser.BrowserContactResult;
+import getjobs.modules.recruitment.browser.BrowserContactPreparationResult;
 import getjobs.modules.recruitment.browser.BrowserJobDiscoveryResult;
 import getjobs.modules.recruitment.browser.BrowserSession;
 import getjobs.modules.recruitment.browser.BrowserSessionStatus;
 import getjobs.modules.recruitment.domain.ContactResult;
 import getjobs.modules.recruitment.domain.RecruitmentJob;
 import getjobs.modules.recruitment.spi.RecruitmentContactCapability;
+import getjobs.modules.recruitment.spi.RecruitmentContactPreparationCapability;
 import getjobs.modules.recruitment.spi.RecruitmentDiscoveryCapability;
 import getjobs.modules.recruitment.spi.RecruitmentPlatformPlugin;
 import getjobs.modules.recruitment.spi.RecruitmentSessionCapability;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +36,7 @@ public class RecruitmentWorkflowService {
     private final RecruitmentPlatformRegistry platformRegistry;
     private final RecruitmentSearchPlanService searchPlanService;
     private final RecruitmentJobSelectionService selectionService;
+    private final RecruitmentJobRegistryService jobRegistryService;
     private final TaskExecutor taskExecutor;
     private final Map<UUID, WorkflowRun> tasks = new ConcurrentHashMap<>();
     private final Map<String, UUID> activePlatforms = new ConcurrentHashMap<>();
@@ -40,11 +45,13 @@ public class RecruitmentWorkflowService {
             RecruitmentPlatformRegistry platformRegistry,
             RecruitmentSearchPlanService searchPlanService,
             RecruitmentJobSelectionService selectionService,
+            RecruitmentJobRegistryService jobRegistryService,
             @Qualifier("recruitmentWorkflowExecutor") TaskExecutor taskExecutor
     ) {
         this.platformRegistry = platformRegistry;
         this.searchPlanService = searchPlanService;
         this.selectionService = selectionService;
+        this.jobRegistryService = jobRegistryService;
         this.taskExecutor = taskExecutor;
     }
 
@@ -88,6 +95,19 @@ public class RecruitmentWorkflowService {
         }
     }
 
+    public BrowserContactPreparationResult prepareContact(UUID taskId) {
+        WorkflowRun run = requireRun(taskId);
+        synchronized (run) {
+            if (run.snapshot().status() != WorkflowStatus.AWAITING_CONFIRMATION) {
+                throw new IllegalStateException("workflow is not awaiting contact confirmation");
+            }
+            RecruitmentPlatformPlugin plugin = platformRegistry.require(run.platform());
+            RecruitmentContactPreparationCapability capability = requireCapability(
+                    plugin, RecruitmentContactPreparationCapability.class);
+            return capability.prepareContact(run.sessionId(), run.selected());
+        }
+    }
+
     public RecruitmentWorkflowSnapshot require(UUID taskId) {
         return requireRun(taskId).snapshot();
     }
@@ -103,8 +123,15 @@ public class RecruitmentWorkflowService {
             BrowserJobDiscoveryResult discovery = discoveryCapability.discover(run.sessionId(), plan);
             run.discovered(discovery.jobs());
 
-            run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.FILTER, null, null, false));
-            List<RecruitmentJob> selected = selectionService.select(discovery.jobs(), plan.goal());
+            Map<String, RecruitmentJob> selectedById = new LinkedHashMap<>();
+            for (List<RecruitmentJob> batch : discovery.batches()) {
+                run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.REGISTER, null, null, false));
+                jobRegistryService.register(run.platform(), batch);
+                run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.FILTER, null, null, false));
+                selectionService.select(batch, plan.goal()).forEach(job ->
+                        selectedById.put(job.platformJobId(), job));
+            }
+            List<RecruitmentJob> selected = List.copyOf(selectedById.values());
             run.selected(selected);
             run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.MATCH, null, null, false));
 

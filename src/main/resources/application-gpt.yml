@@ -1,44 +1,35 @@
 spring:
+  autoconfigure:
+    exclude: org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration
   ai:
     openai:
       api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
       chat:
-        # 启用OpenAI聊天模型
-        enabled: true
+        # Custom GptConfig owns this client; disable Spring AI's duplicate auto-configured model.
+        enabled: false
         options:
-          # 默认使用的模型
           model: ${OPENAI_MODEL:gpt-4o}
-          # 默认温度参数 (1.0.0-M6版本使用Double类型)
           temperature: 0.7
-          # 默认最大token数
           max-tokens: 2000
+      embedding:
+        enabled: false
     deepseek:
       api-key: ${DEEPSEEK_API_KEY:}
       base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
       chat:
-        # 启用OpenAI聊天模型
         enabled: true
         options:
-          # 默认使用的模型（可选：deepseek-chat、deepseek-reasoner）
           model: ${DEEPSEEK_MODEL:deepseek-chat}
-          # 默认温度参数 (1.0.0-M6版本使用Double类型)
           temperature: 0.7
-          # 默认最大token数
-#          org.springframework.ai.retry.NonTransientAiException: 400 - {"error":{"message":"Invalid max_tokens value, the valid range of max_tokens is [1, 8192]","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
           max-tokens: 8192
-          # 是否启用联网搜索（Deepseek API 参数 enable_search，需要联网时设为 true）
           enable-search: true
     qwen:
       api-key: ${QWEN_API_KEY:}
       base-url: ${QWEN_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
       chat:
         options:
-          # 默认使用的模型（可选：qwen-plus、qwen-max、qwen-turbo）
           model: ${QWEN_MODEL:qwen-plus}
-          # 默认温度参数
           temperature: 0.7
-          # 最大 token 数（千问最大支持 8192）
           max-tokens: 8192
-          # 是否启用联网搜索（千问 API 参数 enable_search，通过拦截器注入）
           enable-search: true

@@ -55,6 +55,10 @@ public class ZhiLianApiMonitorService {
     public void setupZhiLianApiMonitor() {
         try {
             Page page = playwrightService.getPage(RecruitmentPlatformEnum.ZHILIAN_ZHAOPIN);
+            if (page == null) {
+                log.debug("旧智联 Playwright 监控未启用");
+                return;
+            }
 
             // 监听智联招聘职位搜索接口的响应
             setupResponseMonitor(page);

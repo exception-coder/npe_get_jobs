@@ -1,20 +1,16 @@
 #!/bin/bash
 
-# Spring Boot 应用启动脚本（依赖分离模式，后台运行）
+# Spring Boot 应用启动脚本（标准可执行 JAR，后台运行）
 # 使用说明：
-#   1. 首次部署：将 lib/ 目录和 jar 包都上传到服务器
-#   2. 后续更新：只需上传新的 jar 包，lib/ 目录保持不变
-#   3. 启动：./start.sh 或指定参数 ./start.sh --spring.profiles.active=prod
-#   4. 应用将在后台运行，日志输出到 logs/${APP_NAME}.log
-#   5. PID 保存在 logs/${APP_NAME}.pid，可用于停止应用
+#   1. 执行 mvn clean package 生成可执行 JAR
+#   2. 启动：./start.sh；本地密钥从项目根目录 .env 读取
+#   3. 日志和 PID 保存在 scripts/logs
 
 # ==================== 配置区域 ====================
 # 应用名称
 APP_NAME="npe_get_jobs"
 # JAR 包路径（相对于脚本目录）
-JAR_FILE="../target/${APP_NAME}-v1.0.0-SNAPSHOT.jar"
-# 依赖库目录（相对于脚本目录，或使用绝对路径）
-LIB_DIR="../target/lib"
+JAR_FILE="../target/${APP_NAME}-v1.1.0.jar"
 # 日志目录
 LOG_DIR="./logs"
 # PID 文件路径
@@ -24,21 +20,13 @@ LOG_FILE="${LOG_DIR}/${APP_NAME}.log"
 # JVM 参数
 JVM_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 # Spring Boot 参数（可通过命令行覆盖）
-SPRING_OPTS="--server.port=8081 --spring.profiles.active=prod,gpt,actuator,auth,dict"
+SPRING_OPTS=""
 # ================================================
 
 # 检查 JAR 文件是否存在
 if [ ! -f "$JAR_FILE" ]; then
     echo "错误: JAR 文件不存在: $JAR_FILE"
     echo "请先执行 mvn clean package 构建项目"
-    exit 1
-fi
-
-# 检查 lib 目录是否存在
-if [ ! -d "$LIB_DIR" ]; then
-    echo "警告: 依赖目录不存在: $LIB_DIR"
-    echo "请确保已执行 mvn package 生成依赖包"
-    echo "或者使用绝对路径指向服务器上的共享依赖目录"
     exit 1
 fi
 
@@ -59,15 +47,12 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 # 构建完整的启动命令
-# 使用 loader.path 指定外部依赖目录
-# Spring Boot 会自动从该目录加载依赖
-CMD="java $JVM_OPTS -Dloader.path=$LIB_DIR -jar $JAR_FILE $SPRING_OPTS $@"
+CMD="java $JVM_OPTS -jar $JAR_FILE $SPRING_OPTS $@"
 
 echo "=========================================="
-echo "启动 Spring Boot 应用（依赖分离模式）"
+echo "启动 Spring Boot 应用"
 echo "=========================================="
 echo "JAR 文件: $JAR_FILE"
-echo "依赖目录: $LIB_DIR"
 echo "日志目录: $LOG_DIR"
 echo "日志文件: $LOG_FILE"
 echo "PID 文件: $PID_FILE"

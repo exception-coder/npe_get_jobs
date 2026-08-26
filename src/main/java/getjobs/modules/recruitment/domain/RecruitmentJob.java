@@ -8,6 +8,22 @@ public record RecruitmentJob(
         String city,
         String salary,
         String description,
-        String href
+        String href,
+        RecruitmentJobFacts facts
 ) {
+    public RecruitmentJob(
+            String platformJobId,
+            String title,
+            String company,
+            String city,
+            String salary,
+            String description,
+            String href
+    ) {
+        this(platformJobId, title, company, city, salary, description, href, RecruitmentJobFacts.empty());
+    }
+
+    public RecruitmentJob {
+        facts = facts == null ? RecruitmentJobFacts.empty() : facts;
+    }
 }

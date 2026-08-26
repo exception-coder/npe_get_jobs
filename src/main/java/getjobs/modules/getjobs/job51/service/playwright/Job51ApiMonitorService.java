@@ -55,6 +55,10 @@ public class Job51ApiMonitorService {
     public void setupJob51ApiMonitor() {
         try {
             Page page = playwrightService.getPage(RecruitmentPlatformEnum.JOB_51);
+            if (page == null) {
+                log.debug("旧 51Job Playwright 监控未启用");
+                return;
+            }
 
             // 监听51Job职位搜索接口的响应
             setupResponseMonitor(page);

@@ -38,6 +38,10 @@ public class LiePinApiMonitorService {
     public void setupLiePinApiMonitor() {
         try {
             Page page = playwrightService.getPage(RecruitmentPlatformEnum.LIEPIN);
+            if (page == null) {
+                log.debug("旧猎聘 Playwright 监控未启用");
+                return;
+            }
             setupResponseMonitor(page);
             log.info("猎聘API监控服务初始化完成");
         } catch (Exception e) {

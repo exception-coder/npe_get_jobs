@@ -24,9 +24,9 @@ export class BrowserSessionRegistry {
       if (existingSession.page.isClosed()) {
         existingSession.page = existingSession.context.pages()[0] || await existingSession.context.newPage();
       }
-      if (existingSession.page.url() !== safeUrl) {
-        await existingSession.page.goto(safeUrl, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-      }
+      // Opening a known profile is a lookup, not a navigation command. Redirecting an
+      // authenticated page back to initialUrl can destroy the login-state observation
+      // immediately before a workflow starts.
       return this.#describe(existingSessionId, existingSession);
     }
 
@@ -40,7 +40,7 @@ export class BrowserSessionRegistry {
     await page.goto(safeUrl, { waitUntil: 'domcontentloaded', timeout: 45_000 });
 
     const sessionId = randomUUID();
-    const session = { context, page, platformId, profileName, profileKey };
+    const session = { context, page, platformId, profileName, profileKey, state: {} };
     this.sessions.set(sessionId, session);
     this.sessionIdsByProfile.set(profileKey, sessionId);
     context.on('close', () => this.#forget(sessionId));
@@ -51,7 +51,11 @@ export class BrowserSessionRegistry {
     const session = this.sessions.get(sessionId);
     if (!session) throw new Error(`Browser session not found: ${sessionId}`);
     if (session.platformId !== platformId) throw new Error('Session platform does not match action platform');
-    return this.registry.execute(platformId, action, { page: session.page, context: session.context }, input);
+    return this.registry.execute(platformId, action, {
+      page: session.page,
+      context: session.context,
+      state: session.state,
+    }, input);
   }
 
   describe(sessionId) {

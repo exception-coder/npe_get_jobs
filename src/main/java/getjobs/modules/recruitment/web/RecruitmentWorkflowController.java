@@ -1,5 +1,6 @@
 package getjobs.modules.recruitment.web;
 
+import getjobs.modules.recruitment.browser.BrowserContactPreparationResult;
 import getjobs.modules.recruitment.workflow.RecruitmentWorkflowService;
 import getjobs.modules.recruitment.workflow.RecruitmentWorkflowSnapshot;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,11 @@ public class RecruitmentWorkflowController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public RecruitmentWorkflowSnapshot confirmContact(@PathVariable UUID taskId) {
         return workflowService.confirmContact(taskId);
+    }
+
+    @PostMapping("/{taskId}/contact/prepare")
+    public BrowserContactPreparationResult prepareContact(@PathVariable UUID taskId) {
+        return workflowService.prepareContact(taskId);
     }
 
     public record StartWorkflowRequest(String platform, Long goalId) {

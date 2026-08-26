@@ -12,5 +12,7 @@ public interface BrowserAutomationPort {
 
     BrowserJobDiscoveryResult discoverJobs(DiscoverBrowserJobsCommand command);
 
+    BrowserContactPreparationResult prepareContacts(PrepareBrowserContactsCommand command);
+
     BrowserContactResult contactJobs(ContactBrowserJobsCommand command);
 }
