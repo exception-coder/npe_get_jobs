@@ -69,39 +69,10 @@ export async function fetchJobRecords(params: JobQueryParams) {
   return http<PageResponse<JobRecord>>(url.toString());
 }
 
-export async function toggleFavorite(jobId: string, isFavorite: boolean) {
-  return httpJson<{ success: boolean }>(`/api/jobs/${jobId}/favorite`, {
-    method: 'PUT',
-    body: JSON.stringify({ isFavorite }),
-  });
-}
-
 export async function updateContacted(jobId: string, isContacted: boolean) {
   return httpJson<{ success: boolean }>(`/api/jobs/${jobId}/contacted`, {
     method: 'PUT',
     body: JSON.stringify({ isContacted }),
-  });
-}
-
-export async function resetJobFilter(platformName: string) {
-  const body = new URLSearchParams({ platform: platformName });
-  return http<{ count: number }>('/api/jobs/reset-filter', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body,
-  });
-}
-
-export async function deleteAllJobs(platformName: string) {
-  const body = new URLSearchParams({ platform: platformName });
-  return http('/api/jobs', {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body,
   });
 }
 

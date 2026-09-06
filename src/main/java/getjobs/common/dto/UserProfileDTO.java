@@ -217,8 +217,4 @@ public class UserProfileDTO {
      */
     private Integer maxSalary;
 
-    /**
-     * 任务开始前是否进行登录检测（全局开关）
-     */
-    private Boolean enableLoginCheck;
 }

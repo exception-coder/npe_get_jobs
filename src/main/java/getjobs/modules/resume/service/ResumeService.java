@@ -151,31 +151,6 @@ public class ResumeService {
     }
 
     /**
-     * 根据姓名搜索简历
-     */
-    @Transactional(readOnly = true)
-    public List<ResumeResponse> searchResumesByName(String name) {
-        log.info("根据姓名搜索简历：{}", name);
-        List<Resume> resumes = resumeRepository.findByNameContaining(name);
-        return resumes.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 删除简历
-     */
-    @Transactional
-    public void deleteResume(Long id) {
-        log.info("删除简历，ID：{}", id);
-        if (!resumeRepository.existsById(id)) {
-            throw new RuntimeException("简历不存在，ID：" + id);
-        }
-        resumeRepository.deleteById(id);
-        log.info("简历删除成功，ID：{}", id);
-    }
-
-    /**
      * 将对象转换为JSON字符串
      */
     private String toJson(Object obj) {

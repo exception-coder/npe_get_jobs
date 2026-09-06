@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 简历优化控制器
@@ -62,40 +61,5 @@ public class ResumeController {
         return ResponseEntity.ok(responses);
     }
 
-    /**
-     * 根据姓名搜索简历
-     */
-    @GetMapping("/search")
-    public ResponseEntity<List<ResumeResponse>> searchResumes(@RequestParam String name) {
-        log.info("搜索简历，姓名：{}", name);
-        List<ResumeResponse> responses = resumeService.searchResumesByName(name);
-        return ResponseEntity.ok(responses);
-    }
-
-    /**
-     * 删除简历
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteResume(@PathVariable Long id) {
-        log.info("删除简历，ID：{}", id);
-        try {
-            resumeService.deleteResume(id);
-            return ResponseEntity.ok(Map.of("message", "简历删除成功"));
-        } catch (Exception e) {
-            log.error("删除简历失败", e);
-            throw new RuntimeException("删除简历失败：" + e.getMessage());
-        }
-    }
-
-    /**
-     * 健康检查
-     */
-    @GetMapping("/health")
-    public ResponseEntity<Map<String, String>> health() {
-        return ResponseEntity.ok(Map.of(
-                "status", "UP",
-                "service", "resume-service"
-        ));
-    }
 }
 

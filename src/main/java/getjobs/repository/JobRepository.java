@@ -10,10 +10,12 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
+/** Persists the workspace job ledger and confirmed contact history. */
 public interface JobRepository extends JpaRepository<JobEntity, Long> {
 
-    /** Updates one manual marker without overwriting a concurrently confirmed success (status 3). */
+    /** Updates one manual marker without overwriting a concurrently confirmed success. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE JobEntity j SET j.isContacted = :contacted, j.updatedAt = :now "
             + "WHERE j.id = :id AND (j.status IS NULL OR j.status <> 3)")
@@ -23,7 +25,7 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
     /** Returns contacted identities only within the current platform discovery batch. */
     @Query("SELECT DISTINCT j.encryptJobId FROM JobEntity j WHERE j.platform = :platform "
             + "AND j.encryptJobId IN :ids AND (j.status = 3 OR j.isContacted = true)")
-    java.util.Set<String> findContactedIds(@Param("platform") String platform, @Param("ids") List<String> ids);
+    Set<String> findContactedIds(@Param("platform") String platform, @Param("ids") List<String> ids);
 
     /** Records confirmed success for all duplicates of one platform identity. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -32,143 +34,29 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
     int markContactSucceeded(@Param("platform") String platform, @Param("jobId") String jobId,
             @Param("now") LocalDateTime now);
 
-    @Query("SELECT j FROM JobEntity j " +
-            "WHERE (:platform IS NULL OR LOWER(j.platform) = LOWER(:platform)) " +
-            "AND (:status IS NULL OR j.status = :status) " +
-            "AND (:contactedOnly = false OR j.status = 3 OR j.isContacted = true) " +
-            "AND ( :keyword IS NULL " +
-            "   OR LOWER(j.jobTitle) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "   OR LOWER(j.companyName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "   OR LOWER(j.hrName) LIKE LOWER(CONCAT('%', :keyword, '%')) )")
+    /** Searches workspace-visible job facts with all filters applied in the database. */
+    @Query("SELECT j FROM JobEntity j "
+            + "WHERE (:platform IS NULL OR LOWER(j.platform) = LOWER(:platform)) "
+            + "AND (:status IS NULL OR j.status = :status) "
+            + "AND (:contactedOnly = false OR j.status = 3 OR j.isContacted = true) "
+            + "AND (:keyword IS NULL "
+            + "OR LOWER(j.jobTitle) LIKE LOWER(CONCAT('%', :keyword, '%')) "
+            + "OR LOWER(j.companyName) LIKE LOWER(CONCAT('%', :keyword, '%')) "
+            + "OR LOWER(j.hrName) LIKE LOWER(CONCAT('%', :keyword, '%'))) ")
     Page<JobEntity> search(@Param("platform") String platform,
             @Param("status") Integer status,
             @Param("keyword") String keyword,
             @Param("contactedOnly") boolean contactedOnly,
             Pageable pageable);
 
-    /**
-     * 根据加密职位ID检查职位是否存在
-     *
-     * @param encryptJobId 加密职位ID
-     * @return 是否存在
-     */
-    boolean existsByEncryptJobId(String encryptJobId);
-
-    /**
-     * 根据平台统计职位数量
-     *
-     * @param platform 平台名称
-     * @return 职位数量
-     */
-    long countByPlatform(String platform);
-
-    /**
-     * 根据安全ID查找职位
-     *
-     * @param securityId 安全ID
-     * @return 职位实体
-     */
-    JobEntity findBySecurityId(String securityId);
-
-    /**
-     * 根据加密职位ID查找职位
-     *
-     * @param encryptJobId 加密职位ID
-     * @return 职位实体
-     */
-    JobEntity findByEncryptJobId(String encryptJobId);
-
+    /** Finds the newest persisted snapshot for one platform job identity. */
     List<JobEntity> findAllByPlatformAndEncryptJobIdOrderByCreatedAtDesc(String platform, String encryptJobId);
 
-    /**
-     * 查找状态不等于指定值的职位
-     *
-     * @param status 状态值
-     * @return 职位实体列表
-     */
-    List<JobEntity> findByStatusNot(Integer status);
-
-    /**
-     * 根据状态查找职位
-     *
-     * @param status 状态值
-     * @return 职位实体列表
-     */
-    List<JobEntity> findByStatus(Integer status);
-
-    List<JobEntity> findAllByEncryptJobIdIn(List<String> encryptJobIds);
-
-    /**
-     * 按 encryptJobId 查询，按创建时间倒序（用于去重时保留最新一条）
-     *
-     * @param encryptJobId 加密职位ID
-     * @return 该 ID 下的所有记录，按 createdAt 降序
-     */
+    /** Finds snapshots for startup deduplication, newest first. */
     List<JobEntity> findAllByEncryptJobIdOrderByCreatedAtDesc(String encryptJobId);
 
-    /**
-     * 查询存在重复的 encryptJobId 列表（同 ID 多条记录）
-     *
-     * @return 有重复的 encrypt_job_id 列表
-     */
-    @Query("SELECT j.encryptJobId FROM JobEntity j WHERE j.encryptJobId IS NOT NULL GROUP BY j.encryptJobId HAVING COUNT(j.id) > 1")
+    /** Finds duplicated platform job identifiers left by historical versions. */
+    @Query("SELECT j.encryptJobId FROM JobEntity j WHERE j.encryptJobId IS NOT NULL "
+            + "GROUP BY j.encryptJobId HAVING COUNT(j.id) > 1")
     List<String> findEncryptJobIdsWithDuplicates();
-
-    /**
-     * 统计指定时间范围内新增的岗位数量
-     *
-     * @param startTime 开始时间
-     * @param endTime   结束时间
-     * @return 岗位数量
-     */
-    long countByCreatedAtBetween(LocalDateTime startTime, LocalDateTime endTime);
-
-    /**
-     * 统计指定时间范围内、指定平台的新增岗位数量
-     *
-     * @param platform  平台名称
-     * @param startTime 开始时间
-     * @param endTime   结束时间
-     * @return 岗位数量
-     */
-    long countByPlatformAndCreatedAtBetween(String platform, LocalDateTime startTime, LocalDateTime endTime);
-
-    /**
-     * 根据状态和平台查找职位
-     *
-     * @param status   状态值
-     * @param platform 平台名称
-     * @return 职位实体列表
-     */
-    List<JobEntity> findByStatusAndPlatform(Integer status, String platform);
-
-    /**
-     * 根据平台查找职位
-     *
-     * @param platform 平台名称
-     * @return 职位实体列表
-     */
-    List<JobEntity> findByPlatform(String platform);
-
-    /**
-     * 根据平台删除职位（排除已投递状态）
-     *
-     * @param platform       平台名称
-     * @param excludeStatuses 排除的状态列表
-     */
-    @Modifying
-    @Query("DELETE FROM JobEntity j WHERE j.platform = :platform AND j.status NOT IN :excludeStatuses "
-            + "AND (j.isContacted IS NULL OR j.isContacted = false)")
-    void deleteByPlatformAndStatusNotIn(@Param("platform") String platform, @Param("excludeStatuses") List<Integer> excludeStatuses);
-
-    /**
-     * 删除指定平台下岗位描述（jobPostDescription）为空的记录（监控接口额外拉取、非点击岗位卡搜索的数据）
-     *
-     * @param platform 平台名称
-     * @return 删除条数
-     */
-    @Modifying
-    @Query("DELETE FROM JobEntity j WHERE j.platform = :platform AND (j.jobPostDescription IS NULL OR j.jobPostDescription = '') "
-            + "AND (j.status IS NULL OR j.status <> 3) AND (j.isContacted IS NULL OR j.isContacted = false)")
-    int deleteByPlatformAndJobRequirementsEmpty(@Param("platform") String platform);
 }

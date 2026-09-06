@@ -3,10 +3,8 @@ package getjobs.controller;
 import getjobs.repository.entity.JobEntity;
 import getjobs.modules.getjobs.service.JobService;
 import org.springframework.data.domain.Page;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,16 +33,6 @@ public class JobController {
             @RequestParam(value = "size", defaultValue = "10") int size) {
 
         return jobService.search(platform, status, keyword, page, size, contactedOnly);
-    }
-
-    @PostMapping("/reset-filter")
-    public int resetFilter(@RequestParam("platform") String platform) {
-        return jobService.resetFilterByPlatform(platform);
-    }
-
-    @DeleteMapping("")
-    public void deleteAllJobs(@RequestParam("platform") String platform) {
-        jobService.deleteAllByPlatform(platform);
     }
 
     /**
