@@ -68,7 +68,11 @@ public class DeepseekApiHttpClientConfig {
      */
     @Bean(name = "deepseekApiRestClientBuilder")
     public RestClient.Builder deepseekApiRestClientBuilder() {
+        var requestFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(java.time.Duration.ofSeconds(15));
+        requestFactory.setReadTimeout(java.time.Duration.ofSeconds(120));
         RestClient.Builder builder = RestClient.builder()
+                .requestFactory(requestFactory)
                 .requestInterceptor(new DeepseekHttpLoggingInterceptor());
         log.debug("Deepseek API RestClient.Builder 已创建（含日志拦截器，logger={}）", DEEPSEEK_HTTP_LOGGER);
         return builder;
@@ -86,7 +90,9 @@ public class DeepseekApiHttpClientConfig {
         @Override
         public ClientHttpResponse intercept(HttpRequest request, byte[] body,
                                             ClientHttpRequestExecution execution) throws IOException {
-            body = injectEnableSearch(body);
+            if (!MAPPER.readTree(body).has("response_format")) {
+                body = injectEnableSearch(body);
+            }
             if (HTTP_LOG.isDebugEnabled()) {
                 HTTP_LOG.debug("--> {} {}\nBody: {}",
                         request.getMethod(), request.getURI(),

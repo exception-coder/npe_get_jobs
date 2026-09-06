@@ -9,8 +9,13 @@ public record RecruitmentJob(
         String salary,
         String description,
         String href,
-        RecruitmentJobFacts facts
+        RecruitmentJobFacts facts,
+        IntentMatchResult intentMatch
 ) {
+    public RecruitmentJob(String platformJobId, String title, String company, String city, String salary,
+                          String description, String href, RecruitmentJobFacts facts) {
+        this(platformJobId, title, company, city, salary, description, href, facts, null);
+    }
     public RecruitmentJob(
             String platformJobId,
             String title,

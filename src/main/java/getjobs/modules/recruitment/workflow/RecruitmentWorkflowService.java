@@ -64,6 +64,7 @@ public class RecruitmentWorkflowService {
 
     public RecruitmentWorkflowSnapshot start(String platform, Long goalId) {
         RecruitmentPlatformPlugin plugin = platformRegistry.require(platform);
+        searchPlanService.resolve(plugin.descriptor().id(), goalId);
         RecruitmentSessionCapability sessionCapability = requireCapability(
                 plugin, RecruitmentSessionCapability.class);
         BrowserSession session = sessionCapability.openSession(DEFAULT_PROFILE, false);
@@ -177,7 +178,9 @@ public class RecruitmentWorkflowService {
                                 "ALREADY_CONTACTED")).toList();
                 run.contactResults(java.util.stream.Stream.concat(run.contactResults().stream(), skipped.stream())
                         .distinct().toList());
-                selectionService.select(uncontacted, plan.goal()).forEach(job ->
+                List<RecruitmentJob> unmatched = uncontacted.stream()
+                        .filter(job -> !selectedById.containsKey(job.platformJobId())).toList();
+                selectionService.select(unmatched, plan.goal()).forEach(job ->
                         selectedById.put(job.platformJobId(), job));
             }
             List<RecruitmentJob> selected = List.copyOf(selectedById.values());
@@ -237,10 +240,14 @@ public class RecruitmentWorkflowService {
         if (platformJobId == null || platformJobId.isBlank()) {
             throw new IllegalArgumentException("contact job is required");
         }
-        return run.selected().stream()
+        RecruitmentJob selected = run.selected().stream()
                 .filter(job -> platformJobId.equals(job.platformJobId()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("contact job is not part of this workflow"));
+        if (selected.intentMatch() != null && !"apply".equals(selected.intentMatch().recommendation())) {
+            throw new IllegalArgumentException("岗位尚未通过意向匹配，请核实条件后重新寻找");
+        }
+        return selected;
     }
 
     private String requireGreeting(String greeting) {

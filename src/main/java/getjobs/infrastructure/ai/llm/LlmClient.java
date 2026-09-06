@@ -9,6 +9,11 @@ import java.util.List;
  */
 public interface LlmClient {
 
+    /** Requests a JSON object; callers must validate its contents. */
+    default String chatJson(List<LlmMessage> messages) {
+        return chat(messages);
+    }
+
     /**
      * 使用默认平台和模型进行对话。
      */

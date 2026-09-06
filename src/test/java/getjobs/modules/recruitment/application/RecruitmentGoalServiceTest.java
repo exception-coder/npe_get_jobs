@@ -35,19 +35,19 @@ class RecruitmentGoalServiceTest {
         );
         when(interpreter.interpret("广州 Java 高级工程师，25-40K，5年以上经验")).thenReturn(conditions);
         when(interpreter.version()).thenReturn("recruitment-goal-v1");
-        when(repository.findAll()).thenReturn(List.of(previous));
         when(repository.save(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        RecruitmentGoalService service = new RecruitmentGoalService(repository, interpreter);
+        RecruitmentGoalService service = new RecruitmentGoalService(repository, interpreter,
+                new getjobs.modules.recruitment.infrastructure.ai.RecruitmentIntentCodec(new com.fasterxml.jackson.databind.ObjectMapper()));
         RecruitmentGoalEntity saved = service.interpretAndActivate(" 广州 Java 高级工程师，25-40K，5年以上经验 ");
 
-        assertThat(previous.getActive()).isFalse();
+        assertThat(previous.getActive()).isTrue();
         assertThat(saved.getKeywords()).containsExactly("Java 高级工程师");
         assertThat(saved.getCities()).containsExactly("广州");
         assertThat(saved.getMinSalaryK()).isEqualTo(25);
         assertThat(saved.getMaxSalaryK()).isEqualTo(40);
         assertThat(saved.getInterpreterVersion()).isEqualTo("recruitment-goal-v1");
-        assertThat(saved.getActive()).isTrue();
+        assertThat(saved.getActive()).isFalse();
         ArgumentCaptor<RecruitmentGoalEntity> captor = ArgumentCaptor.forClass(RecruitmentGoalEntity.class);
         verify(repository).save(captor.capture());
         assertThat(captor.getValue().getAdditionalConditions()).containsEntry("remote", "可接受混合办公");

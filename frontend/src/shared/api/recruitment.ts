@@ -10,6 +10,8 @@ export interface RecruitmentJob {
   description: string;
   href: string;
   facts: RecruitmentJobFacts;
+  intentMatch?: { intentVersion: number; jdVersion: string; recommendation: 'apply' | 'skip' | 'review'; summary: string;
+    checks: { requirementRef: string; result: string; reason: string; jdEvidence: string }[] };
 }
 
 export interface RecruitmentJobFacts {
@@ -85,6 +87,29 @@ export interface RecruitmentGoal {
   additionalConditions: Record<string, string>;
   interpreterVersion: string;
   active: boolean;
+  card: IntentCard | null;
+  confirmed: boolean;
+}
+
+export interface IntentRequirement {
+  state: 'specified' | 'unspecified' | 'unrestricted';
+  value: string[];
+  range: { min: number | null; max: number | null; unit: string } | null;
+  strength: 'must' | 'prefer' | 'exclude' | null;
+  evidence: string | null;
+}
+
+export interface IntentCard {
+  schemaVersion: string;
+  summary: string;
+  candidateContext: Record<string, string>;
+  targetPositions: { id: string; name: string; searchTerms: string[]; preference: string }[];
+  requirements: Record<string, IntentRequirement>;
+  additionalRequirements: { id: string; appliesTo: string[]; description: string; strength: string; evidence: string }[];
+}
+
+export function confirmRecruitmentGoal(sourceId: number, card: IntentCard): Promise<RecruitmentGoal> {
+  return request('/api/recruitment/goals/confirm', { method: 'POST', body: JSON.stringify({ sourceId, card }) });
 }
 
 export interface BrowserSession {

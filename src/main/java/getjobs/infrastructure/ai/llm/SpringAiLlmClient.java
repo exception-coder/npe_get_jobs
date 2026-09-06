@@ -36,6 +36,24 @@ public class SpringAiLlmClient implements LlmClient {
     }
 
     @Override
+    public String chatJson(List<LlmMessage> messages) {
+        ChatModel model = chatModelFactory.getChatModel(DEFAULT_PLATFORM);
+        List<Message> converted = messages.stream().<Message>map(message ->
+                "system".equals(message.role()) ? new SystemMessage(message.content())
+                        : new UserMessage(message.content())).toList();
+        var options = OpenAiChatOptions.builder()
+                .responseFormat(new org.springframework.ai.openai.api.ResponseFormat(
+                        org.springframework.ai.openai.api.ResponseFormat.Type.JSON_OBJECT, null))
+                .maxTokens(8192).build();
+        var response = model.call(new Prompt(converted, options));
+        if (response == null || response.getResult() == null
+                || !"stop".equals(response.getResult().getMetadata().getFinishReason())) {
+            throw new IllegalStateException("模型输出未完整结束，请重试");
+        }
+        return response.getResult().getOutput().getText();
+    }
+
+    @Override
     public String chat(List<LlmMessage> messages, String modelOverride) {
         return chat(DEFAULT_PLATFORM, messages, modelOverride, null);
     }

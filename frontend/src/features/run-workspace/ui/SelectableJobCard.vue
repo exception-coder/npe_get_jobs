@@ -7,7 +7,7 @@
     </div>
     <div class="job-verdict">
       <strong>{{ job.salary || '薪资待确认' }}</strong>
-      <span><i class="mdi mdi-sparkles" /> 值得进一步判断</span>
+      <span><i class="mdi mdi-sparkles" /> {{ job.intentMatch ? ({ apply: '建议投递', skip: '建议跳过', review: '待核实' })[job.intentMatch.recommendation] : '未进行意向匹配' }}</span>
     </div>
 
     <JobDecisionFacts
@@ -20,13 +20,16 @@
 
     <div class="job-reason">
       <span>推荐结论</span>
-      <p>已通过当前岗位目标与基础条件筛选，联系前仍建议查看完整职责。</p>
+      <p>{{ job.intentMatch?.summary || '此岗位尚未进行意向匹配，请自行核对完整职责。' }}</p>
+      <details v-if="job.intentMatch"><summary>查看逐项依据 · 意向 #{{ job.intentMatch.intentVersion }}</summary>
+        <p v-for="check in job.intentMatch.checks" :key="check.requirementRef">{{ { matched: '符合', unmatched: '不符合', unknown: '待核实' }[check.result] || '待核实' }}：{{ check.reason }}<br v-if="check.jdEvidence" /><q v-if="check.jdEvidence">{{ check.jdEvidence }}</q></p>
+      </details>
     </div>
     <div class="job-actions">
       <a :href="job.href" target="_blank" rel="noreferrer">查看完整岗位 <i class="mdi mdi-arrow-top-right" /></a>
-      <button type="button" :aria-pressed="selected" @click="$emit('select')">
+      <button type="button" :disabled="!!job.intentMatch && job.intentMatch.recommendation !== 'apply'" :aria-pressed="selected" @click="$emit('select')">
         <i :class="selected ? 'mdi mdi-check-circle' : 'mdi mdi-circle-outline'" />
-        {{ selected ? '已选择' : '选择这个岗位' }}
+        {{ job.intentMatch && job.intentMatch.recommendation !== 'apply' ? '核实条件后再投递' : selected ? '已选择' : '选择这个岗位' }}
       </button>
     </div>
   </article>

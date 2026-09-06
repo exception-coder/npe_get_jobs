@@ -20,21 +20,13 @@
               <span :class="['source-dot', authenticated ? 'connected' : '']" />{{ platformName }}{{ authenticated ? ' 已登录' : ' 未登录' }}<i class="mdi mdi-chevron-down" />
             </button>
             <button class="find-button" type="submit" :disabled="busy || interpreting || !goal.trim()">
-              <i :class="busy || interpreting ? 'mdi mdi-loading mdi-spin' : authenticated ? 'mdi mdi-arrow-up' : 'mdi mdi-login-variant'" />{{ interpreting ? '正在理解' : busy ? '正在寻找' : authenticated ? '开始寻找' : '登录后开始' }}
+              <i :class="busy || interpreting ? 'mdi mdi-loading mdi-spin' : 'mdi mdi-arrow-up'" />{{ interpreting ? '正在理解' : busy ? '正在寻找' : interpretedGoal?.confirmed && !intentDirty && interpretedGoal.rawGoal === goal.trim() ? '开始寻找' : '解析求职意向' }}
             </button>
           </div>
         </form>
 
-        <section v-if="interpretedGoal" class="goal-config" aria-label="已保存的岗位条件">
-          <div class="goal-config-heading">
-            <span><i class="mdi mdi-check-circle-outline" /> 已理解并保存</span>
-            <small>目标版本 #{{ interpretedGoal.id }}</small>
-          </div>
-          <p>{{ interpretedGoal.summary || interpretedGoal.rawGoal }}</p>
-          <div v-if="semanticChips.length" class="goal-chips">
-            <span v-for="chip in semanticChips" :key="chip">{{ chip }}</span>
-          </div>
-        </section>
+        <RecruitmentIntentCard v-if="interpretedGoal?.card && interpretedGoal.rawGoal === goal.trim()"
+          :goal="interpretedGoal" :saving="interpreting || busy" @dirty="intentDirty = true" @confirm="confirmIntent" />
 
         <div class="suggestions" aria-label="常用目标">
           <button v-for="item in suggestions" :key="item" type="button" @click="goal = item">{{ item }}</button>
@@ -45,7 +37,7 @@
         <section v-if="showSources" class="source-drawer" aria-labelledby="source-title">
           <div class="drawer-heading"><div><span>来源与条件</span><h3 id="source-title">从哪里找</h3></div><button type="button" aria-label="关闭" @click="showSources = false"><i class="mdi mdi-close" /></button></div>
           <PlatformRail v-model="selectedPlatform" :platforms="platforms" :status-label="platformStatusLabel" />
-          <div class="drawer-foot"><p>当前每次任务优先使用一个平台；城市、薪资和排除条件沿用你的求职设置。</p><button type="button" @click="openAssets('settings')">调整求职设置</button></div>
+          <div class="drawer-foot"><p>仅按意向卡中的目标职位搜索；区域、薪资等要求会与采集的岗位逐项匹配，不沿用历史条件。</p><button type="button" @click="openAssets('settings')">模型与投递设置</button></div>
         </section>
       </Transition>
 
@@ -65,7 +57,7 @@
 
           <template v-else>
             <header class="result-heading">
-              <div><span>{{ snapshot.jobs.length ? '为你筛选完成' : '本次寻找完成' }}</span><h3>{{ snapshot.jobs.length ? `找到 ${snapshot.jobs.length} 个值得看的岗位` : '暂时没有合适的岗位' }}</h3></div>
+              <div><span>本次岗位匹配结果</span><h3>{{ snapshot.jobs.length ? `已判断 ${snapshot.jobs.length} 个岗位，请查看建议与依据` : '暂时没有找到岗位' }}</h3></div>
               <button class="process-button" type="button" @click="showProcess = !showProcess">{{ showProcess ? '收起过程' : '查看过程' }}<i class="mdi mdi-chevron-down" /></button>
             </header>
 
@@ -133,6 +125,7 @@ import { useCandidateIntroduction } from '@/features/candidate-introduction/mode
 import CandidateIntroductionDialog from '@/features/candidate-introduction/ui/CandidateIntroductionDialog.vue';
 import {
   confirmWorkflowContact,
+  confirmRecruitmentGoal,
   interpretRecruitmentGoal,
   loadActiveRecruitmentGoal,
   loadPlatformSessionStatus,
@@ -151,6 +144,7 @@ import ContactConfirmationDialog from './ContactConfirmationDialog.vue';
 import JobLedgerPanel from './JobLedgerPanel.vue';
 import PlatformRail from './PlatformRail.vue';
 import SelectableJobCard from './SelectableJobCard.vue';
+import RecruitmentIntentCard from './RecruitmentIntentCard.vue';
 
 type WorkspaceView = 'operate' | 'history' | 'assets';
 const route = useRoute();
@@ -164,6 +158,7 @@ const showProcess = ref(false);
 const goal = ref(localStorage.getItem('career-flow:last-goal') ?? '');
 const interpretedGoal = ref<RecruitmentGoal | null>(null);
 const interpreting = ref(false);
+const intentDirty = ref(false);
 const snapshot = ref<WorkflowSnapshot | null>(null);
 const error = ref('');
 const openingSession = ref(false);
@@ -193,47 +188,36 @@ const selectedPlatformCode = computed(() => selectedPlatform.value as PlatformCo
 const platformStatusLabel = computed(() => authenticated.value ? '已登录' : openingSession.value ? '正在检查' : '未登录');
 const greeting = computed(() => new Date().getHours() < 12 ? '早上好，张凯' : new Date().getHours() < 18 ? '下午好，张凯' : '晚上好，张凯');
 const selectedJob = computed(() => snapshot.value?.jobs.find((job) => job.platformJobId === selectedJobId.value) ?? null);
-const semanticChips = computed(() => {
-  const current = interpretedGoal.value;
-  if (!current) return [];
-  const chips = [
-    ...current.keywords.map((value) => `岗位 · ${value}`),
-    ...current.cities.map((value) => `城市 · ${value}`),
-    salaryChip(current),
-    experienceChip(current),
-    ...current.industries.map((value) => `行业 · ${value}`),
-    ...current.skills.map((value) => `技能 · ${value}`),
-    ...current.excludedKeywords.map((value) => `排除 · ${value}`),
-    ...current.preferredCompanyTypes.map((value) => `公司 · ${value}`),
-    current.jobType ? `类型 · ${current.jobType}` : '',
-  ];
-  return chips.filter(Boolean);
-});
 
 loadRecruitmentPlatforms().then((value) => { platforms.value = value; }).catch(() => undefined);
 
 async function start() {
   if (!goal.value.trim() || busy.value || interpreting.value) return;
   error.value = '';
+  localStorage.setItem('career-flow:last-goal', goal.value.trim());
+  if (!interpretedGoal.value?.card || interpretedGoal.value.rawGoal !== goal.value.trim()) {
+    const submitted = goal.value.trim();
+    interpreting.value = true;
+    try {
+      const parsed = await interpretRecruitmentGoal(submitted);
+      if (submitted === goal.value.trim()) { interpretedGoal.value = parsed; intentDirty.value = false; }
+    } catch (reason) {
+      error.value = reason instanceof Error ? reason.message : '解析失败，请检查模型设置后重试';
+    } finally { interpreting.value = false; }
+    return;
+  }
+  if (!interpretedGoal.value.confirmed || intentDirty.value) {
+    error.value = '请先在意向卡中确认条件'; return;
+  }
   if (!authenticated.value) {
     pendingStart.value = true;
-    sessionMessage.value = '请先完成平台登录，确认登录后会自动继续。';
-    await openSession();
-    return;
-  }
-  localStorage.setItem('career-flow:last-goal', goal.value.trim());
-  let savedGoal: RecruitmentGoal;
-  try {
-    savedGoal = await ensureGoal();
-  } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : '暂时无法理解并保存岗位目标';
-    return;
+    sessionMessage.value = '请先登录，登录后将使用已确认的意向寻找。';
+    await openSession(); return;
   }
   pendingStart.value = false;
-  stopPolling();
-  resetContactSelection();
+  stopPolling(); resetContactSelection();
   try {
-    snapshot.value = await startWorkflow(selectedPlatform.value, savedGoal.id);
+    snapshot.value = await startWorkflow(selectedPlatform.value, interpretedGoal.value.id);
     schedulePoll();
   } catch (reason) {
     handleAuthenticationFailure(reason);
@@ -241,30 +225,19 @@ async function start() {
   }
 }
 
-async function ensureGoal(): Promise<RecruitmentGoal> {
-  const rawGoal = goal.value.trim();
-  if (interpretedGoal.value?.rawGoal === rawGoal) return interpretedGoal.value;
-  interpreting.value = true;
+async function confirmIntent(card: import('@/shared/api/recruitment').IntentCard) {
+  if (!interpretedGoal.value || interpreting.value || busy.value) return;
+  const source = interpretedGoal.value;
+  interpreting.value = true; error.value = '';
   try {
-    interpretedGoal.value = await interpretRecruitmentGoal(rawGoal);
-    return interpretedGoal.value;
-  } finally {
-    interpreting.value = false;
-  }
-}
-
-function salaryChip(current: RecruitmentGoal): string {
-  if (current.minSalaryK != null && current.maxSalaryK != null) return `薪资 · ${current.minSalaryK}-${current.maxSalaryK}K`;
-  if (current.minSalaryK != null) return `薪资 · ${current.minSalaryK}K 以上`;
-  if (current.maxSalaryK != null) return `薪资 · ${current.maxSalaryK}K 以下`;
-  return '';
-}
-
-function experienceChip(current: RecruitmentGoal): string {
-  if (current.minExperienceYears != null && current.maxExperienceYears != null) return `经验 · ${current.minExperienceYears}-${current.maxExperienceYears} 年`;
-  if (current.minExperienceYears != null) return `经验 · ${current.minExperienceYears} 年以上`;
-  if (current.maxExperienceYears != null) return `经验 · ${current.maxExperienceYears} 年以内`;
-  return '';
+    const saved = await confirmRecruitmentGoal(source.id, card);
+    if (source.rawGoal !== goal.value.trim()) return;
+    interpretedGoal.value = saved; intentDirty.value = false;
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : '意向保存失败，请重试';
+    return;
+  } finally { interpreting.value = false; }
+  await start();
 }
 
 async function openSession() {
@@ -400,28 +373,26 @@ function handleAuthenticationFailure(reason: unknown) {
 
 watch(selectedPlatform, () => {
   stopSessionPolling(); sessionId.value = ''; authenticated.value = false; snapshot.value = null; error.value = ''; resetContactSelection();
-  if (activeView.value === 'operate') void openSession();
 });
 watch([selectedPlatform, activeView], ([platform, view]) => {
   void router.replace({ query: { ...route.query, platform, view, ...(showSources.value ? { sources: 'open' } : {}) } });
 });
-watch(activeView, (view) => { if (view === 'operate' && !sessionId.value) void openSession(); });
 watch(goal, (value) => {
   if (interpretedGoal.value && interpretedGoal.value.rawGoal !== value.trim()) interpretedGoal.value = null;
 });
 
 onMounted(async () => {
   void candidateIntroduction.load();
+  const initialInput = goal.value;
   try {
     const activeGoal = await loadActiveRecruitmentGoal();
-    if (activeGoal) {
+    if (activeGoal && goal.value === initialInput && (!initialInput || initialInput === activeGoal.rawGoal)) {
       goal.value = activeGoal.rawGoal;
       interpretedGoal.value = activeGoal;
     }
   } catch {
     // The editor remains usable when no backend goal exists yet.
   }
-  if (activeView.value === 'operate') void openSession();
 });
 onBeforeUnmount(() => { stopPolling(); stopSessionPolling(); });
 </script>
