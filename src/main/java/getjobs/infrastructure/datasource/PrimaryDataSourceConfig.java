@@ -40,17 +40,11 @@ import java.util.Map;
 @Configuration
 @EnableTransactionManagement
 @EntityScan(basePackages = {
-        "getjobs.modules.auth",
-        "getjobs.modules.sasl",
         "getjobs.repository.entity",
-        "getjobs.modules.webdocs.domain",
-        "getjobs.modules.resume.domain" // 简历模块实体
+        "getjobs.modules.resume.domain"
 })
 @EnableJpaRepositories(basePackages = {
-        "getjobs.modules.sasl.repository",
-        "getjobs.modules.auth.infrastructure",
         "getjobs.repository",
-        "getjobs.modules.webdocs.repository",
         "getjobs.modules.resume.repository"
 }, entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
 public class PrimaryDataSourceConfig {
@@ -144,10 +138,7 @@ public class PrimaryDataSourceConfig {
         LocalContainerEntityManagerFactoryBean factoryBean = new LocalContainerEntityManagerFactoryBean();
         factoryBean.setDataSource(dataSource);
         factoryBean.setPackagesToScan(
-                "getjobs.modules.auth",
-                "getjobs.modules.sasl",
                 "getjobs.repository.entity",
-                "getjobs.modules.webdocs.domain",
                 "getjobs.modules.resume.domain");
         factoryBean.setPersistenceUnitName("primary");
         factoryBean.setPersistenceProviderClass(HibernatePersistenceProvider.class);
@@ -162,10 +153,8 @@ public class PrimaryDataSourceConfig {
         }
         log.info("持久化单元: primary");
         log.info("扫描包路径:");
-        log.info("  - getjobs.modules.auth");
-        log.info("  - getjobs.modules.sasl");
         log.info("  - getjobs.repository.entity");
-        log.info("  - getjobs.modules.webdocs.domain");
+        log.info("  - getjobs.modules.resume.domain");
         log.info("═══════════════════════════════════════════════════════════");
 
         return factoryBean;

@@ -1,4 +1,4 @@
-package getjobs.modules.getjobs.boss.dto;
+package getjobs.common.dto;
 
 import getjobs.common.enums.RecruitmentPlatformEnum;
 import lombok.Data;
@@ -10,9 +10,7 @@ import java.util.List;
 /**
  * 职位数据传输对象
  * 
- * @author loks666
- *         项目链接: <a href=
- *         "https://github.com/loks666/get_jobs">https://github.com/loks666/get_jobs</a>
+ * 平台无关的岗位台账传输模型。
  */
 @Data
 public class JobDTO implements Serializable {

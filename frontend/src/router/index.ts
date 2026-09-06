@@ -8,10 +8,6 @@ const routes: RouteRecordRaw[] = [
   },
   ...featureRoutes,
   {
-    path: '/login',
-    redirect: '/workspace',
-  },
-  {
     path: '/:pathMatch(.*)*',
     component: () => import('@/views/NotFound.vue'),
   },

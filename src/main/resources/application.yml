@@ -10,8 +10,6 @@ spring:
     import:
       - optional:file:.env[.properties]
       - classpath:application-gpt.yml
-      - classpath:application-auth.yml
-      - classpath:application-dict.yml
   application:
     name: npe-get-jobs
   web:
@@ -58,9 +56,6 @@ async:
 proxy:
   host: ${HTTP_PROXY_HOST:}
   port: ${HTTP_PROXY_PORT:0}
-
-playwright:
-  enabled: false
 
 recruitment:
   browser:

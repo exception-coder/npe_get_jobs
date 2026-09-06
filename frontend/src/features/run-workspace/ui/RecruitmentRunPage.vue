@@ -128,10 +128,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { builtInPlatforms, loadRecruitmentPlatforms } from '@/entities/recruitment-platform/model/platforms';
+import { builtInPlatforms, loadRecruitmentPlatforms, type PlatformCode } from '@/entities/recruitment-platform/model/platforms';
 import { useCandidateIntroduction } from '@/features/candidate-introduction/model/useCandidateIntroduction';
 import CandidateIntroductionDialog from '@/features/candidate-introduction/ui/CandidateIntroductionDialog.vue';
-import type { PlatformCode } from '@/modules/intelligent-job-search/api/platformConfigApi';
 import {
   confirmWorkflowContact,
   interpretRecruitmentGoal,

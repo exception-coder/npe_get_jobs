@@ -1,5 +1,5 @@
 import { http, httpJson } from '@/api/http';
-import type { PlatformCode } from './platformConfigApi';
+import type { PlatformCode } from '@/entities/recruitment-platform/model/platforms';
 
 export interface JobRecord {
   id: string;

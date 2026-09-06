@@ -47,7 +47,7 @@
 import { ref, watch } from 'vue';
 import type { RecruitmentPlatform } from '@/entities/recruitment-platform/model/platforms';
 import { fetchJobRecords, updateContacted, type JobRecord } from '@/modules/intelligent-job-search/api/jobRecordsApi';
-import type { PlatformCode } from '@/modules/intelligent-job-search/api/platformConfigApi';
+import type { PlatformCode } from '@/entities/recruitment-platform/model/platforms';
 import JobDecisionFacts from './JobDecisionFacts.vue';
 
 const props = defineProps<{ platform: PlatformCode; platformTitle: string; platforms: RecruitmentPlatform[]; contactBusy?: boolean }>();

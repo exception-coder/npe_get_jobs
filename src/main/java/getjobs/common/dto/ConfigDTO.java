@@ -107,7 +107,7 @@ public class ConfigDTO {
 
     /**
      * 将ConfigEntity转换为ConfigDTO
-     * 参考AbstractRecruitmentService的实现，从UserProfile获取已迁移的用户配置字段
+     * 从 UserProfile 获取已迁移的用户配置字段。
      * 支持非Spring管理的Bean调用（通过SpringContextUtil获取Repository）
      */
     private static ConfigDTO convertFromEntity(ConfigEntity entity) {

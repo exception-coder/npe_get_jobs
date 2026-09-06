@@ -2,7 +2,7 @@ package getjobs.modules.getjobs.service;
 
 import getjobs.common.enums.JobStatusEnum;
 import getjobs.common.enums.RecruitmentPlatformEnum;
-import getjobs.modules.getjobs.boss.dto.JobDTO;
+import getjobs.common.dto.JobDTO;
 import getjobs.repository.entity.JobEntity;
 import getjobs.repository.JobRepository;
 import org.springframework.data.domain.Page;

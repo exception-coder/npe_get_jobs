@@ -4,6 +4,8 @@ export interface RecruitmentPlatform {
   icon: string;
 }
 
+export type PlatformCode = 'boss' | 'zhilian' | 'job51' | 'liepin';
+
 interface PlatformDescriptorResponse {
   id: string;
   displayName: string;
