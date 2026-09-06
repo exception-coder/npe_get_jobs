@@ -18,6 +18,18 @@ public class RecruitmentJobRegistryService {
         this.jobRepository = jobRepository;
     }
 
+    /** Freezes a bounded candidate set using the same local clock as persisted creation timestamps. */
+    public List<Long> todayIds(String platform) {
+        var start = java.time.LocalDate.now().atStartOfDay();
+        var rows = jobRepository
+                .findByPlatformAndIsDeletedFalseAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByIdAsc(
+                        platform, start, start.plusDays(1), org.springframework.data.domain.PageRequest.of(0, 501));
+        if (rows.size() > 500) {
+            throw new IllegalStateException("今日岗位超过500个，请先缩小采集范围后自动投递");
+        }
+        return rows.stream().map(JobEntity::getId).toList();
+    }
+
     /** Reads the stored identity instead of trusting client-supplied platform or URL. */
     public RegisteredJob requireRegisteredJob(Long id) {
         if (id == null) {
@@ -27,7 +39,12 @@ public class RecruitmentJobRegistryService {
                 .orElseThrow(() -> new IllegalArgumentException("岗位不存在，请刷新岗位库"));
         RecruitmentJob job = new RecruitmentJob(entity.getEncryptJobId(), entity.getJobTitle(),
                 entity.getCompanyName(), entity.getWorkCity(), entity.getSalaryDesc(),
-                entity.getJobDescription(), entity.getJobUrl());
+                entity.getJobDescription(), entity.getJobUrl(),
+                new getjobs.modules.recruitment.domain.RecruitmentJobFacts(
+                        entity.getJobExperience(), entity.getJobDegree(), entity.getCompanyIndustry(),
+                        entity.getCompanyStage(), entity.getCompanyScale(), entity.getHrName(), entity.getHrTitle(),
+                        entity.getHrOnline(), entity.getHrActiveTime(), entity.getEncryptHrId(),
+                        entity.getEncryptCompanyId(), entity.getSecurityId(), List.of(), List.of(), List.of()));
         if (!isRegistrable(entity.getPlatform(), job) || job.href() == null || job.href().isBlank()) {
             throw new IllegalArgumentException("岗位缺少平台标识或详情地址，请重新采集");
         }

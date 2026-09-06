@@ -13,6 +13,16 @@ class RecruitmentIntentAiTest {
     private final RecruitmentIntentCodec codec = new RecruitmentIntentCodec(new ObjectMapper());
 
     @Test
+    void preservesOutputFailureWithoutRepeatingTheSameRequest() throws Exception {
+        var client = mock(LlmClient.class);
+        when(client.chatJson(any())).thenThrow(new getjobs.infrastructure.ai.llm.LlmResponseException("模型输出达到 token 上限"));
+        var interpreter = new LlmRecruitmentGoalInterpreter(client, codec);
+        assertThatThrownBy(() -> interpreter.interpret("寻找 Java 岗位"))
+                .hasMessageContaining("token 上限").hasMessageContaining("尚未搜索");
+        verify(client, times(1)).chatJson(any());
+    }
+
+    @Test
     void retriesInvalidJsonWithoutEverReturningRawSearchText() throws Exception {
         var client = mock(LlmClient.class);
         when(client.chatJson(any())).thenReturn("bad-json", codec.write(RecruitmentIntentCardTest.fixture()));

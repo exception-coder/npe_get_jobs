@@ -45,10 +45,24 @@ public class SpringAiLlmClient implements LlmClient {
                 .responseFormat(new org.springframework.ai.openai.api.ResponseFormat(
                         org.springframework.ai.openai.api.ResponseFormat.Type.JSON_OBJECT, null))
                 .maxTokens(8192).build();
-        var response = model.call(new Prompt(converted, options));
-        if (response == null || response.getResult() == null
-                || !"stop".equals(response.getResult().getMetadata().getFinishReason())) {
-            throw new IllegalStateException("模型输出未完整结束，请重试");
+        org.springframework.ai.chat.model.ChatResponse response;
+        try {
+            response = model.call(new Prompt(converted, options));
+        } catch (RuntimeException exception) {
+            throw new LlmResponseException("模型接口调用失败，请检查服务连接、额度或配置后重试", exception);
+        }
+        if (response == null || response.getResult() == null) {
+            throw new LlmResponseException("模型未返回有效内容，请重试");
+        }
+        String finishReason = response.getResult().getMetadata().getFinishReason();
+        if ("length".equalsIgnoreCase(finishReason)) {
+            throw new LlmResponseException("模型输出达到 token 或上下文上限，未返回完整 JSON；请缩短需求后重试");
+        }
+        if (!"stop".equalsIgnoreCase(finishReason)) {
+            throw new LlmResponseException("模型输出未正常结束，请重试");
+        }
+        if (!StringUtils.hasText(response.getResult().getOutput().getText())) {
+            throw new LlmResponseException("模型返回内容为空，未生成最终 JSON，请重试");
         }
         return response.getResult().getOutput().getText();
     }

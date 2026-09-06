@@ -142,6 +142,15 @@ export function interpretRecruitmentGoal(goal: string): Promise<RecruitmentGoal>
   });
 }
 
+export interface DeepseekSettings { configured: boolean; model: string; models: string[];
+  provider?: 'deepseek' | 'custom'; baseUrl?: string; activeProvider?: string }
+export function loadDeepseekSettings(provider?: string): Promise<DeepseekSettings> {
+  return request('/api/recruitment/model-settings' + (provider ? `?provider=${encodeURIComponent(provider)}` : ''));
+}
+export function saveDeepseekSettings(apiKey: string, model: string, profile?: {provider: string; baseUrl: string}): Promise<DeepseekSettings> {
+  return request('/api/recruitment/model-settings', { method: 'PUT', body: JSON.stringify({ apiKey, model, ...profile }) });
+}
+
 export function loadActiveRecruitmentGoal(): Promise<RecruitmentGoal | null> {
   return request('/api/recruitment/goals/active');
 }
@@ -174,6 +183,13 @@ export function prepareWorkflowContact(taskId: string, platformJobId: string): P
 export interface ContactDeliveryOptions {
   sendResumeImage: boolean;
   resumeImagePath: string;
+}
+
+export interface AutoDeliveryProgress { id: string | null; status: string; total: number; checked: number; sent: number; message: string }
+export function loadAutoDelivery(): Promise<AutoDeliveryProgress> { return request('/api/recruitment/auto-delivery'); }
+export function stopAutoDelivery(): Promise<AutoDeliveryProgress> { return request('/api/recruitment/auto-delivery/stop', { method: 'POST' }); }
+export function startAutoDelivery(platform: string, goalId: number, greeting: string, options: ContactDeliveryOptions): Promise<AutoDeliveryProgress> {
+  return request('/api/recruitment/auto-delivery', { method: 'POST', body: JSON.stringify({ platform, goalId, greeting, ...options, confirmSend: true }) });
 }
 
 export function loadContactDefaults(): Promise<{ data?: { resumeImagePath?: string; sendImgResume?: boolean } }> {

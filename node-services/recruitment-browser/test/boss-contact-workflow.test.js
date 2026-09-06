@@ -4,7 +4,7 @@ import { chromium } from 'patchright';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { contactThroughMessagePage, readResumeImage, verifyConversation, fillConversationDraft } from '../src/platforms/boss/contact-workflow.js';
+import { contactThroughMessagePage, readResumeImage, verifyConversation, fillConversationDraft, sendConversationGreeting } from '../src/platforms/boss/contact-workflow.js';
 
 const job = { platformJobId: 'fixture-job', company: '测试公司', title: 'Java开发',
   href: 'https://www.zhipin.com/job_detail/fixture-job.html', facts: { recruiterName: '测试联系人' } };
@@ -43,6 +43,25 @@ test('draft flow establishes contact before chat and never uploads by default', 
     assert.match(visits[1], /geek\/chat/);
     const repeated = await contactThroughMessagePage(page, job, { greeting: '您好' });
     assert.match(repeated.reason, /ALREADY_ATTEMPTED/);
+  });
+});
+
+test('explicit text send requires a new delivered message and clears the draft', async () => {
+  await fixture(async page => {
+    await contactThroughMessagePage(page, job, { greeting: '您好' });
+    await page.locator('.btn-send').evaluate(button => {
+      button.onclick = () => {
+        const editor = document.querySelector('#chat-input');
+        const bubble = document.createElement('div');
+        const text = document.createElement('span');
+        text.textContent = editor.innerText;
+        bubble.append(text, document.createTextNode('送达'));
+        button.parentElement.append(bubble);
+        editor.innerText = '';
+      };
+    });
+    await sendConversationGreeting(page, { ...job, recruiterName: '测试联系人' }, '您好');
+    assert.equal(await page.locator('#chat-input').innerText(), '');
   });
 });
 

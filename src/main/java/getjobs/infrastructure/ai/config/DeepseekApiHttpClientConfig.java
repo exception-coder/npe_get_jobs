@@ -90,8 +90,15 @@ public class DeepseekApiHttpClientConfig {
         @Override
         public ClientHttpResponse intercept(HttpRequest request, byte[] body,
                                             ClientHttpRequestExecution execution) throws IOException {
-            if (!MAPPER.readTree(body).has("response_format")) {
-                body = injectEnableSearch(body);
+            if ("api.deepseek.com".equals(request.getURI().getHost())) {
+                JsonNode node = MAPPER.readTree(body);
+                if (node instanceof ObjectNode object
+                        && "json_object".equals(node.path("response_format").path("type").asText())) {
+                    object.putObject("thinking").put("type", "disabled");
+                    body = MAPPER.writeValueAsBytes(object);
+                } else {
+                    body = injectEnableSearch(body);
+                }
             }
             if (HTTP_LOG.isDebugEnabled()) {
                 HTTP_LOG.debug("--> {} {}\nBody: {}",

@@ -4,25 +4,33 @@
     <form v-if="draft" @submit.prevent="submit" @input="markDirty" @change="markDirty">
       <fieldset :disabled="saving">
         <label class="summary">意向概述<input v-model="draft.summary" required maxlength="500" /></label>
-        <div class="section-heading"><h4>目标职位</h4><button type="button" @click="addPosition">添加职位</button></div>
-        <div v-for="(position, index) in draft.targetPositions" :key="position.id" class="position-row">
+        <div class="section-heading"><h4>目标职位 <small>{{ draft.targetPositions.length }} 个</small></h4><button type="button" @click="addPosition">添加职位</button></div>
+        <div class="positions">
+        <details v-for="(position, index) in draft.targetPositions" :key="position.id" class="position-item" :open="editingPosition === position.id" @toggle="onPositionToggle(position.id, $event)">
+          <summary class="position-summary"><strong>{{ position.name || '新职位' }}</strong><small>{{ preferenceLabels[position.preference] }}</small><span class="edit-hint">编辑</span></summary>
+          <div class="position-row">
           <label>职位名称<input v-model="position.name" required maxlength="80" /></label>
           <label>搜索词（顿号分隔）<input :value="position.searchTerms.join('、')" required maxlength="120" @input="position.searchTerms = split(($event.target as HTMLInputElement).value)" /></label>
           <label>考虑程度<select v-model="position.preference"><option value="preferred">优先考虑</option><option value="acceptable">可以考虑</option><option value="conditional">选择性考虑</option><option value="excluded">不考虑</option></select></label>
           <button type="button" :aria-label="`删除职位${position.name}`" @click="draft.targetPositions.splice(index, 1); markDirty()">移除</button>
+          </div>
+        </details>
         </div>
         <h4>筛选要求</h4>
         <div class="requirements">
-          <div v-for="(label, key) in labels" :key="key" class="requirement">
-            <label :for="`intent-${key}`">{{ label }}</label>
+          <details v-for="(label, key) in visibleLabels" :key="key" class="requirement">
+            <summary class="requirement-summary"><span>{{ label }}</span><strong>{{ draft.requirements[key].state === 'unrestricted' ? '不限' : draft.requirements[key].value.join('、') || '待补充' }}</strong><small>{{ draft.requirements[key].state === 'specified' ? strengthLabels[draft.requirements[key].strength || 'prefer'] : '' }}</small><span class="edit-hint">编辑</span></summary>
+            <div class="requirement-editor">
             <div class="requirement-controls">
-              <select :id="`intent-${key}`" v-model="draft.requirements[key].state" :aria-label="`${label}状态`" @change="changeState(key)"><option value="unspecified">未说明</option><option value="unrestricted">不限</option><option value="specified">指定条件</option></select>
+              <select :id="`intent-${key}`" v-model="draft.requirements[key].state" :aria-label="`${label}状态`" @change="changeState(key)"><option value="unspecified">暂不设置</option><option value="unrestricted">不限</option><option value="specified">设置要求</option></select>
               <select v-if="draft.requirements[key].state === 'specified'" v-model="draft.requirements[key].strength" :aria-label="`${label}强度`"><option value="must">必须满足</option><option value="prefer">优先考虑</option><option value="exclude">排除</option></select>
             </div>
             <input v-if="draft.requirements[key].state === 'specified'" :aria-label="`${label}内容`" :value="draft.requirements[key].value.join('、')" placeholder="填写自然语言要求，多个值用顿号分隔" required @input="updateValue(key, ($event.target as HTMLInputElement).value)" />
-            <small v-if="draft.requirements[key].evidence">依据：{{ draft.requirements[key].evidence }}</small>
-          </div>
+            <details v-if="draft.requirements[key].evidence" class="evidence"><summary>查看原文依据</summary><small>{{ draft.requirements[key].evidence }}</small></details>
+            </div>
+          </details>
         </div>
+        <button v-if="missingCount" type="button" class="more-conditions" :aria-expanded="showUnspecified" @click="showUnspecified = !showUnspecified">{{ showUnspecified ? '收起未设置条件' : `补充其他条件（${missingCount}）` }}</button>
         <details v-if="Object.keys(draft.candidateContext).length"><summary>个人背景 · 用于资格核验，不作为搜索限制</summary><label v-for="(_, key) in draft.candidateContext" :key="key">{{ backgroundLabels[key] || key }}<input v-model="draft.candidateContext[key]" required maxlength="1000" /></label></details>
         <div class="section-heading"><h4>补充条件</h4><button type="button" @click="addCondition">添加条件</button></div>
         <p v-if="!draft.additionalRequirements.length" class="muted">没有补充要求。可添加专业准入、排除外包等条件。</p>
@@ -40,15 +48,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { IntentCard, RecruitmentGoal } from '@/shared/api/recruitment';
 const props = defineProps<{ goal: RecruitmentGoal; saving: boolean }>();
 const emit = defineEmits<{ confirm: [card: IntentCard]; dirty: [] }>();
 const draft = ref<IntentCard | null>(null);
 const dirty = ref(false);
 const validationError = ref('');
+const showUnspecified = ref(false);
+const editingPosition = ref<string | null>(null);
+const preferenceLabels: Record<string, string> = { preferred: '优先考虑', acceptable: '可以考虑', conditional: '选择性考虑', excluded: '不考虑' };
+function onPositionToggle(id: string, event: Event) {
+  if ((event.target as HTMLDetailsElement).open) editingPosition.value = id;
+  else if (editingPosition.value === id) editingPosition.value = null;
+}
+const strengthLabels: Record<string, string> = { must: '必须', prefer: '优先', exclude: '排除' };
 const labels: Record<string, string> = { regions: '区域', positionTypes: '职位类型', employmentTypes: '求职类型', salary: '薪资待遇', experienceRequirements: '工作经验要求', educationRequirements: '学历要求', companyIndustries: '公司行业', companySizes: '公司规模', financingStages: '融资阶段' };
 const backgroundLabels: Record<string, string> = { educationLevel: '学历层次', educationStatus: '在读状态', major: '专业', researchAreas: '研究方向', workExperience: '工作经验' };
+const missingCount = computed(() => Object.keys(labels).filter(key => draft.value?.requirements[key].state === 'unspecified').length);
+const visibleLabels = computed(() => Object.fromEntries(Object.entries(labels).filter(([key]) => showUnspecified.value || draft.value?.requirements[key].state !== 'unspecified')));
 watch(() => props.goal, value => { draft.value = value.card ? JSON.parse(JSON.stringify(value.card)) : null; dirty.value = false; validationError.value = ''; }, { immediate: true });
 function split(value: string) { return value.split(/[、，,\n]/).map(item => item.trim()).filter(Boolean); }
 function markDirty() { dirty.value = true; emit('dirty'); }
@@ -62,7 +80,7 @@ function updateValue(key: string, value: string) {
   const item = draft.value!.requirements[key];
   item.value = split(value); item.range = null; item.evidence = '用户编辑：' + value;
 }
-function addPosition() { draft.value!.targetPositions.push({ id: crypto.randomUUID(), name: '', searchTerms: [], preference: 'acceptable' }); markDirty(); }
+function addPosition() { const id = crypto.randomUUID(); draft.value!.targetPositions.push({ id, name: '', searchTerms: [], preference: 'acceptable' }); editingPosition.value = id; markDirty(); }
 function addCondition() { draft.value!.additionalRequirements.push({ id: crypto.randomUUID(), appliesTo: [], description: '', strength: 'prefer', evidence: '' }); markDirty(); }
 function submit() {
   if (!draft.value?.targetPositions.length) { validationError.value = '请至少保留一个目标职位'; return; }
@@ -84,8 +102,25 @@ input, select, textarea { width: 100%; min-width: 0; padding: 10px; border: 1px 
 textarea { resize: vertical; min-height: 70px; } button { cursor: pointer; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 10px 14px; color: var(--accent); background: var(--surface); font-size: 12px; }
 button:disabled { opacity: .5; cursor: wait; } button:hover:not(:disabled) { background: var(--surface-subtle); }
 .position-row { display: grid; grid-template-columns: 1fr 1.3fr 1fr auto; align-items: end; gap: 12px; margin-bottom: 12px; }
+.position-item { margin-top: 0; border-bottom: 1px solid var(--line); }
+.position-summary { display: flex; align-items: baseline; gap: 12px; padding: 12px 0; list-style: none; }
+.position-summary::-webkit-details-marker { display: none; }
+.position-summary strong { flex: 1; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.position-summary small { flex-shrink: 0; }
+.position-summary .edit-hint { flex-shrink: 0; }
+.position-item[open] .position-summary { color: var(--accent); }
 .requirements { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
-.requirement { display: grid; align-content: start; gap: 8px; } .requirement-controls { display: flex; gap: 8px; }
+.requirement { margin-top: 0; border-bottom: 1px solid var(--line); padding-bottom: 12px; min-width: 0; } .requirement-controls { display: flex; gap: 8px; }
+.requirement-summary { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; padding: 10px 0; list-style: none; }
+.requirement-summary::-webkit-details-marker { display: none; }
+.requirement-summary > span:first-child { width: 100%; color: var(--ink-muted); font-size: 12px; }
+.requirement-summary strong { font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.edit-hint { margin-left: auto; color: var(--accent); font-size: 12px; }
+.requirement-editor { display: grid; gap: 10px; padding-top: 8px; }
+.requirement-editor .evidence { margin-top: 0; }
+.more-conditions { margin-top: var(--space-4); }
+select:not([multiple]) { appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23766b5e' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .condition { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: var(--space-4); }
 details { margin-top: var(--space-6); } details label { margin-top: 12px; } summary { cursor: pointer; font-size: 13px; }
 footer { border-top: 1px solid var(--line); padding-top: var(--space-5); margin-top: var(--space-6); } footer button { background: var(--ink-strong); color: var(--surface); } footer button:hover:not(:disabled) { background: var(--accent); }

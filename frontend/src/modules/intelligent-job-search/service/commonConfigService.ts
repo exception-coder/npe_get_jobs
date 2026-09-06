@@ -96,10 +96,8 @@ export const useCommonConfigService = (state: CommonConfigState, snackbar: Snack
     try {
       console.log('[CommonConfig] 开始加载配置...');
       const [response, candidateProfile] = await Promise.all([fetchCommonConfig(), fetchCandidateProfile()]);
-      console.log('[CommonConfig] 收到响应:', response);
       
       const config: CommonConfig = response?.data ?? {};
-      console.log('[CommonConfig] 解析配置数据:', config);
 
       const normalizedPlatforms = normalizeAiPlatforms(response?.aiPlatforms);
       console.log('[CommonConfig] 标准化平台列表:', normalizedPlatforms);
@@ -161,7 +159,6 @@ export const useCommonConfigService = (state: CommonConfigState, snackbar: Snack
       });
       state.aiGreetingMessage = config.aiGreetingMessage ?? '';
 
-      console.log('[CommonConfig] 表单数据已更新:', state.form);
       snapshotForm();
       console.log('[CommonConfig] 配置加载完成');
     } catch (error) {
@@ -182,11 +179,6 @@ export const useCommonConfigService = (state: CommonConfigState, snackbar: Snack
   };
 
   const buildPayload = (): CommonConfig => {
-    const aiConfig = { ...state.aiConfigsCache };
-    if (state.form.aiPlatformKey) {
-      aiConfig[state.form.aiPlatform] = state.form.aiPlatformKey;
-    }
-
     return {
       jobBlacklistKeywords: toStringValue(state.form.jobBlacklist),
       companyBlacklistKeywords: toStringValue(state.form.companyBlacklist),
@@ -202,7 +194,6 @@ export const useCommonConfigService = (state: CommonConfigState, snackbar: Snack
       minSalary: state.form.minSalary ? Number(state.form.minSalary) : undefined,
       maxSalary: state.form.maxSalary ? Number(state.form.maxSalary) : undefined,
       aiPlatform: state.form.aiPlatform,
-      aiPlatformConfigs: aiConfig,
       enableAIJobMatch: state.form.enableAIJobMatch,
       enableAIJobMatchDetection: state.form.enableAIJobMatch,
       enableAIGreeting: state.form.enableAIGreeting,

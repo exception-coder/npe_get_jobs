@@ -2,6 +2,7 @@ package getjobs.modules.recruitment.infrastructure.ai;
 
 import getjobs.infrastructure.ai.llm.LlmClient;
 import getjobs.infrastructure.ai.llm.LlmMessage;
+import getjobs.infrastructure.ai.llm.LlmResponseException;
 import getjobs.modules.recruitment.domain.RecruitmentGoalConditions;
 import getjobs.modules.recruitment.spi.RecruitmentGoalInterpreter;
 import org.springframework.core.io.ClassPathResource;
@@ -43,9 +44,11 @@ public class LlmRecruitmentGoalInterpreter implements RecruitmentGoalInterpreter
                 return new RecruitmentGoalConditions(card.summary(), card.searchTerms(), List.of(), null, null,
                         null, null, List.of(), List.of(), List.of(), List.of(), null,
                         Map.of("intentCard", codec.write(card), "intentStatus", "draft"));
+            } catch (LlmResponseException exception) {
+                throw new IllegalStateException(exception.getMessage() + "；原文已保留，尚未搜索", exception);
             } catch (RuntimeException exception) {
                 if (attempt == 1) {
-                    throw new IllegalStateException("未能解析求职意向，请检查 DeepSeek 配置后重试；原文已保留，尚未搜索", exception);
+                    throw new IllegalStateException("模型返回的 JSON 格式或求职条件校验失败；原文已保留，尚未搜索", exception);
                 }
             }
         }

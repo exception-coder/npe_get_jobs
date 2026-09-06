@@ -45,6 +45,9 @@ public class DeepseekGptConfig {
         @Value("${spring.ai.deepseek.base-url:https://api.deepseek.com}")
         private String baseUrl;
 
+        @Value("${spring.ai.deepseek.completions-path:/v1/chat/completions}")
+        private String completionsPath;
+
         @Value("${spring.ai.deepseek.chat.options.model}")
         private String model;
 
@@ -124,7 +127,8 @@ public class DeepseekGptConfig {
                 return OpenAiApi.builder()
                                 .apiKey(apiKey)
                                 .baseUrl(baseUrl)
-                                .restClientBuilder(deepseekApiRestClientBuilder)
+                                .completionsPath(completionsPath)
+                                .restClientBuilder(deepseekApiRestClientBuilder.clone())
                                 .webClientBuilder(deepseekApiWebClientBuilder.clone())
                                 .build();
         }

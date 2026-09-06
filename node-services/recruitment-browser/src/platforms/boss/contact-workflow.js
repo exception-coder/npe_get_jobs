@@ -103,7 +103,32 @@ async function uploadImageOnce(page, expected, file) {
   }, before, { timeout: TIMEOUT });
 }
 
-/** Establishes contact before entering chat. Never sends the text draft or retries uploads. */
+/** Sends once only after explicit consent and verifies a receipt in the selected conversation. */
+export async function sendConversationGreeting(page, expected, greeting) {
+  await verifyConversation(page, expected);
+  const send = page.locator('.chat-conversation').getByRole('button', { name: '发送', exact: true });
+  if (await send.count() !== 1) throw new Error('TEXT_SEND_BUTTON_AMBIGUOUS');
+  const before = await page.evaluate(textReceiptCount, { text: greeting });
+  await send.click();
+  await page.waitForFunction(textReceiptCount, { text: greeting, before }, { timeout: TIMEOUT });
+  await verifyConversation(page, expected);
+}
+
+function textReceiptCount({ text, before }) {
+    const editor = document.querySelector('#chat-input');
+    const count = [...document.querySelectorAll('.chat-conversation *')].filter(node => {
+      if (node.children.length || node.closest('[contenteditable="true"]') || node.textContent.trim() !== text) return false;
+      let parent = node.parentElement;
+      for (let depth = 0; parent && depth < 4; depth++, parent = parent.parentElement) {
+        if (parent.classList.contains('chat-conversation')) return false;
+        if (/送达|已读/.test(parent.innerText)) return true;
+      }
+      return false;
+    }).length;
+    return before === undefined ? count : !editor?.innerText.trim() && count > before;
+}
+
+/** Establishes contact before entering chat; uncertain sends are never retried. */
 export async function contactThroughMessagePage(page, job, input, state) {
   const result = { platformJobId: job.platformJobId, status: 'FAILED',
     conversationEstablished: false, textSent: false, draftFilled: false, imageDelivered: false };
@@ -126,13 +151,20 @@ export async function contactThroughMessagePage(page, job, input, state) {
     await verifyConversation(page, expected);
     await fillConversationDraft(page, input.greeting);
     result.draftFilled = true;
+    if (input.deliveryOptions?.sendGreeting === true) {
+      result.reason = 'TEXT_SEND_UNCERTAIN_VERIFY_PLATFORM';
+      await sendConversationGreeting(page, expected, input.greeting);
+      result.textSent = true;
+      result.reason = undefined;
+    }
     if (file) {
       result.reason = 'IMAGE_SEND_UNCERTAIN_VERIFY_PLATFORM';
       await uploadImageOnce(page, expected, file);
       result.imageDelivered = true;
     }
     result.status = 'SUCCEEDED';
-    result.reason = file ? 'IMAGE_DELIVERED_TEXT_DRAFT_ONLY' : 'CONVERSATION_ESTABLISHED_TEXT_DRAFT_ONLY';
+    result.reason = result.textSent ? (file ? 'TEXT_AND_IMAGE_DELIVERED' : 'TEXT_DELIVERED')
+      : file ? 'IMAGE_DELIVERED_TEXT_DRAFT_ONLY' : 'CONVERSATION_ESTABLISHED_TEXT_DRAFT_ONLY';
   } catch (error) {
     result.reason ||= error.message;
   } finally {

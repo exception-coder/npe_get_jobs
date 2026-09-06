@@ -15,6 +15,10 @@ import java.util.Set;
 /** Persists the workspace job ledger and confirmed contact history. */
 public interface JobRepository extends JpaRepository<JobEntity, Long> {
 
+    /** Today's newly registered, undeleted candidates; updates do not change the collection date. */
+    List<JobEntity> findByPlatformAndIsDeletedFalseAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByIdAsc(
+            String platform, LocalDateTime start, LocalDateTime end, Pageable pageable);
+
     /** Updates one manual marker without overwriting a concurrently confirmed success. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE JobEntity j SET j.isContacted = :contacted, j.updatedAt = :now "

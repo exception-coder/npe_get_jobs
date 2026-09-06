@@ -21,6 +21,9 @@ test('intent card edits natural-language requirements and confirms without platf
         </script>`,
       }));
       await page.goto(process.env.NPE_UI_TEST_URL + '/__intent_preview');
+      assert.equal(await page.getByLabel('区域状态').count(), 0);
+      await page.getByRole('button', { name: '补充其他条件（9）' }).click();
+      await page.locator('.requirement-summary').filter({ hasText: '区域' }).click();
       await page.getByLabel('区域状态').selectOption('specified');
       await page.getByLabel('区域内容').fill('广州、深圳');
       await page.getByLabel('区域强度').selectOption('must');
@@ -30,10 +33,15 @@ test('intent card edits natural-language requirements and confirms without platf
       assert.equal(saved.requirements.regions.strength, 'must');
       assert.equal(saved.requirements.educationRequirements.state, 'unspecified');
       assert.equal(saved.candidateContext.educationStatus, '在读');
+      assert.notEqual(await page.getByLabel('区域状态').evaluate(el => getComputedStyle(el).backgroundImage), 'none');
+      await page.locator('.requirement-summary').filter({ hasText: '区域' }).click();
+      await page.getByRole('button', { name: '收起未设置条件' }).click();
+      assert.equal(await page.locator('.requirement-summary').count(), 1);
       await page.screenshot({ path: process.env.TEMP + '/npe-intent-desktop.png', fullPage: true });
       await page.setViewportSize({ width: 375, height: 812 });
       await page.screenshot({ path: process.env.TEMP + '/npe-intent-mobile.png', fullPage: true });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      await page.locator('.position-summary').filter({ hasText: '疾病生物学' }).click();
       await page.getByRole('button', { name: '删除职位疾病生物学' }).click();
       await page.getByRole('button', { name: '确认意向并开始寻找' }).click();
       assert.equal(await page.getByRole('alert').innerText(), '请至少保留一个目标职位');
@@ -57,6 +65,7 @@ test('workspace parses first, requires confirmation, then starts with confirmed 
         calls.push(path);
         let body = {};
         if (path.endsWith('/platforms')) body = [{ id: 'boss', displayName: 'BOSS直聘', icon: 'mdi-briefcase' }];
+        else if (path.endsWith('/model-settings')) body = { configured: true, model: 'deepseek-chat', models: ['deepseek-chat'] };
         else if (path.endsWith('/profile')) body = { selfIntroduction: '', introductionRequired: false };
         else if (path.endsWith('/active')) body = null;
         else if (path.endsWith('/interpret')) { rawGoal = route.request().postDataJSON().goal; body = result(false); }

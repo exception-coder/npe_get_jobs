@@ -51,13 +51,7 @@
       </div>
     </section>
 
-    <details class="service-settings">
-      <summary><span><strong>模型服务</strong><small>只有需要更换或补充密钥时才展开</small></span><i class="mdi mdi-chevron-down" /></summary>
-      <div class="service-fields">
-        <label class="field"><span>服务</span><select v-model="state.form.aiPlatform" disabled><option v-for="item in state.aiPlatforms" :key="item.value" :value="item.value">{{ item.label }}</option></select></label>
-        <label class="field"><span>API Key</span><div class="secret-input"><input v-model.trim="state.form.aiPlatformKey" :type="state.showSecret ? 'text' : 'password'" autocomplete="off" placeholder="sk-…" /><button type="button" @click="state.showSecret = !state.showSecret">{{ state.showSecret ? '隐藏' : '显示' }}</button></div></label>
-      </div>
-    </details>
+    <p>DeepSeek 的 Key 和模型已移至「今天」首页配置。</p>
 
     <footer class="editor-actions">
       <span>修改只影响后续任务</span>

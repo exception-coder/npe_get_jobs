@@ -12,6 +12,8 @@
         <h2 id="workspace-title">今天想找什么工作？</h2>
         <p class="hero-copy">说出岗位目标，系统会带回值得你判断的机会。</p>
 
+        <DeepseekSettings @ready="modelReady = $event" />
+
         <form class="intent-composer" @submit.prevent="start">
           <label class="sr-only" for="job-goal">目标岗位</label>
           <textarea id="job-goal" v-model="goal" rows="3" placeholder="例如：广州 Java 高级工程师，偏电商或供应链方向" @keydown.meta.enter="start" @keydown.ctrl.enter="start" />
@@ -19,7 +21,7 @@
             <button class="source-trigger" type="button" :aria-expanded="showSources" @click="showSources = !showSources">
               <span :class="['source-dot', authenticated ? 'connected' : '']" />{{ platformName }}{{ authenticated ? ' 已登录' : ' 未登录' }}<i class="mdi mdi-chevron-down" />
             </button>
-            <button class="find-button" type="submit" :disabled="busy || interpreting || !goal.trim()">
+            <button class="find-button" type="submit" :disabled="busy || interpreting || !goal.trim() || !modelReady" :title="modelReady ? '' : '请先在上方配置模型服务'">
               <i :class="busy || interpreting ? 'mdi mdi-loading mdi-spin' : 'mdi mdi-arrow-up'" />{{ interpreting ? '正在理解' : busy ? '正在寻找' : interpretedGoal?.confirmed && !intentDirty && interpretedGoal.rawGoal === goal.trim() ? '开始寻找' : '解析求职意向' }}
             </button>
           </div>
@@ -27,6 +29,7 @@
 
         <RecruitmentIntentCard v-if="interpretedGoal?.card && interpretedGoal.rawGoal === goal.trim()"
           :goal="interpretedGoal" :saving="interpreting || busy" @dirty="intentDirty = true" @confirm="confirmIntent" />
+        <TodayAutoDelivery :platform="selectedPlatform" />
 
         <div class="suggestions" aria-label="常用目标">
           <button v-for="item in suggestions" :key="item" type="button" @click="goal = item">{{ item }}</button>
@@ -121,6 +124,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { builtInPlatforms, loadRecruitmentPlatforms, type PlatformCode } from '@/entities/recruitment-platform/model/platforms';
+import DeepseekSettings from './DeepseekSettings.vue';
+import TodayAutoDelivery from './TodayAutoDelivery.vue';
 import { useCandidateIntroduction } from '@/features/candidate-introduction/model/useCandidateIntroduction';
 import CandidateIntroductionDialog from '@/features/candidate-introduction/ui/CandidateIntroductionDialog.vue';
 import {
@@ -151,6 +156,7 @@ const route = useRoute();
 const router = useRouter();
 const candidateIntroduction = useCandidateIntroduction();
 const platforms = ref(builtInPlatforms);
+const modelReady = ref(false);
 const selectedPlatform = ref(typeof route.query.platform === 'string' ? route.query.platform : 'boss');
 const activeView = ref<WorkspaceView>(route.query.view === 'history' || route.query.view === 'assets' ? route.query.view : 'operate');
 const showSources = ref(route.query.sources === 'open');
@@ -192,6 +198,7 @@ const selectedJob = computed(() => snapshot.value?.jobs.find((job) => job.platfo
 loadRecruitmentPlatforms().then((value) => { platforms.value = value; }).catch(() => undefined);
 
 async function start() {
+  if (!modelReady.value) return;
   if (!goal.value.trim() || busy.value || interpreting.value) return;
   error.value = '';
   localStorage.setItem('career-flow:last-goal', goal.value.trim());
