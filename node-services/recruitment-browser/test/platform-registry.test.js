@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PlatformRegistry } from '../src/platforms/registry.js';
 import { platformRegistry } from '../src/platforms/index.js';
-import boss, { decodeBossText, mapBossApiJob } from '../src/platforms/boss/index.js';
+import boss, { decodeBossText, mapBossApiJob, normalizeBossOnline } from '../src/platforms/boss/index.js';
+import job51 from '../src/platforms/job51/index.js';
+import { createRecruitmentActions } from '../src/platforms/shared/recruitment-actions.js';
+import zhilian from '../src/platforms/zhilian/index.js';
 
 test('rejects duplicate platform identifiers', () => {
   assert.throws(
@@ -41,7 +44,11 @@ test('every built-in platform exposes independently callable recruitment actions
 
 test('BOSS prepareContact inspects the chat context without clicking or typing', async () => {
   const calls = [];
-  const visible = new Set(['a.btn.btn-startchat']);
+  const authenticatedSelector = [
+    'a[ka="header-message"]', 'a[ka="header-resume"]',
+    'a[href*="/web/geek/chat"]', 'li.nav-figure',
+  ].join(', ');
+  const visible = new Set(['a.btn.btn-startchat', authenticatedSelector]);
   const page = {
     goto: async (url) => calls.push(['goto', url]),
     url: () => 'https://www.zhipin.com/job_detail/boss-1.html',
@@ -95,6 +102,27 @@ test('BOSS session remains blocked when the login entry is visible', async () =>
   assert.equal(result.recoveryAction, 'OPEN_LOGIN_SESSION');
 });
 
+test('BOSS session accepts authenticated markers even on a stale login URL', async () => {
+  const authenticatedSelector = [
+    'a[ka="header-message"]',
+    'a[ka="header-resume"]',
+    'a[href*="/web/geek/chat"]',
+    'li.nav-figure',
+  ].join(', ');
+  const page = {
+    url: () => 'https://www.zhipin.com/web/user/?ka=header-login',
+    locator: (selector) => ({
+      first() { return this; },
+      isVisible: async () => selector === authenticatedSelector,
+    }),
+  };
+
+  const result = await boss.actions.sessionStatus({ page });
+
+  assert.equal(result.authenticated, true);
+  assert.equal(result.recoveryAction, null);
+});
+
 test('BOSS search refuses to navigate before authentication', async () => {
   let navigated = false;
   const page = {
@@ -113,8 +141,59 @@ test('BOSS search refuses to navigate before authentication', async () => {
   assert.equal(navigated, false);
 });
 
+test('Zhilian login page is never treated as authenticated when login selectors are absent', async () => {
+  const page = {
+    url: () => 'https://passport.zhaopin.com/login',
+    locator: () => ({ first() { return this; }, isVisible: async () => false }),
+  };
+  const result = await zhilian.actions.sessionStatus({ page });
+  assert.equal(result.authenticated, false);
+  assert.equal(result.recoveryAction, 'OPEN_LOGIN_SESSION');
+});
+
+test('51job unknown page state fails closed without an authenticated marker', async () => {
+  const page = {
+    url: () => 'https://we.51job.com/pc/search',
+    locator: () => ({ first() { return this; }, isVisible: async () => false }),
+  };
+  const result = await job51.actions.sessionStatus({ page });
+  assert.equal(result.authenticated, false);
+  assert.equal(result.recoveryAction, 'OPEN_LOGIN_SESSION');
+});
+
+test('shared recruitment actions reject unauthenticated direct calls', async () => {
+  let invoked = false;
+  const actions = createRecruitmentActions({
+    authenticated: async () => false,
+    searchJobs: async () => { invoked = true; },
+    collectVisibleJobs: async () => { invoked = true; },
+    scrollJobList: async () => { invoked = true; },
+    inspectVisibleJobs: async () => { invoked = true; },
+    prepareContact: async () => { invoked = true; },
+    contact: async () => { invoked = true; },
+  });
+  const context = { page: {} };
+  await assert.rejects(actions.searchJobs(context, {}), /AUTHENTICATION_REQUIRED/);
+  await assert.rejects(actions.collectVisibleJobs(context), /AUTHENTICATION_REQUIRED/);
+  await assert.rejects(actions.scrollJobList(context), /AUTHENTICATION_REQUIRED/);
+  await assert.rejects(actions.inspectVisibleJobs(context), /AUTHENTICATION_REQUIRED/);
+  await assert.rejects(actions.prepareContact(context, { jobs: [] }), /AUTHENTICATION_REQUIRED/);
+  await assert.rejects(actions.sendContact(context, { jobs: [{}], confirmContact: true }), /AUTHENTICATION_REQUIRED/);
+  assert.equal(invoked, false);
+});
+
 test('BOSS private-use salary digits are normalized before filtering', () => {
   assert.equal(decodeBossText('\uE033\uE031-\uE034\uE031K·\uE032\uE035薪'), '20-30K·14薪');
+});
+
+test('BOSS recruiter online enums preserve offline instead of degrading to unknown', () => {
+  assert.equal(normalizeBossOnline(true), true);
+  assert.equal(normalizeBossOnline(1), true);
+  assert.equal(normalizeBossOnline('1'), true);
+  assert.equal(normalizeBossOnline(false), false);
+  assert.equal(normalizeBossOnline(0), false);
+  assert.equal(normalizeBossOnline('0'), false);
+  assert.equal(normalizeBossOnline(undefined), null);
 });
 
 test('BOSS search API jobs retain normalized facts without DOM parsing', () => {
@@ -133,4 +212,45 @@ test('BOSS search API jobs retain normalized facts without DOM parsing', () => {
   assert.equal(job.facts.companyScale, '1000-9999人');
   assert.equal(job.facts.recruiterOnline, true);
   assert.equal(job.facts.recruiterActiveText, '刚刚活跃');
+});
+
+test('discovery keeps loading while API batches progress even when DOM count is stable', async () => {
+  let batch = 0;
+  const definition = {
+    authenticated: async () => true,
+    searchJobs: async () => ({ sideEffect: false }),
+    collectVisibleJobs: async () => ({
+      jobs: [{ platformJobId: `job-${batch}`, href: `https://example.com/job-${batch}` }],
+      sideEffect: false,
+    }),
+    scrollJobList: async () => {
+      batch += 1;
+      return { changed: false, loaded: 0, apiResponses: 1, hasMore: batch < 3, sideEffect: false };
+    },
+  };
+  const actions = createRecruitmentActions(definition);
+
+  const result = await actions.discover({ page: {} }, { maxScrolls: 8, limit: 100 });
+
+  assert.equal(result.discovered, 4);
+  assert.equal(result.batches.length, 4);
+  assert.deepEqual(result.jobs.map(({ platformJobId }) => platformJobId), ['job-0', 'job-1', 'job-2', 'job-3']);
+});
+
+test('discovery stops after two stagnant scroll attempts', async () => {
+  let scrolls = 0;
+  const definition = {
+    authenticated: async () => true,
+    searchJobs: async () => ({ sideEffect: false }),
+    collectVisibleJobs: async () => ({ jobs: [], sideEffect: false }),
+    scrollJobList: async () => {
+      scrolls += 1;
+      return { changed: false, loaded: 0, apiResponses: 0, hasMore: true, sideEffect: false };
+    },
+  };
+  const actions = createRecruitmentActions(definition);
+
+  await actions.discover({ page: {} }, { maxScrolls: 8, limit: 100 });
+
+  assert.equal(scrolls, 2);
 });

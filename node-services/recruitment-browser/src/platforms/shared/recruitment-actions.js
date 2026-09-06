@@ -1,5 +1,7 @@
 const DEFAULT_TIMEOUT = 15_000;
 const DEFAULT_SCROLL_DISTANCE = 720;
+const DEFAULT_MAX_SCROLLS = 1;
+const MAX_STAGNANT_SCROLLS = 2;
 
 const text = async (scope, selectors) => {
   for (const selector of selectors) {
@@ -31,9 +33,14 @@ export const queryString = (baseUrl, values) => {
 };
 
 export const createRecruitmentActions = (definition) => {
+  const requireAuthenticated = async (page) => {
+    const authenticated = await definition.authenticated(page).catch(() => false);
+    if (!authenticated) throw new Error('AUTHENTICATION_REQUIRED');
+  };
+
   const actions = {
     async sessionStatus({ page }) {
-      const authenticated = await definition.authenticated(page);
+      const authenticated = await definition.authenticated(page).catch(() => false);
       return {
         authenticated,
         currentUrl: page.url(),
@@ -43,10 +50,12 @@ export const createRecruitmentActions = (definition) => {
 
     async searchJobs(context, input) {
       const { page } = context;
+      await requireAuthenticated(page);
       if (definition.searchJobs) return definition.searchJobs(page, input, context);
       const search = input.search || { keyword: '', cityCode: '' };
       const url = definition.buildSearchUrl(search, input.filters || {});
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+      await requireAuthenticated(page);
       await page.locator(definition.card).first()
         .waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT })
         .catch(() => null);
@@ -55,6 +64,7 @@ export const createRecruitmentActions = (definition) => {
 
     async collectVisibleJobs(context, input = {}) {
       const { page } = context;
+      await requireAuthenticated(page);
       if (definition.collectVisibleJobs) return definition.collectVisibleJobs(page, input, context);
       const cards = page.locator(definition.card);
       const count = Math.min(await cards.count(), input.limit ?? 100);
@@ -68,6 +78,7 @@ export const createRecruitmentActions = (definition) => {
 
     async scrollJobList(context, input = {}) {
       const { page } = context;
+      await requireAuthenticated(page);
       if (definition.scrollJobList) return definition.scrollJobList(page, input, context);
       const before = await page.locator(definition.card).count();
       const distance = Math.min(Math.max(Number(input.distance ?? DEFAULT_SCROLL_DISTANCE), 200), 1_200);
@@ -83,6 +94,7 @@ export const createRecruitmentActions = (definition) => {
     },
 
     async inspectVisibleJobs({ page }) {
+      await requireAuthenticated(page);
       if (!definition.inspectVisibleJobs) {
         return { available: false, sideEffect: false };
       }
@@ -90,6 +102,7 @@ export const createRecruitmentActions = (definition) => {
     },
 
     async prepareContact({ page }, input) {
+      await requireAuthenticated(page);
       const results = [];
       for (const job of input.jobs || []) {
         if (definition.prepareContact) {
@@ -116,6 +129,7 @@ export const createRecruitmentActions = (definition) => {
       if (input.confirmContact !== true) return confirmationRequired(input.jobs || []);
       const results = [];
       for (const job of input.jobs || []) {
+        await requireAuthenticated(page);
         const send = definition.sendContact || definition.contact;
         results.push(await send(page, job, input));
         if (input.delayMs) await page.waitForTimeout(input.delayMs);
@@ -130,20 +144,28 @@ export const createRecruitmentActions = (definition) => {
 
   actions.discover = async (context, input) => {
     const searches = input.searches?.length ? input.searches : [{ keyword: '', cityCode: '' }];
+    const jobLimit = Math.max(Number(input.limit ?? 100), 1);
+    const maxScrolls = Math.max(Number(input.maxScrolls ?? DEFAULT_MAX_SCROLLS), 0);
     const jobs = new Map();
     const batches = [];
     for (const search of searches) {
       await actions.searchJobs(context, { search, filters: input.filters });
-      const initial = await actions.collectVisibleJobs(context, { limit: input.limit });
+      const initial = await actions.collectVisibleJobs(context, { limit: jobLimit });
       addBatch(initial.jobs, jobs, batches);
-      for (let index = 0; index < (input.maxScrolls ?? 1); index += 1) {
+      let stagnantScrolls = 0;
+      for (let index = 0; index < maxScrolls && jobs.size < jobLimit; index += 1) {
+        const sizeBefore = jobs.size;
         const scroll = await actions.scrollJobList(context, input.scroll || {});
-        const collected = await actions.collectVisibleJobs(context, { limit: input.limit });
+        const collected = await actions.collectVisibleJobs(context, { limit: jobLimit });
         addBatch(collected.jobs, jobs, batches);
-        if (scroll.changed === false || (scroll.changed == null && scroll.loaded === 0)) break;
+        const discoveredNewJobs = jobs.size > sizeBefore;
+        const scrollProgressed = scroll.changed === true || Number(scroll.apiResponses ?? 0) > 0;
+        stagnantScrolls = discoveredNewJobs || scrollProgressed ? 0 : stagnantScrolls + 1;
+        if (scroll.hasMore === false || stagnantScrolls >= MAX_STAGNANT_SCROLLS) break;
       }
     }
-    return { jobs: [...jobs.values()], batches, discovered: jobs.size, sideEffect: false };
+    const limitedJobs = [...jobs.values()].slice(0, jobLimit);
+    return { jobs: limitedJobs, batches: limitBatches(batches, jobLimit), discovered: limitedJobs.length, sideEffect: false };
   };
 
   actions.contact = actions.sendContact;
@@ -158,6 +180,18 @@ const addBatch = (items, jobs, batches) => {
     if (key) jobs.set(key, job);
   }
   if (incremental.length) batches.push(incremental);
+};
+
+const limitBatches = (batches, limit) => {
+  let remaining = limit;
+  const limited = [];
+  for (const batch of batches) {
+    if (remaining <= 0) break;
+    const items = batch.slice(0, remaining);
+    if (items.length) limited.push(items);
+    remaining -= items.length;
+  }
+  return limited;
 };
 
 const unique = (jobs) => [...new Map(jobs

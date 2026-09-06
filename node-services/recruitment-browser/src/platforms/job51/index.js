@@ -1,5 +1,17 @@
 import { clickFirst, createRecruitmentActions, idFromUrl, queryString } from '../shared/recruitment-actions.js';
 
+const LOGIN_SELECTOR = 'span.login.loginBtnClick, .login, a[href*="login.51job.com"]';
+const AUTHENTICATED_SELECTOR = 'div.user a.uname, div.user .uname, a[href*="logout"]';
+
+const isLoginPage = (page) => {
+  try {
+    const url = new URL(page.url());
+    return url.hostname === 'login.51job.com' || url.pathname.includes('/login');
+  } catch {
+    return true;
+  }
+};
+
 const definition = {
   card: 'div.joblist .joblist-item, .j_joblist .e',
   fields: {
@@ -12,9 +24,14 @@ const definition = {
     keyword, jobArea: cityCode, salary: filters.salary, workYear: filters.experience,
     degree: filters.degree, companySize: filters.scale, issueDate: filters.publishTime, jobType: filters.jobType,
   }),
-  authenticated: async (page) => !(await page.locator('.login, a[href*="login.51job.com"]').first().isVisible().catch(() => true)),
+  authenticated: async (page) => {
+    if (isLoginPage(page)) return false;
+    if (await page.locator(LOGIN_SELECTOR).first().isVisible().catch(() => false)) return false;
+    return page.locator(AUTHENTICATED_SELECTOR).first().isVisible().catch(() => false);
+  },
   contact: async (page, job) => {
     await page.goto(job.href, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    if (!(await definition.authenticated(page))) throw new Error('AUTHENTICATION_REQUIRED');
     const clicked = await clickFirst(page, ['button:has-text("申请职位")', 'a:has-text("申请职位")']);
     return clicked ? { platformJobId: job.platformJobId, status: 'SUCCEEDED', reason: null }
       : { platformJobId: job.platformJobId, status: 'SKIPPED', reason: 'APPLICATION_ACTION_UNAVAILABLE' };

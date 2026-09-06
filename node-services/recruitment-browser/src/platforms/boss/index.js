@@ -2,6 +2,7 @@ import { clickFirst, createRecruitmentActions, idFromUrl, queryString, readCard 
 
 const RESULT_TIMEOUT = 15_000;
 const SCROLL_SETTLE_MS = 1_500;
+const SESSION_MARKER_TIMEOUT = 5_000;
 const LOGIN_SELECTOR = [
   'a.header-login-btn',
   'a[href="/web/user/"]',
@@ -27,6 +28,12 @@ const list = (value) => Array.isArray(value)
     .filter(Boolean)
   : [];
 
+export const normalizeBossOnline = (value) => {
+  if (value === true || value === 1 || value === '1') return true;
+  if (value === false || value === 0 || value === '0') return false;
+  return null;
+};
+
 export const mapBossApiJob = (item) => ({
   platformJobId: item.encryptJobId || '',
   title: item.jobName || '',
@@ -44,8 +51,8 @@ export const mapBossApiJob = (item) => ({
     companyScale: item.brandScaleName || null,
     recruiterName: item.bossName || null,
     recruiterTitle: item.bossTitle || null,
-    recruiterOnline: typeof item.bossOnline === 'boolean' ? item.bossOnline : null,
-    recruiterActiveText: item.bossActiveTimeDesc || item.activeTimeDesc || null,
+    recruiterOnline: normalizeBossOnline(item.bossOnline ?? item.bossInfo?.bossOnline),
+    recruiterActiveText: item.bossActiveTimeDesc || item.activeTimeDesc || item.bossInfo?.activeTimeDesc || null,
     recruiterId: item.encryptBossId || null,
     companyId: item.encryptBrandId || null,
     securityId: item.securityId || null,
@@ -116,10 +123,17 @@ const definition = {
     industry: filters.industry, stage: filters.stage,
   }),
   authenticated: async (page) => {
-    if (page.url().includes('/web/user')) return false;
     const loginEntry = page.locator(LOGIN_SELECTOR).first();
+    const authenticatedEntry = page.locator(AUTHENTICATED_SELECTOR).first();
+    if (typeof loginEntry.waitFor === 'function' && typeof authenticatedEntry.waitFor === 'function') {
+      await Promise.race([
+        loginEntry.waitFor({ state: 'visible', timeout: SESSION_MARKER_TIMEOUT }),
+        authenticatedEntry.waitFor({ state: 'visible', timeout: SESSION_MARKER_TIMEOUT }),
+      ]).catch(() => null);
+    }
     if (await loginEntry.isVisible().catch(() => false)) return false;
-    return page.locator(AUTHENTICATED_SELECTOR).first().isVisible().catch(() => false);
+    if (await authenticatedEntry.isVisible().catch(() => false)) return true;
+    return false;
   },
   searchJobs: async (page, input, { state }) => {
     if (!(await definition.authenticated(page))) throw new Error('AUTHENTICATION_REQUIRED');
@@ -178,15 +192,26 @@ const definition = {
   scrollJobList: async (page, input = {}, { state }) => {
     const monitor = ensureResponseMonitor(page, state);
     const responseCountBefore = monitor.responses;
+    const apiJobCountBefore = monitor.cache.size;
     const cards = await jobCards(page);
     const before = await cards.count();
     const cursorBefore = before > 0
       ? await cards.nth(before - 1).locator('a[href*="/job_detail/"]').first().getAttribute('href').catch(() => null)
       : null;
+    const distance = Math.min(Math.max(Number(input.distance ?? 640), 240), 1_000);
     if (before > 0) await cards.nth(before - 1).scrollIntoViewIfNeeded().catch(() => null);
-    await page.evaluate((distance) => window.scrollBy({ top: distance, behavior: 'auto' }),
-      Math.min(Math.max(Number(input.distance ?? 640), 240), 1_000));
+    const scrollTarget = await page.evaluate(({ selectors, delta }) => {
+      const container = selectors.map((selector) => document.querySelector(selector))
+        .find((element) => element && element.scrollHeight > element.clientHeight);
+      if (container) {
+        container.scrollBy({ top: delta, behavior: 'auto' });
+        return 'container';
+      }
+      window.scrollBy({ top: delta, behavior: 'auto' });
+      return 'window';
+    }, { selectors: definition.scrollContainers, delta: distance });
     await page.waitForTimeout(input.waitMs ?? SCROLL_SETTLE_MS);
+    await Promise.all([...monitor.pending]);
     const after = await cards.count();
     const cursorAfter = after > 0
       ? await cards.nth(after - 1).locator('a[href*="/job_detail/"]').first().getAttribute('href').catch(() => null)
@@ -197,9 +222,11 @@ const definition = {
       loaded: Math.max(after - before, 0),
       cursorBefore,
       cursorAfter,
-      changed: after > before || cursorAfter !== cursorBefore,
+      changed: monitor.cache.size > apiJobCountBefore || after > before || cursorAfter !== cursorBefore,
       apiResponses: monitor.responses - responseCountBefore,
+      apiJobsLoaded: Math.max(monitor.cache.size - apiJobCountBefore, 0),
       hasMore: monitor.hasMore,
+      scrollTarget,
       sideEffect: false,
     };
   },
@@ -233,6 +260,7 @@ const definition = {
   },
   prepareContact: async (page, job) => {
     await page.goto(job.href, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    if (!(await definition.authenticated(page))) throw new Error('AUTHENTICATION_REQUIRED');
     const contactActionVisible = await page.locator('a.btn.btn-startchat').first().isVisible().catch(() => false);
     const editorVisible = await page.locator('#chat-input').first().isVisible().catch(() => false);
     return {
@@ -245,18 +273,31 @@ const definition = {
     };
   },
   sendContact: async (page, job, input) => {
-    await page.goto(job.href, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    const clicked = await clickFirst(page, ['a.btn.btn-startchat']);
-    if (!clicked) return { platformJobId: job.platformJobId, status: 'SKIPPED', reason: 'CONTACT_ACTION_UNAVAILABLE' };
-    if (input.greeting) {
-      const editor = page.locator('#chat-input').first();
-      if (await editor.isVisible().catch(() => false)) {
-        await editor.fill(input.greeting);
-        await clickFirst(page, ['button[type="send"]']);
-      }
+    if (page.url().split('?')[0] !== job.href.split('?')[0]) {
+      await page.goto(job.href, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     }
-    return { platformJobId: job.platformJobId, status: 'SUCCEEDED', reason: null };
+    if (!(await definition.authenticated(page))) throw new Error('AUTHENTICATION_REQUIRED');
+    const editor = page.locator('#chat-input:visible, textarea[placeholder="请简短描述您的问题"]:visible, [contenteditable="true"][data-placeholder="请简短描述您的问题"]:visible').first();
+    if (!(await editor.isVisible().catch(() => false))) {
+      const clicked = await clickFirst(page, ['a.btn.btn-startchat']);
+      if (!clicked) return { platformJobId: job.platformJobId, status: 'BLOCKED', reason: 'CONTACT_ACTION_UNAVAILABLE' };
+    }
+    return fillBossDraft(editor, job.platformJobId, input.greeting);
   },
 };
+
+/** Fills and verifies a draft without clicking Send or pressing Enter. */
+export async function fillBossDraft(editor, platformJobId, greeting) {
+  if (!greeting?.trim()) return { platformJobId, status: 'BLOCKED', reason: 'GREETING_REQUIRED' };
+  try {
+    await editor.waitFor({ state: 'visible', timeout: 15_000 });
+    await editor.fill(greeting);
+    const value = await editor.evaluate((element) => 'value' in element ? element.value : element.textContent);
+    if (value !== greeting) return { platformJobId, status: 'FAILED', reason: 'DRAFT_VERIFICATION_FAILED' };
+    return { platformJobId, status: 'SKIPPED', reason: 'DRAFT_FILLED_NOT_SENT' };
+  } catch {
+    return { platformJobId, status: 'FAILED', reason: 'CHAT_EDITOR_UNAVAILABLE_OR_FILL_FAILED' };
+  }
+}
 
 export default { id: 'boss', hosts: ['zhipin.com'], capabilities: ['session', 'discover', 'contact'], actions: createRecruitmentActions(definition) };
