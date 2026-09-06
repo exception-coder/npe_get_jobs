@@ -105,6 +105,12 @@ public class RecruitmentWorkflowService {
     }
 
     public RecruitmentWorkflowSnapshot confirmContact(UUID taskId, String platformJobId, String greeting) {
+        return confirmContact(taskId, platformJobId, greeting,
+                getjobs.modules.recruitment.domain.ContactDeliveryOptions.DRAFT_ONLY);
+    }
+
+    public RecruitmentWorkflowSnapshot confirmContact(UUID taskId, String platformJobId, String greeting,
+            getjobs.modules.recruitment.domain.ContactDeliveryOptions options) {
         WorkflowRun run = requireRun(taskId);
         synchronized (run) {
             if (run.snapshot().status() != WorkflowStatus.AWAITING_CONFIRMATION) {
@@ -120,7 +126,7 @@ public class RecruitmentWorkflowService {
                 throw new IllegalStateException("workflow already running: " + existing);
             }
             run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.CONTACT, null, null, false));
-            taskExecutor.execute(() -> executeContact(run, contactJob, confirmedGreeting));
+            taskExecutor.execute(() -> executeContact(run, contactJob, confirmedGreeting, options));
             return run.snapshot();
         }
     }
@@ -189,7 +195,8 @@ public class RecruitmentWorkflowService {
         }
     }
 
-    private void executeContact(WorkflowRun run, RecruitmentJob contactJob, String greeting) {
+    private void executeContact(WorkflowRun run, RecruitmentJob contactJob, String greeting,
+            getjobs.modules.recruitment.domain.ContactDeliveryOptions options) {
         try {
             contactHistory.requireNotContacted(run.platform(), contactJob);
             RecruitmentPlatformPlugin plugin = platformRegistry.require(run.platform());
@@ -197,7 +204,7 @@ public class RecruitmentWorkflowService {
             RecruitmentContactCapability contactCapability = requireCapability(
                     plugin, RecruitmentContactCapability.class);
             BrowserContactResult result = contactCapability.contact(
-                    run.sessionId(), List.of(contactJob), greeting);
+                    run.sessionId(), List.of(contactJob), greeting, options);
               run.contactResults(java.util.stream.Stream.concat(
                       run.contactResults().stream(), result.results().stream()).toList());
             contactHistory.recordSuccess(run.platform(), contactJob, result.results());

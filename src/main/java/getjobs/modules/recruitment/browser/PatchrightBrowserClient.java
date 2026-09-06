@@ -67,7 +67,8 @@ public class PatchrightBrowserClient implements BrowserAutomationPort {
     @Override
     public BrowserContactResult contactJobs(ContactBrowserJobsCommand command) {
         ContactInput input = new ContactInput(
-                command.jobs(), command.confirmContact(), command.greeting(), command.delayMs());
+                command.jobs(), command.confirmContact(), command.greeting(), command.delayMs(),
+                command.deliveryOptions());
         return action(command.platformId(), command.sessionId(), "contact", input, BrowserContactResult.class);
     }
 
@@ -131,7 +132,8 @@ public class PatchrightBrowserClient implements BrowserAutomationPort {
             List<RecruitmentJob> jobs,
             boolean confirmContact,
             String greeting,
-            long delayMs
+            long delayMs,
+            getjobs.modules.recruitment.domain.ContactDeliveryOptions deliveryOptions
     ) {
     }
 

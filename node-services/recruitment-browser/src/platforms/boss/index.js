@@ -1,4 +1,5 @@
-import { clickFirst, createRecruitmentActions, idFromUrl, queryString, readCard } from '../shared/recruitment-actions.js';
+import { createRecruitmentActions, idFromUrl, queryString, readCard } from '../shared/recruitment-actions.js';
+import { contactThroughMessagePage } from './contact-workflow.js';
 
 const RESULT_TIMEOUT = 15_000;
 const SCROLL_SETTLE_MS = 1_500;
@@ -272,17 +273,9 @@ const definition = {
       reason: contactActionVisible || editorVisible ? null : 'CONTACT_ACTION_UNAVAILABLE',
     };
   },
-  sendContact: async (page, job, input) => {
-    if (page.url().split('?')[0] !== job.href.split('?')[0]) {
-      await page.goto(job.href, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    }
+  sendContact: async (page, job, input, context) => {
     if (!(await definition.authenticated(page))) throw new Error('AUTHENTICATION_REQUIRED');
-    const editor = page.locator('#chat-input:visible, textarea[placeholder="请简短描述您的问题"]:visible, [contenteditable="true"][data-placeholder="请简短描述您的问题"]:visible').first();
-    if (!(await editor.isVisible().catch(() => false))) {
-      const clicked = await clickFirst(page, ['a.btn.btn-startchat']);
-      if (!clicked) return { platformJobId: job.platformJobId, status: 'BLOCKED', reason: 'CONTACT_ACTION_UNAVAILABLE' };
-    }
-    return fillBossDraft(editor, job.platformJobId, input.greeting);
+    return contactThroughMessagePage(page, job, input, context?.state);
   },
 };
 

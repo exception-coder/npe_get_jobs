@@ -3,7 +3,7 @@
     <section ref="dialog" class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="contact-confirm-title" @keydown.esc="$emit('close')">
       <button class="close-button" type="button" aria-label="关闭确认窗口" @click="$emit('close')"><i class="mdi mdi-close" /></button>
       <span>发送前确认</span>
-      <h3 id="contact-confirm-title">{{ draftOnly ? '将消息填入 Boss 输入框？' : '确认联系这个岗位？' }}</h3>
+      <h3 id="contact-confirm-title">{{ draftOnly ? '确认建立沟通与附件选项' : '确认联系这个岗位？' }}</h3>
 
       <div class="selected-job">
         <small>{{ platformName }}</small>
@@ -23,14 +23,26 @@
         @input="$emit('update:greeting', ($event.target as HTMLTextAreaElement).value)"
       />
       <div class="character-count">{{ greeting.length }} / 500</div>
-      <p v-if="draftOnly" class="side-effect-note">只填入消息，不点击发送；请在 Boss 窗口检查后手动发送。打开沟通入口可能触发平台自身的招呼行为。</p>
+      <fieldset v-if="draftOnly" class="image-options" :disabled="submitting || defaultsLoading">
+        <legend>本次投递附件</legend>
+        <label><input v-model="sendResumeImage" type="checkbox" /> 同时发送图片简历</label>
+        <template v-if="sendResumeImage">
+          <label for="resume-image-path">图片简历绝对路径</label>
+          <input id="resume-image-path" v-model.trim="resumeImagePath" type="text"
+            placeholder="请填写本机 PNG / JPEG 图片绝对路径" aria-describedby="image-send-note" />
+          <p id="image-send-note" class="side-effect-note">最大 5 MiB。确认后图片将立即发送给上方岗位对应的招聘者；文字仍只填入草稿。</p>
+          <p v-if="!resumeImagePath" role="status">请填写图片路径，或取消附图。</p>
+        </template>
+        <p v-if="defaultsError" role="status">{{ defaultsError }}</p>
+      </fieldset>
+      <p v-if="draftOnly" class="side-effect-note">文字只填入草稿，请在 Boss 窗口检查后手动发送。勾选附图会立即发送图片；打开沟通入口也可能触发平台自身的招呼行为。</p>
       <p v-else class="side-effect-note">点击确认后，才会通过 {{ platformName }} 真实发起沟通或投递。</p>
 
       <div class="dialog-actions">
         <button type="button" @click="$emit('close')">再看一眼</button>
-        <button class="confirm" type="button" :disabled="!canConfirm || submitting" @click="$emit('confirm')">
+        <button class="confirm" type="button" :disabled="!canConfirm || submitting" @click="$emit('confirm', { sendResumeImage: Boolean(draftOnly && sendResumeImage), resumeImagePath })">
           <i :class="submitting ? 'mdi mdi-loading mdi-spin' : 'mdi mdi-send-outline'" />
-          {{ submitting ? '正在处理…' : draftOnly ? '填入消息，不发送' : '确认联系这个岗位' }}
+          {{ submitting ? '正在处理…' : draftOnly ? sendResumeImage ? '建立沟通、填草稿并发送图片' : '建立沟通并填入草稿' : '确认联系这个岗位' }}
         </button>
       </div>
     </section>
@@ -40,6 +52,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import type { ContactPreparation, RecruitmentJob } from '@/shared/api/recruitment';
+import { loadContactDefaults, type ContactDeliveryOptions } from '@/shared/api/recruitment';
 
 const props = defineProps<{
   open: boolean;
@@ -53,13 +66,20 @@ const props = defineProps<{
 
 defineEmits<{
   close: [];
-  confirm: [];
+  confirm: [options: ContactDeliveryOptions];
   'update:greeting': [value: string];
 }>();
 
 const dialog = ref<HTMLElement | null>(null);
 const greetingEditor = ref<HTMLTextAreaElement | null>(null);
-const canConfirm = computed(() => props.preparation?.status === 'READY' && Boolean(props.greeting.trim()) && Boolean(props.job));
+const sendResumeImage = ref(false);
+const resumeImagePath = ref('');
+const defaultsError = ref('');
+const defaultsLoading = ref(false);
+let defaultsRequest = 0;
+const canConfirm = computed(() => props.preparation?.status === 'READY' && Boolean(props.greeting.trim())
+  && Boolean(props.job) && !defaultsLoading.value
+  && (!props.draftOnly || !sendResumeImage.value || Boolean(resumeImagePath.value)));
 const readinessTone = computed(() => props.preparation?.status === 'READY' ? 'ready' : 'blocked');
 const readinessTitle = computed(() => props.preparation?.status === 'READY' ? '沟通入口已就绪' : '暂时不能联系');
 const readinessMessage = computed(() => props.preparation?.status === 'READY'
@@ -67,13 +87,34 @@ const readinessMessage = computed(() => props.preparation?.status === 'READY'
   : props.preparation?.reason || '没有找到可用的投递或打招呼入口，请稍后再试。');
 
 watch(() => props.open, async (open) => {
+  const requestId = ++defaultsRequest;
   if (!open) return;
+  defaultsLoading.value = false;
+  sendResumeImage.value = false;
+  defaultsError.value = '';
+  if (props.draftOnly) {
+    defaultsLoading.value = true;
+    try {
+      const defaults = await loadContactDefaults();
+      if (!props.open || requestId !== defaultsRequest) return;
+      resumeImagePath.value = defaults.data?.resumeImagePath || '';
+      sendResumeImage.value = defaults.data?.sendImgResume === true;
+    } catch {
+      if (requestId === defaultsRequest) defaultsError.value = '默认路径加载失败，可手动填写；默认不附图。';
+    } finally {
+      if (requestId === defaultsRequest) defaultsLoading.value = false;
+    }
+  }
   await nextTick();
   greetingEditor.value?.focus();
 });
 </script>
 
 <style scoped lang="scss">
+.image-options { margin: 16px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.image-options legend { color: var(--ink-muted); font-size: 12px; }
+.image-options input[type="text"] { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink-strong); }
+.image-options input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dialog-backdrop { position: fixed; z-index: 1400; inset: 0; display: grid; place-items: center; overflow-y: auto; padding: 20px; background: rgb(30 27 24 / 48%); backdrop-filter: blur(4px); }
 .confirm-dialog { position: relative; width: min(520px, 100%); padding: 30px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow-elevated); }
 .close-button { position: absolute; top: 18px; right: 18px; display: grid; width: 32px; height: 32px; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--ink-faint); cursor: pointer; }

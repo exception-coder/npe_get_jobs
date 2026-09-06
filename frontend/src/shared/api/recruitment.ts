@@ -146,10 +146,20 @@ export function prepareWorkflowContact(taskId: string, platformJobId: string): P
   });
 }
 
-export function confirmWorkflowContact(taskId: string, platformJobId: string, greeting: string): Promise<WorkflowSnapshot> {
+export interface ContactDeliveryOptions {
+  sendResumeImage: boolean;
+  resumeImagePath: string;
+}
+
+export function loadContactDefaults(): Promise<{ data?: { resumeImagePath?: string; sendImgResume?: boolean } }> {
+  return request('/api/common/config/get');
+}
+
+export function confirmWorkflowContact(taskId: string, platformJobId: string, greeting: string,
+  options: ContactDeliveryOptions = { sendResumeImage: false, resumeImagePath: '' }): Promise<WorkflowSnapshot> {
   return request(`/api/recruitment/workflows/${encodeURIComponent(taskId)}/contact`, {
     method: 'POST',
-    body: JSON.stringify({ platformJobId, greeting }),
+    body: JSON.stringify({ platformJobId, greeting, ...options }),
   });
 }
 

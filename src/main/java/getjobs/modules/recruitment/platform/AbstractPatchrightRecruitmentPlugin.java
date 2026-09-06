@@ -88,6 +88,16 @@ public abstract class AbstractPatchrightRecruitmentPlugin implements Recruitment
     }
 
     @Override
+    public final BrowserContactResult contact(String sessionId, List<RecruitmentJob> jobs, String greeting,
+            getjobs.modules.recruitment.domain.ContactDeliveryOptions options) {
+        if (options.sendResumeImage() && !"boss".equalsIgnoreCase(descriptor.id().value())) {
+            throw new IllegalArgumentException("该平台暂不支持发送图片简历");
+        }
+        return browserAutomation.contactJobs(new ContactBrowserJobsCommand(
+                descriptor.id(), sessionId, jobs, true, greeting, DEFAULT_CONTACT_DELAY_MS, options));
+    }
+
+    @Override
     public final BrowserContactPreparationResult prepareContact(
             String sessionId,
             List<RecruitmentJob> jobs

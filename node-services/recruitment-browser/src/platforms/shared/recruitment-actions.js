@@ -125,13 +125,13 @@ export const createRecruitmentActions = (definition) => {
       };
     },
 
-    async sendContact({ page }, input) {
+    async sendContact({ page, state }, input) {
       if (input.confirmContact !== true) return confirmationRequired(input.jobs || []);
       const results = [];
       for (const job of input.jobs || []) {
         await requireAuthenticated(page);
         const send = definition.sendContact || definition.contact;
-        results.push(await send(page, job, input));
+        results.push(await send(page, job, input, { state }));
         if (input.delayMs) await page.waitForTimeout(input.delayMs);
       }
       return {

@@ -12,9 +12,18 @@ public record ContactBrowserJobsCommand(
         List<RecruitmentJob> jobs,
         boolean confirmContact,
         String greeting,
-        long delayMs
+        long delayMs,
+        getjobs.modules.recruitment.domain.ContactDeliveryOptions deliveryOptions
 ) {
     public ContactBrowserJobsCommand {
         jobs = List.copyOf(jobs);
+        deliveryOptions = deliveryOptions == null
+                ? getjobs.modules.recruitment.domain.ContactDeliveryOptions.DRAFT_ONLY : deliveryOptions;
+    }
+
+    public ContactBrowserJobsCommand(RecruitmentPlatformId platformId, String sessionId,
+            List<RecruitmentJob> jobs, boolean confirmContact, String greeting, long delayMs) {
+        this(platformId, sessionId, jobs, confirmContact, greeting, delayMs,
+                getjobs.modules.recruitment.domain.ContactDeliveryOptions.DRAFT_ONLY);
     }
 }

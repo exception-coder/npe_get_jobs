@@ -40,7 +40,8 @@ export class BrowserSessionRegistry {
     await page.goto(safeUrl, { waitUntil: 'domcontentloaded', timeout: 45_000 });
 
     const sessionId = randomUUID();
-    const session = { context, page, platformId, profileName, profileKey, state: {} };
+    const session = { context, page, platformId, profileName, profileKey,
+      state: { contactJournalDirectory: resolve(profilePath, 'contact-attempts') } };
     this.sessions.set(sessionId, session);
     this.sessionIdsByProfile.set(profileKey, sessionId);
     context.on('close', () => this.#forget(sessionId));

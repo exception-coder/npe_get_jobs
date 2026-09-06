@@ -75,11 +75,11 @@
 
             <div v-if="snapshot.error || snapshot.contactResults.length" class="decision-bar" role="status">
               <div>
-                <strong>{{ snapshot.error ? '投递未完成，请核对平台记录' : snapshot.contacted ? '平台返回投递成功，已保存历史记录' : '投递处理结果' }}</strong>
+                <strong>{{ snapshot.error ? '投递未完成，请核对平台记录' : '沟通处理结果（文字与图片分别记录）' }}</strong>
                 <span v-if="snapshot.error">{{ snapshot.error }}</span>
                 <span v-if="snapshot.contactResults.some(result => result.reason === 'DRAFT_FILLED_NOT_SENT')">消息已填入 Boss 输入框，尚未发送，请在 Boss 中手动发送。</span>
                 <span v-for="result in snapshot.contactResults.filter(result => result.reason !== 'DRAFT_FILLED_NOT_SENT')" :key="result.platformJobId">
-                  {{ result.status === 'SUCCEEDED' ? '发送成功' : result.status === 'SKIPPED' ? '已跳过' : result.status === 'BLOCKED' ? '被平台阻止' : '发送失败' }}{{ result.reason ? `：${result.reason}` : '' }}
+                  {{ result.reason === 'IMAGE_DELIVERED_TEXT_DRAFT_ONLY' ? '简历图片已送达，文字仅填入草稿' : result.reason === 'CONVERSATION_ESTABLISHED_TEXT_DRAFT_ONLY' ? '已建立沟通，文字仅填入草稿，未发送图片' : result.status === 'SUCCEEDED' ? '处理成功' : result.status === 'SKIPPED' ? '已跳过' : result.status === 'BLOCKED' ? '被平台阻止' : '未完成，请核对平台记录' }}{{ result.status !== 'SUCCEEDED' && result.reason ? `：${result.reason}` : '' }}
                 </span>
               </div>
             </div>
@@ -344,14 +344,14 @@ async function prepareSelectedContact() {
   }
 }
 
-async function confirmContact() {
+async function confirmContact(options: import('@/shared/api/recruitment').ContactDeliveryOptions) {
   if (!snapshot.value || !selectedJob.value || contactPreparation.value?.status !== 'READY' || confirmingContact.value) return;
   const greetingText = contactGreeting.value.trim();
   if (!greetingText) return;
   confirmingContact.value = true;
   contactError.value = '';
   try {
-    snapshot.value = await confirmWorkflowContact(snapshot.value.taskId, selectedJob.value.platformJobId, greetingText);
+    snapshot.value = await confirmWorkflowContact(snapshot.value.taskId, selectedJob.value.platformJobId, greetingText, options);
     confirmDialog.value = false;
     schedulePoll();
   } catch (reason) {
