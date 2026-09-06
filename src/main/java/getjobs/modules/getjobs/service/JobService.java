@@ -73,8 +73,14 @@ public class JobService {
      * @return 分页结果
      */
     public Page<JobEntity> search(String platform, Integer status, String keyword, int page, int size) {
+        return search(platform, status, keyword, page, size, false);
+    }
+
+    /** Applies history constraints before database pagination. */
+    public Page<JobEntity> search(String platform, Integer status, String keyword, int page, int size,
+            boolean contactedOnly) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        return jobRepository.search(platform, status, keyword, pageable);
+        return jobRepository.search(platform, status, keyword, contactedOnly, pageable);
     }
 
     /**
@@ -252,6 +258,8 @@ public class JobService {
         if (jobs.isEmpty()) {
             return 0;
         }
+        jobs = jobs.stream().filter(job -> !Boolean.TRUE.equals(job.getIsContacted())
+                && !Integer.valueOf(JobStatusEnum.DELIVERED_SUCCESS.getCode()).equals(job.getStatus())).toList();
         for (JobEntity job : jobs) {
             job.setStatus(JobStatusEnum.PENDING.getCode());
             job.setFilterReason(null);
@@ -382,16 +390,10 @@ public class JobService {
      */
     @Transactional
     public boolean updateContacted(Long id, Boolean isContacted) {
-        if (id == null) {
+        if (id == null || isContacted == null) {
             return false;
         }
-        return jobRepository.findById(id)
-                .map(entity -> {
-                    entity.setIsContacted(Boolean.TRUE.equals(isContacted));
-                    jobRepository.save(entity);
-                    return true;
-                })
-                .orElse(false);
+        return jobRepository.updateManualContactMarker(id, isContacted, java.time.LocalDateTime.now()) > 0;
     }
 
     /**

@@ -18,6 +18,25 @@ public class RecruitmentJobRegistryService {
         this.jobRepository = jobRepository;
     }
 
+    /** Reads the stored identity instead of trusting client-supplied platform or URL. */
+    public RegisteredJob requireRegisteredJob(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("请选择岗位");
+        }
+        JobEntity entity = jobRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("岗位不存在，请刷新岗位库"));
+        RecruitmentJob job = new RecruitmentJob(entity.getEncryptJobId(), entity.getJobTitle(),
+                entity.getCompanyName(), entity.getWorkCity(), entity.getSalaryDesc(),
+                entity.getJobDescription(), entity.getJobUrl());
+        if (!isRegistrable(entity.getPlatform(), job) || job.href() == null || job.href().isBlank()) {
+            throw new IllegalArgumentException("岗位缺少平台标识或详情地址，请重新采集");
+        }
+        return new RegisteredJob(entity.getPlatform(), job);
+    }
+
+    /** Persisted platform and normalized candidate for a single-job workflow. */
+    public record RegisteredJob(String platform, RecruitmentJob job) { }
+
     @Transactional
     public JobRegistrationResult register(String platform, List<RecruitmentJob> jobs) {
         int created = 0;

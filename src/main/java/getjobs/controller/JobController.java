@@ -30,10 +30,11 @@ public class JobController {
             @RequestParam(value = "platform", required = false) String platform,
             @RequestParam(value = "status", required = false) Integer status,
             @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "contactedOnly", defaultValue = "false") boolean contactedOnly,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
 
-        return jobService.search(platform, status, keyword, page, size);
+        return jobService.search(platform, status, keyword, page, size, contactedOnly);
     }
 
     @PostMapping("/reset-filter")

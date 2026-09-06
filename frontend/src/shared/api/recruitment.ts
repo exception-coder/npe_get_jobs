@@ -46,9 +46,25 @@ export interface WorkflowSnapshot {
   error: string | null;
   recoveryAction: string | null;
   contactConfirmationRequired: boolean;
+  contactGreeting: string | null;
   jobs: RecruitmentJob[];
   contactResults: ContactResult[];
   updatedAt: string;
+}
+
+export interface ContactPreparation {
+  platformJobId: string;
+  status: 'READY' | 'UNAVAILABLE' | 'BLOCKED';
+  currentUrl: string;
+  contactActionVisible: boolean;
+  editorVisible: boolean;
+  reason: string | null;
+}
+
+export interface ContactPreparationResult {
+  results: ContactPreparation[];
+  prepared: number;
+  sideEffect: false;
 }
 
 export interface RecruitmentGoal {
@@ -116,8 +132,25 @@ export function loadWorkflow(taskId: string): Promise<WorkflowSnapshot> {
   return request(`/api/recruitment/workflows/${encodeURIComponent(taskId)}`);
 }
 
-export function confirmWorkflowContact(taskId: string): Promise<WorkflowSnapshot> {
-  return request(`/api/recruitment/workflows/${encodeURIComponent(taskId)}/contact`, { method: 'POST' });
+export function startJobWorkflow(jobRecordId: string): Promise<WorkflowSnapshot> {
+  return request('/api/recruitment/workflows/from-job', {
+    method: 'POST',
+    body: JSON.stringify({ jobRecordId }),
+  });
+}
+
+export function prepareWorkflowContact(taskId: string, platformJobId: string): Promise<ContactPreparationResult> {
+  return request(`/api/recruitment/workflows/${encodeURIComponent(taskId)}/contact/prepare`, {
+    method: 'POST',
+    body: JSON.stringify({ platformJobId }),
+  });
+}
+
+export function confirmWorkflowContact(taskId: string, platformJobId: string, greeting: string): Promise<WorkflowSnapshot> {
+  return request(`/api/recruitment/workflows/${encodeURIComponent(taskId)}/contact`, {
+    method: 'POST',
+    body: JSON.stringify({ platformJobId, greeting }),
+  });
 }
 
 export function openPlatformSession(platform: string): Promise<BrowserSession> {

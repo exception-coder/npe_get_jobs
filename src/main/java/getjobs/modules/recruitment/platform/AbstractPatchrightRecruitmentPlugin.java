@@ -67,7 +67,18 @@ public abstract class AbstractPatchrightRecruitmentPlugin implements Recruitment
     @Override
     public final BrowserJobDiscoveryResult discover(String sessionId, RecruitmentSearchPlan plan) {
         return browserAutomation.discoverJobs(new DiscoverBrowserJobsCommand(
-                descriptor.id(), sessionId, plan.searches(), plan.filters(), DEFAULT_MAX_SCROLLS, DEFAULT_JOB_LIMIT));
+                descriptor.id(), sessionId, plan.searches(), plan.filters(),
+                maxDiscoveryScrolls(), discoveryJobLimit()));
+    }
+
+    /** Returns the maximum number of incremental-load attempts for this platform. */
+    protected int maxDiscoveryScrolls() {
+        return DEFAULT_MAX_SCROLLS;
+    }
+
+    /** Returns the maximum number of jobs collected for one discovery run. */
+    protected int discoveryJobLimit() {
+        return DEFAULT_JOB_LIMIT;
     }
 
     @Override

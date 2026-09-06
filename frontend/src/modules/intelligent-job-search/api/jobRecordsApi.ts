@@ -51,6 +51,7 @@ export interface PageResponse<T> {
 }
 
 export interface JobQueryParams {
+  contactedOnly?: boolean;
   platform: PlatformCode | string;
   keyword?: string;
   status?: number;

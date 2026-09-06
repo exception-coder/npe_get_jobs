@@ -13,9 +13,29 @@ import java.util.List;
 
 public interface JobRepository extends JpaRepository<JobEntity, Long> {
 
+    /** Updates one manual marker without overwriting a concurrently confirmed success (status 3). */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE JobEntity j SET j.isContacted = :contacted, j.updatedAt = :now "
+            + "WHERE j.id = :id AND (j.status IS NULL OR j.status <> 3)")
+    int updateManualContactMarker(@Param("id") Long id, @Param("contacted") boolean contacted,
+            @Param("now") LocalDateTime now);
+
+    /** Returns contacted identities only within the current platform discovery batch. */
+    @Query("SELECT DISTINCT j.encryptJobId FROM JobEntity j WHERE j.platform = :platform "
+            + "AND j.encryptJobId IN :ids AND (j.status = 3 OR j.isContacted = true)")
+    java.util.Set<String> findContactedIds(@Param("platform") String platform, @Param("ids") List<String> ids);
+
+    /** Records confirmed success for all duplicates of one platform identity. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE JobEntity j SET j.status = 3, j.isContacted = true, j.updatedAt = :now "
+            + "WHERE j.platform = :platform AND j.encryptJobId = :jobId")
+    int markContactSucceeded(@Param("platform") String platform, @Param("jobId") String jobId,
+            @Param("now") LocalDateTime now);
+
     @Query("SELECT j FROM JobEntity j " +
             "WHERE (:platform IS NULL OR LOWER(j.platform) = LOWER(:platform)) " +
             "AND (:status IS NULL OR j.status = :status) " +
+            "AND (:contactedOnly = false OR j.status = 3 OR j.isContacted = true) " +
             "AND ( :keyword IS NULL " +
             "   OR LOWER(j.jobTitle) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "   OR LOWER(j.companyName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
@@ -23,6 +43,7 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
     Page<JobEntity> search(@Param("platform") String platform,
             @Param("status") Integer status,
             @Param("keyword") String keyword,
+            @Param("contactedOnly") boolean contactedOnly,
             Pageable pageable);
 
     /**
@@ -136,7 +157,8 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
      * @param excludeStatuses 排除的状态列表
      */
     @Modifying
-    @Query("DELETE FROM JobEntity j WHERE j.platform = :platform AND j.status NOT IN :excludeStatuses")
+    @Query("DELETE FROM JobEntity j WHERE j.platform = :platform AND j.status NOT IN :excludeStatuses "
+            + "AND (j.isContacted IS NULL OR j.isContacted = false)")
     void deleteByPlatformAndStatusNotIn(@Param("platform") String platform, @Param("excludeStatuses") List<Integer> excludeStatuses);
 
     /**
@@ -146,6 +168,7 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
      * @return 删除条数
      */
     @Modifying
-    @Query("DELETE FROM JobEntity j WHERE j.platform = :platform AND (j.jobPostDescription IS NULL OR j.jobPostDescription = '')")
+    @Query("DELETE FROM JobEntity j WHERE j.platform = :platform AND (j.jobPostDescription IS NULL OR j.jobPostDescription = '') "
+            + "AND (j.status IS NULL OR j.status <> 3) AND (j.isContacted IS NULL OR j.isContacted = false)")
     int deleteByPlatformAndJobRequirementsEmpty(@Param("platform") String platform);
 }

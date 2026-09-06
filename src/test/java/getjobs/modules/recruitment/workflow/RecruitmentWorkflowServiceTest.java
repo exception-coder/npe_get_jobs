@@ -2,6 +2,7 @@ package getjobs.modules.recruitment.workflow;
 
 import getjobs.modules.recruitment.application.RecruitmentJobSelectionService;
 import getjobs.modules.recruitment.application.RecruitmentJobRegistryService;
+import getjobs.modules.recruitment.application.RecruitmentContactHistoryService;
 import getjobs.modules.recruitment.application.RecruitmentPlatformRegistry;
 import getjobs.modules.recruitment.application.RecruitmentSearchPlan;
 import getjobs.modules.recruitment.application.RecruitmentSearchPlanService;
@@ -38,6 +39,54 @@ import static org.mockito.Mockito.verify;
 
 class RecruitmentWorkflowServiceTest {
     @Test
+    void storedJobWaitsForConfirmationWithoutDiscoveryOrSending() {
+        RecruitmentJob job = new RecruitmentJob("boss-1", "Java", "Company", "City", "", "", "https://www.zhipin.com/job_detail/boss-1.html");
+        FakePlugin plugin = new FakePlugin(job);
+        RecruitmentJobRegistryService registry = mock(RecruitmentJobRegistryService.class);
+        RecruitmentContactHistoryService history = mock(RecruitmentContactHistoryService.class);
+        when(registry.requireRegisteredJob(112L)).thenReturn(new RecruitmentJobRegistryService.RegisteredJob("boss", job));
+        RecruitmentWorkflowService service = new RecruitmentWorkflowService(
+                new RecruitmentPlatformRegistry(List.of(plugin)), mock(RecruitmentSearchPlanService.class),
+                mock(RecruitmentJobSelectionService.class), registry, history, Runnable::run);
+
+        RecruitmentWorkflowSnapshot result = service.startFromJob(112L);
+        assertThat(result.status()).isEqualTo(WorkflowStatus.AWAITING_CONFIRMATION);
+        assertThat(result.jobs()).containsExactly(job);
+        assertThat(plugin.discoveryCalls).hasValue(0);
+        assertThat(plugin.contactCalls).hasValue(0);
+        verify(history).requireNotContacted("boss", job);
+
+        plugin.authenticated = false;
+        assertThatThrownBy(() -> service.startFromJob(112L)).hasMessageContaining("not authenticated");
+        assertThat(plugin.contactCalls).hasValue(0);
+    }
+
+    @Test
+    void filtersHistoricalJobsBeforeSelection() {
+        RecruitmentJob job = new RecruitmentJob("boss-1", "Java", "Company", "City", "", "", "");
+        FakePlugin plugin = new FakePlugin(job);
+        RecruitmentSearchPlanService plans = mock(RecruitmentSearchPlanService.class);
+        RecruitmentJobSelectionService selection = mock(RecruitmentJobSelectionService.class);
+        RecruitmentContactHistoryService history = mock(RecruitmentContactHistoryService.class);
+        RecruitmentGoalConditions goal = new RecruitmentGoalConditions("Java", List.of("Java"),
+                List.of(), null, null, null, null, List.of(), List.of(), List.of(), List.of(), null, Map.of());
+        when(plans.resolve(plugin.descriptor().id(), 1L)).thenReturn(
+                new RecruitmentSearchPlan(List.of(new BrowserSearch("Java", "101020100")), Map.of(), "hello", goal));
+        when(history.contactedIds("boss", List.of(job))).thenReturn(Set.of("boss-1"));
+        RecruitmentWorkflowService service = new RecruitmentWorkflowService(
+                new RecruitmentPlatformRegistry(List.of(plugin)), plans, selection,
+                mock(RecruitmentJobRegistryService.class), history, Runnable::run);
+
+        RecruitmentWorkflowSnapshot result = service.start("boss", 1L);
+
+        verify(selection).select(List.of(), goal);
+        assertThat(result.status()).isEqualTo(WorkflowStatus.COMPLETED);
+        assertThat(result.contactResults()).contains(
+                new ContactResult("boss-1", ContactResult.ContactStatus.SKIPPED, "ALREADY_CONTACTED"));
+        assertThat(plugin.contactCalls).hasValue(0);
+    }
+
+    @Test
     void requiresExplicitConfirmationBeforeContactingJobs() {
         RecruitmentJob job = new RecruitmentJob(
                 "boss-1", "Java Engineer", "Example", "Shanghai", "30-40K", "Build services",
@@ -46,6 +95,7 @@ class RecruitmentWorkflowServiceTest {
         RecruitmentSearchPlanService planService = mock(RecruitmentSearchPlanService.class);
         RecruitmentJobSelectionService selectionService = mock(RecruitmentJobSelectionService.class);
         RecruitmentJobRegistryService registryService = mock(RecruitmentJobRegistryService.class);
+        RecruitmentContactHistoryService history = mock(RecruitmentContactHistoryService.class);
         RecruitmentGoalConditions goal = new RecruitmentGoalConditions("Java Engineer", List.of("Java Engineer"),
                 List.of(), null, null, null, null, List.of(), List.of(), List.of(), List.of(), null, Map.of());
         when(planService.resolve(plugin.descriptor().id(), 1L))
@@ -54,7 +104,7 @@ class RecruitmentWorkflowServiceTest {
         TaskExecutor directExecutor = Runnable::run;
         RecruitmentWorkflowService service = new RecruitmentWorkflowService(
                 new RecruitmentPlatformRegistry(List.of(plugin)), planService, selectionService,
-                registryService, directExecutor);
+                registryService, history, directExecutor);
 
         RecruitmentWorkflowSnapshot preview = service.start("boss", 1L);
 
@@ -63,18 +113,48 @@ class RecruitmentWorkflowServiceTest {
         assertThat(plugin.contactCalls).hasValue(0);
         verify(registryService).register("boss", List.of(job));
 
-        BrowserContactPreparationResult preparation = service.prepareContact(preview.taskId());
+        BrowserContactPreparationResult preparation = service.prepareContact(preview.taskId(), job.platformJobId());
 
         assertThat(preparation.prepared()).isEqualTo(1);
         assertThat(preparation.sideEffect()).isFalse();
         assertThat(plugin.prepareCalls).hasValue(1);
         assertThat(plugin.contactCalls).hasValue(0);
 
-        RecruitmentWorkflowSnapshot completed = service.confirmContact(preview.taskId());
+        RecruitmentWorkflowSnapshot completed = service.confirmContact(preview.taskId(), job.platformJobId(), "hello");
 
         assertThat(completed.status()).isEqualTo(WorkflowStatus.COMPLETED);
         assertThat(completed.contacted()).isEqualTo(1);
         assertThat(plugin.contactCalls).hasValue(1);
+        verify(history).recordSuccess(org.mockito.ArgumentMatchers.eq("boss"),
+                org.mockito.ArgumentMatchers.eq(job), org.mockito.ArgumentMatchers.anyList());
+    }
+
+    @Test
+    void rejectsContactForAJobOutsideTheWorkflowCandidateSnapshot() {
+        RecruitmentJob job = new RecruitmentJob(
+                "boss-1", "Java Engineer", "Example", "Shanghai", "30-40K", "Build services",
+                "https://www.zhipin.com/job_detail/boss-1.html");
+        FakePlugin plugin = new FakePlugin(job);
+        RecruitmentSearchPlanService planService = mock(RecruitmentSearchPlanService.class);
+        RecruitmentJobSelectionService selectionService = mock(RecruitmentJobSelectionService.class);
+        RecruitmentGoalConditions goal = new RecruitmentGoalConditions("Java Engineer", List.of("Java Engineer"),
+                List.of(), null, null, null, null, List.of(), List.of(), List.of(), List.of(), null, Map.of());
+        when(planService.resolve(plugin.descriptor().id(), 1L))
+                .thenReturn(new RecruitmentSearchPlan(List.of(), Map.of(), "hello", goal));
+        when(selectionService.select(List.of(job), goal)).thenReturn(List.of(job));
+        RecruitmentWorkflowService service = new RecruitmentWorkflowService(
+                new RecruitmentPlatformRegistry(List.of(plugin)), planService, selectionService,
+                mock(RecruitmentJobRegistryService.class), mock(RecruitmentContactHistoryService.class), Runnable::run);
+        RecruitmentWorkflowSnapshot preview = service.start("boss", 1L);
+
+        assertThatThrownBy(() -> service.prepareContact(preview.taskId(), "boss-other"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not part of this workflow");
+        assertThatThrownBy(() -> service.confirmContact(preview.taskId(), "boss-other", "hello"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not part of this workflow");
+        assertThat(plugin.prepareCalls).hasValue(0);
+        assertThat(plugin.contactCalls).hasValue(0);
     }
 
     @Test
@@ -86,12 +166,42 @@ class RecruitmentWorkflowServiceTest {
                 mock(RecruitmentSearchPlanService.class),
                 mock(RecruitmentJobSelectionService.class),
                 mock(RecruitmentJobRegistryService.class),
+                mock(RecruitmentContactHistoryService.class),
                 Runnable::run);
 
         assertThatThrownBy(() -> service.start("boss", 1L))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("scan to log in before starting");
+                .hasMessageContaining("log in before continuing");
         assertThat(plugin.discoveryCalls).hasValue(0);
+        assertThat(plugin.contactCalls).hasValue(0);
+    }
+
+    @Test
+    void rejectsContactPreparationAndConfirmationAfterLoginExpires() {
+        RecruitmentJob job = new RecruitmentJob(
+                "boss-1", "Java Engineer", "Example", "Shanghai", "30-40K", "Build services",
+                "https://www.zhipin.com/job_detail/boss-1.html");
+        FakePlugin plugin = new FakePlugin(job);
+        RecruitmentSearchPlanService planService = mock(RecruitmentSearchPlanService.class);
+        RecruitmentJobSelectionService selectionService = mock(RecruitmentJobSelectionService.class);
+        RecruitmentGoalConditions goal = new RecruitmentGoalConditions("Java Engineer", List.of("Java Engineer"),
+                List.of(), null, null, null, null, List.of(), List.of(), List.of(), List.of(), null, Map.of());
+        when(planService.resolve(plugin.descriptor().id(), 1L))
+                .thenReturn(new RecruitmentSearchPlan(List.of(), Map.of(), "hello", goal));
+        when(selectionService.select(List.of(job), goal)).thenReturn(List.of(job));
+        RecruitmentWorkflowService service = new RecruitmentWorkflowService(
+                new RecruitmentPlatformRegistry(List.of(plugin)), planService, selectionService,
+                mock(RecruitmentJobRegistryService.class), mock(RecruitmentContactHistoryService.class), Runnable::run);
+        RecruitmentWorkflowSnapshot preview = service.start("boss", 1L);
+        plugin.authenticated = false;
+
+        assertThatThrownBy(() -> service.prepareContact(preview.taskId(), job.platformJobId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("log in before continuing");
+        assertThatThrownBy(() -> service.confirmContact(preview.taskId(), job.platformJobId(), "hello"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("log in before continuing");
+        assertThat(plugin.prepareCalls).hasValue(0);
         assertThat(plugin.contactCalls).hasValue(0);
     }
 

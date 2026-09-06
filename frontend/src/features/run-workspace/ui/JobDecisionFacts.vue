@@ -52,8 +52,12 @@ const asList = (value: string | string[] | null) => (Array.isArray(value) ? valu
 const primaryFacts = computed(() => [props.experience, props.degree, props.companyIndustry, props.companyStage, props.companyScale].filter(Boolean) as string[]);
 const visibleSkills = computed(() => asList(props.skills).slice(0, 5));
 const visibleBenefits = computed(() => asList(props.benefits).slice(0, 4));
-const presenceTone = computed(() => props.recruiterOnline === true ? 'online' : props.recruiterActiveText ? 'active' : 'unknown');
-const presenceLabel = computed(() => props.recruiterOnline === true ? '当前在线' : props.recruiterActiveText || '活跃状态未知');
+const presenceTone = computed(() => props.recruiterOnline === true
+  ? 'online'
+  : props.recruiterActiveText ? 'active' : props.recruiterOnline === false ? 'offline' : 'unknown');
+const presenceLabel = computed(() => props.recruiterOnline === true
+  ? '当前在线'
+  : props.recruiterActiveText || (props.recruiterOnline === false ? '当前离线' : '活跃状态未知'));
 </script>
 
 <style scoped lang="scss">

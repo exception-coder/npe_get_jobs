@@ -34,17 +34,40 @@ public class RecruitmentWorkflowController {
         return workflowService.require(taskId);
     }
 
+    @PostMapping("/from-job")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public RecruitmentWorkflowSnapshot startFromJob(@RequestBody StoredJobRequest request) {
+        return workflowService.startFromJob(request.jobRecordId());
+    }
+
+    /** Local job identity selected by the user, not a client-supplied send target. */
+    public record StoredJobRequest(Long jobRecordId) { }
+
     @PostMapping("/{taskId}/contact")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public RecruitmentWorkflowSnapshot confirmContact(@PathVariable UUID taskId) {
-        return workflowService.confirmContact(taskId);
+    public RecruitmentWorkflowSnapshot confirmContact(
+            @PathVariable UUID taskId,
+            @RequestBody ContactRequest request
+    ) {
+        return workflowService.confirmContact(taskId, request.platformJobId(), request.greeting());
     }
 
     @PostMapping("/{taskId}/contact/prepare")
-    public BrowserContactPreparationResult prepareContact(@PathVariable UUID taskId) {
-        return workflowService.prepareContact(taskId);
+    public BrowserContactPreparationResult prepareContact(
+            @PathVariable UUID taskId,
+            @RequestBody ContactPreparationRequest request
+    ) {
+        return workflowService.prepareContact(taskId, request.platformJobId());
     }
 
     public record StartWorkflowRequest(String platform, Long goalId) {
+    }
+
+    /** Single candidate selected for a side-effect-free contact readiness check. */
+    public record ContactPreparationRequest(String platformJobId) {
+    }
+
+    /** Explicitly confirmed single-candidate contact request. */
+    public record ContactRequest(String platformJobId, String greeting) {
     }
 }

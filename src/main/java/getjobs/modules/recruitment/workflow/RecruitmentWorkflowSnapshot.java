@@ -20,6 +20,7 @@ public record RecruitmentWorkflowSnapshot(
         String error,
         String recoveryAction,
         boolean contactConfirmationRequired,
+        String contactGreeting,
         List<RecruitmentJob> jobs,
         List<ContactResult> contactResults,
         Instant updatedAt

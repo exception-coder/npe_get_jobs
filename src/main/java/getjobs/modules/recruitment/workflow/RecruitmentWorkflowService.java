@@ -2,6 +2,7 @@ package getjobs.modules.recruitment.workflow;
 
 import getjobs.modules.recruitment.application.RecruitmentJobSelectionService;
 import getjobs.modules.recruitment.application.RecruitmentJobRegistryService;
+import getjobs.modules.recruitment.application.RecruitmentContactHistoryService;
 import getjobs.modules.recruitment.application.RecruitmentPlatformRegistry;
 import getjobs.modules.recruitment.application.RecruitmentSearchPlan;
 import getjobs.modules.recruitment.application.RecruitmentSearchPlanService;
@@ -32,11 +33,15 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class RecruitmentWorkflowService {
     private static final String DEFAULT_PROFILE = "default";
+    private static final int MAX_GREETING_LENGTH = 500;
+    private static final String AUTHENTICATION_REQUIRED =
+            "platform session is not authenticated; log in before continuing";
 
     private final RecruitmentPlatformRegistry platformRegistry;
     private final RecruitmentSearchPlanService searchPlanService;
     private final RecruitmentJobSelectionService selectionService;
     private final RecruitmentJobRegistryService jobRegistryService;
+    private final RecruitmentContactHistoryService contactHistory;
     private final TaskExecutor taskExecutor;
     private final Map<UUID, WorkflowRun> tasks = new ConcurrentHashMap<>();
     private final Map<String, UUID> activePlatforms = new ConcurrentHashMap<>();
@@ -46,12 +51,14 @@ public class RecruitmentWorkflowService {
             RecruitmentSearchPlanService searchPlanService,
             RecruitmentJobSelectionService selectionService,
             RecruitmentJobRegistryService jobRegistryService,
+            RecruitmentContactHistoryService contactHistory,
             @Qualifier("recruitmentWorkflowExecutor") TaskExecutor taskExecutor
     ) {
         this.platformRegistry = platformRegistry;
         this.searchPlanService = searchPlanService;
         this.selectionService = selectionService;
         this.jobRegistryService = jobRegistryService;
+        this.contactHistory = contactHistory;
         this.taskExecutor = taskExecutor;
     }
 
@@ -60,10 +67,7 @@ public class RecruitmentWorkflowService {
         RecruitmentSessionCapability sessionCapability = requireCapability(
                 plugin, RecruitmentSessionCapability.class);
         BrowserSession session = sessionCapability.openSession(DEFAULT_PROFILE, false);
-        BrowserSessionStatus sessionStatus = sessionCapability.sessionStatus(session.sessionId());
-        if (!sessionStatus.authenticated()) {
-            throw new IllegalStateException("platform session is not authenticated; scan to log in before starting");
-        }
+        requireAuthenticatedSession(plugin, session.sessionId());
 
         UUID taskId = UUID.randomUUID();
         UUID existing = activePlatforms.putIfAbsent(plugin.descriptor().id().value(), taskId);
@@ -79,32 +83,61 @@ public class RecruitmentWorkflowService {
         return run.snapshot();
     }
 
-    public RecruitmentWorkflowSnapshot confirmContact(UUID taskId) {
+    /** Creates a confirmation-only workflow for one persisted job; never sends a message. */
+    public RecruitmentWorkflowSnapshot startFromJob(Long jobRecordId) {
+        var registered = jobRegistryService.requireRegisteredJob(jobRecordId);
+        RecruitmentPlatformPlugin plugin = platformRegistry.require(registered.platform());
+        String platform = plugin.descriptor().id().value();
+        contactHistory.requireNotContacted(platform, registered.job());
+        if (activePlatforms.containsKey(platform)) {
+            throw new IllegalStateException("该平台已有任务运行，请等待完成后再投递");
+        }
+        BrowserSession session = requireCapability(plugin, RecruitmentSessionCapability.class)
+                .openSession(DEFAULT_PROFILE, false);
+        requireAuthenticatedSession(plugin, session.sessionId());
+        WorkflowRun run = new WorkflowRun(UUID.randomUUID(), platform, null);
+        run.sessionId(session.sessionId());
+        run.discovered(List.of(registered.job()));
+        run.selected(List.of(registered.job()));
+        run.update(snapshot(run, WorkflowStatus.AWAITING_CONFIRMATION, WorkflowStage.MATCH, null, null, true));
+        tasks.put(run.taskId(), run);
+        return run.snapshot();
+    }
+
+    public RecruitmentWorkflowSnapshot confirmContact(UUID taskId, String platformJobId, String greeting) {
         WorkflowRun run = requireRun(taskId);
         synchronized (run) {
             if (run.snapshot().status() != WorkflowStatus.AWAITING_CONFIRMATION) {
                 throw new IllegalStateException("workflow is not awaiting contact confirmation");
             }
+            RecruitmentJob contactJob = requireSelectedJob(run, platformJobId);
+            contactHistory.requireNotContacted(run.platform(), contactJob);
+            String confirmedGreeting = requireGreeting(greeting);
+            RecruitmentPlatformPlugin plugin = platformRegistry.require(run.platform());
+            requireAuthenticatedSession(plugin, run.sessionId());
             UUID existing = activePlatforms.putIfAbsent(run.platform(), taskId);
             if (existing != null && !existing.equals(taskId)) {
                 throw new IllegalStateException("workflow already running: " + existing);
             }
             run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.CONTACT, null, null, false));
-            taskExecutor.execute(() -> executeContact(run));
+            taskExecutor.execute(() -> executeContact(run, contactJob, confirmedGreeting));
             return run.snapshot();
         }
     }
 
-    public BrowserContactPreparationResult prepareContact(UUID taskId) {
+    public BrowserContactPreparationResult prepareContact(UUID taskId, String platformJobId) {
         WorkflowRun run = requireRun(taskId);
         synchronized (run) {
             if (run.snapshot().status() != WorkflowStatus.AWAITING_CONFIRMATION) {
                 throw new IllegalStateException("workflow is not awaiting contact confirmation");
             }
             RecruitmentPlatformPlugin plugin = platformRegistry.require(run.platform());
+            requireAuthenticatedSession(plugin, run.sessionId());
             RecruitmentContactPreparationCapability capability = requireCapability(
                     plugin, RecruitmentContactPreparationCapability.class);
-            return capability.prepareContact(run.sessionId(), run.selected());
+            RecruitmentJob contactJob = requireSelectedJob(run, platformJobId);
+            contactHistory.requireNotContacted(run.platform(), contactJob);
+            return capability.prepareContact(run.sessionId(), List.of(contactJob));
         }
     }
 
@@ -114,6 +147,7 @@ public class RecruitmentWorkflowService {
 
     private void executePreview(WorkflowRun run, RecruitmentPlatformPlugin plugin) {
         try {
+            requireAuthenticatedSession(plugin, run.sessionId());
             RecruitmentDiscoveryCapability discoveryCapability = requireCapability(
                     plugin, RecruitmentDiscoveryCapability.class);
 
@@ -128,7 +162,16 @@ public class RecruitmentWorkflowService {
                 run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.REGISTER, null, null, false));
                 jobRegistryService.register(run.platform(), batch);
                 run.update(snapshot(run, WorkflowStatus.RUNNING, WorkflowStage.FILTER, null, null, false));
-                selectionService.select(batch, plan.goal()).forEach(job ->
+                var contactedIds = contactHistory.contactedIds(run.platform(), batch);
+                List<RecruitmentJob> uncontacted = batch.stream()
+                        .filter(job -> !contactedIds.contains(job.platformJobId())).toList();
+                List<ContactResult> skipped = batch.stream()
+                        .filter(job -> contactedIds.contains(job.platformJobId()))
+                        .map(job -> new ContactResult(job.platformJobId(), ContactResult.ContactStatus.SKIPPED,
+                                "ALREADY_CONTACTED")).toList();
+                run.contactResults(java.util.stream.Stream.concat(run.contactResults().stream(), skipped.stream())
+                        .distinct().toList());
+                selectionService.select(uncontacted, plan.goal()).forEach(job ->
                         selectedById.put(job.platformJobId(), job));
             }
             List<RecruitmentJob> selected = List.copyOf(selectedById.values());
@@ -146,18 +189,22 @@ public class RecruitmentWorkflowService {
         }
     }
 
-    private void executeContact(WorkflowRun run) {
+    private void executeContact(WorkflowRun run, RecruitmentJob contactJob, String greeting) {
         try {
+            contactHistory.requireNotContacted(run.platform(), contactJob);
             RecruitmentPlatformPlugin plugin = platformRegistry.require(run.platform());
+            requireAuthenticatedSession(plugin, run.sessionId());
             RecruitmentContactCapability contactCapability = requireCapability(
                     plugin, RecruitmentContactCapability.class);
             BrowserContactResult result = contactCapability.contact(
-                    run.sessionId(), run.selected(), run.searchPlan().greeting());
-            run.contactResults(result.results());
+                    run.sessionId(), List.of(contactJob), greeting);
+              run.contactResults(java.util.stream.Stream.concat(
+                      run.contactResults().stream(), result.results().stream()).toList());
+            contactHistory.recordSuccess(run.platform(), contactJob, result.results());
             run.update(snapshot(run, WorkflowStatus.COMPLETED, WorkflowStage.CONTACT, null, null, false));
         } catch (Exception exception) {
             run.update(snapshot(run, WorkflowStatus.FAILED, WorkflowStage.CONTACT,
-                    exception.getMessage(), "RETRY_CONTACT", false));
+                      exception.getMessage(), "VERIFY_PLATFORM_HISTORY", false));
         } finally {
             activePlatforms.remove(run.platform(), run.taskId());
         }
@@ -168,6 +215,36 @@ public class RecruitmentWorkflowService {
             throw new IllegalStateException("platform capability is unavailable: " + capabilityType.getSimpleName());
         }
         return capabilityType.cast(plugin);
+    }
+
+    private void requireAuthenticatedSession(RecruitmentPlatformPlugin plugin, String sessionId) {
+        RecruitmentSessionCapability sessionCapability = requireCapability(
+                plugin, RecruitmentSessionCapability.class);
+        BrowserSessionStatus sessionStatus = sessionCapability.sessionStatus(sessionId);
+        if (!sessionStatus.authenticated()) {
+            throw new IllegalStateException(AUTHENTICATION_REQUIRED);
+        }
+    }
+
+    private RecruitmentJob requireSelectedJob(WorkflowRun run, String platformJobId) {
+        if (platformJobId == null || platformJobId.isBlank()) {
+            throw new IllegalArgumentException("contact job is required");
+        }
+        return run.selected().stream()
+                .filter(job -> platformJobId.equals(job.platformJobId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("contact job is not part of this workflow"));
+    }
+
+    private String requireGreeting(String greeting) {
+        if (greeting == null || greeting.isBlank()) {
+            throw new IllegalArgumentException("contact greeting is required");
+        }
+        String normalized = greeting.trim();
+        if (normalized.length() > MAX_GREETING_LENGTH) {
+            throw new IllegalArgumentException("contact greeting exceeds 500 characters");
+        }
+        return normalized;
     }
 
     private WorkflowRun requireRun(UUID taskId) {
@@ -192,7 +269,9 @@ public class RecruitmentWorkflowService {
         return new RecruitmentWorkflowSnapshot(
                 run.taskId(), run.platform(), run.goalId(), status, stage,
                 run.discovered().size(), run.selected().size(), run.selected().size(), contacted,
-                error, recoveryAction, confirmationRequired, run.selected(), run.contactResults(), Instant.now());
+                error, recoveryAction, confirmationRequired,
+                run.searchPlan() == null ? null : run.searchPlan().greeting(),
+                run.selected(), run.contactResults(), Instant.now());
     }
 
     private static final class WorkflowRun {
