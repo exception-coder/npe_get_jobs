@@ -29,7 +29,7 @@ public class JobSkillPromptAssembler {
     /**
      * 组装岗位技能分析的提示词消息列表
      *
-     * @param templateId 模板 ID（例如 "job-skill-prompt"）
+     * @param templateId 模板 ID（例如 "job-skill-prompt-v1"）
      * @param request    岗位技能分析请求
      * @return LLM 消息列表
      */
