@@ -1,5 +1,6 @@
 import type { useCommonConfigState } from '../state/commonConfigState';
 import { fetchCommonConfig, saveCommonConfig, type CommonConfig, type AiPlatformOption } from '../api/commonConfigApi';
+import { fetchCandidateProfile, updateCandidateIntroduction } from '@/entities/candidate-profile/api/candidateProfileApi';
 import type { useSnackbarStore } from '@/stores/snackbar';
 
 type CommonConfigState = ReturnType<typeof useCommonConfigState>;
@@ -94,7 +95,7 @@ export const useCommonConfigService = (state: CommonConfigState, snackbar: Snack
     state.loading = true;
     try {
       console.log('[CommonConfig] 开始加载配置...');
-      const response = await fetchCommonConfig();
+      const [response, candidateProfile] = await Promise.all([fetchCommonConfig(), fetchCandidateProfile()]);
       console.log('[CommonConfig] 收到响应:', response);
       
       const config: CommonConfig = response?.data ?? {};
@@ -137,6 +138,7 @@ export const useCommonConfigService = (state: CommonConfigState, snackbar: Snack
         jobBlacklist: toArray(config.jobBlacklistKeywords),
         companyBlacklist: toArray(config.companyBlacklistKeywords),
         jobTitle: config.jobTitle ?? '',
+        selfIntroduction: candidateProfile.selfIntroduction ?? '',
         skills: ensureArray(config.skills),
         yearsOfExperience: config.yearsOfExperience ?? '',
         careerIntent: config.careerIntent ?? '',
@@ -234,9 +236,9 @@ export const useCommonConfigService = (state: CommonConfigState, snackbar: Snack
     try {
       const payload = buildPayload();
       await saveCommonConfig(payload);
-      snackbar.show({ message: '公共配置已保存', color: 'success' });
+      await updateCandidateIntroduction(state.form.selfIntroduction);
+      snackbar.show({ message: '求职资产已保存', color: 'success' });
       snapshotForm();
-      localStorage.setItem('candidateProfile', JSON.stringify(payload));
     } catch (error) {
       console.error('保存公共配置失败', error);
       snackbar.show({ message: '保存失败，请稍后再试', color: 'error' });

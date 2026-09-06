@@ -5,6 +5,7 @@ export interface FormModel {
   jobBlacklist: string[];
   companyBlacklist: string[];
   jobTitle: string;
+  selfIntroduction: string;
   skills: string[];
   yearsOfExperience: string;
   careerIntent: string;
@@ -35,6 +36,7 @@ export const useCommonConfigState = () => {
       jobBlacklist: [],
       companyBlacklist: [],
       jobTitle: '',
+      selfIntroduction: '',
       skills: [],
       yearsOfExperience: '',
       careerIntent: '',

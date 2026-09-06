@@ -51,6 +51,12 @@ public class UserProfile extends BaseEntity {
     private String jobTitle;
 
     /**
+     * 用户本人维护的自我介绍，作为跨平台候选人画像事实。
+     */
+    @Column(name = "self_introduction", columnDefinition = "TEXT")
+    private String selfIntroduction;
+
+    /**
      * 核心技能列表（新版候选人信息字段，以JSON格式存储）
      */
     @Column(columnDefinition = "TEXT")

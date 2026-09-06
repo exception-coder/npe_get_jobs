@@ -8,6 +8,7 @@
         <span>用于岗位匹配，不会发送给招聘方</span>
       </header>
       <div class="field-grid">
+        <label class="field field-wide"><span>自我介绍</span><textarea v-model="state.form.selfIntroduction" maxlength="500" rows="5" placeholder="写下工作年限、核心能力、代表项目和希望发展的方向" /><small>由你本人维护，用于匹配判断与沟通草稿 · {{ state.form.selfIntroduction.trim().length }}/500</small></label>
         <label class="field"><span>当前职位</span><input v-model.trim="state.form.jobTitle" required placeholder="例如：Java 高级工程师" /></label>
         <label class="field"><span>工作经验</span><input v-model.trim="state.form.yearsOfExperience" required placeholder="例如：5 年" /></label>
         <label class="field field-wide"><span>核心技能</span><input v-model="skillsText" placeholder="Java、Spring Boot、MySQL、Redis" /><small>使用逗号分隔</small></label>
