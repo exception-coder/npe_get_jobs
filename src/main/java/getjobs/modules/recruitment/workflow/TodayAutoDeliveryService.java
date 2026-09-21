@@ -43,6 +43,9 @@ public class TodayAutoDeliveryService {
         var plan = plans.resolve(new RecruitmentPlatformId(platform), active.getId());
         var options = new ContactDeliveryOptions(image, imagePath, true);
         var ids = jobs.todayIds(platform);
+        if (ids.isEmpty()) {
+            throw new IllegalStateException("没有可处理的今日岗位，请先完成一次岗位寻找后再投递");
+        }
         stopping = false;
         progress = new Progress(UUID.randomUUID().toString(), "RUNNING", ids.size(), 0, 0, "正在匹配今日岗位");
         try {

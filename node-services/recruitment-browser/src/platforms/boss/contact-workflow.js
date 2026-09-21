@@ -140,7 +140,8 @@ export async function contactThroughMessagePage(page, job, input, state) {
     if (url.protocol !== 'https:' || url.hostname !== 'www.zhipin.com'
         || url.pathname !== `/job_detail/${job.platformJobId}.html`) throw new Error('JOB_URL_MISMATCH');
     await page.goto(job.href, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    const entry = page.locator('a.btn.btn-startchat');
+    // BOSS may render duplicate desktop/mobile actions; use one visible action explicitly.
+    const entry = page.locator('a.btn.btn-startchat:visible').first();
     await entry.waitFor({ state: 'visible', timeout: TIMEOUT });
     journalPath = await reserveAttempt(page, job, state);
     await entry.click();

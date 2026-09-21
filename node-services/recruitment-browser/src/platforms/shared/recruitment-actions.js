@@ -148,16 +148,21 @@ export const createRecruitmentActions = (definition) => {
     const maxScrolls = Math.max(Number(input.maxScrolls ?? DEFAULT_MAX_SCROLLS), 0);
     const jobs = new Map();
     const batches = [];
-    for (const search of searches) {
+    for (const [searchIndex, search] of searches.entries()) {
+      // Reserve room for later regions/roles instead of letting the first city consume the run.
+      const searchLimit = Math.ceil((jobLimit - jobs.size) / (searches.length - searchIndex));
+      if (searchLimit <= 0) break;
+      const searchTarget = jobs.size + searchLimit;
       await actions.searchJobs(context, { search, filters: input.filters });
-      const initial = await actions.collectVisibleJobs(context, { limit: jobLimit });
+      const initial = await actions.collectVisibleJobs(context, { limit: searchLimit });
       addBatch(initial.jobs, jobs, batches);
       let stagnantScrolls = 0;
-      for (let index = 0; index < maxScrolls && jobs.size < jobLimit; index += 1) {
+      for (let index = 0; index < maxScrolls && jobs.size < searchTarget; index += 1) {
         const sizeBefore = jobs.size;
         const scroll = await actions.scrollJobList(context, input.scroll || {});
-        const collected = await actions.collectVisibleJobs(context, { limit: jobLimit });
-        addBatch(collected.jobs, jobs, batches);
+        const collected = await actions.collectVisibleJobs(context, { limit: searchLimit });
+        addBatch(collected.jobs.filter(job => !jobs.has(job.platformJobId || job.href))
+          .slice(0, searchTarget - jobs.size), jobs, batches);
         const discoveredNewJobs = jobs.size > sizeBefore;
         const scrollProgressed = scroll.changed === true || Number(scroll.apiResponses ?? 0) > 0;
         stagnantScrolls = discoveredNewJobs || scrollProgressed ? 0 : stagnantScrolls + 1;

@@ -1,5 +1,6 @@
 import { createRecruitmentActions, idFromUrl, queryString, readCard } from '../shared/recruitment-actions.js';
 import { contactThroughMessagePage } from './contact-workflow.js';
+import { resolveBossSearch } from './regions.js';
 
 const RESULT_TIMEOUT = 15_000;
 const SCROLL_SETTLE_MS = 1_500;
@@ -118,8 +119,8 @@ const definition = {
   },
   jobId: idFromUrl,
   scrollContainers: ['.job-list-container', '.job-list-box'],
-  buildSearchUrl: ({ keyword, cityCode }, filters) => queryString('https://www.zhipin.com/web/geek/jobs', {
-    city: cityCode, query: keyword, jobType: filters.jobType, salary: filters.salary,
+  buildSearchUrl: ({ keyword, cityCode, areaBusiness }, filters) => queryString('https://www.zhipin.com/web/geek/jobs', {
+    city: cityCode, areaBusiness, query: keyword, jobType: filters.jobType, salary: filters.salary,
     experience: filters.experience, degree: filters.degree, scale: filters.scale,
     industry: filters.industry, stage: filters.stage,
   }),
@@ -140,7 +141,7 @@ const definition = {
     if (!(await definition.authenticated(page))) throw new Error('AUTHENTICATION_REQUIRED');
     const monitor = ensureResponseMonitor(page, state);
     monitor.batches.length = 0;
-    const search = input.search || { keyword: '', cityCode: '' };
+    const search = await resolveBossSearch(page, state, input.search || { keyword: '', cityCode: '' });
     const searchUrl = definition.buildSearchUrl(search, input.filters || {});
     if (monitor.searchUrl !== searchUrl) monitor.cache.clear();
     monitor.searchUrl = searchUrl;
@@ -262,7 +263,7 @@ const definition = {
   prepareContact: async (page, job) => {
     await page.goto(job.href, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     if (!(await definition.authenticated(page))) throw new Error('AUTHENTICATION_REQUIRED');
-    const contactActionVisible = await page.locator('a.btn.btn-startchat').first().isVisible().catch(() => false);
+    const contactActionVisible = await page.locator('a.btn.btn-startchat:visible').first().isVisible().catch(() => false);
     const editorVisible = await page.locator('#chat-input').first().isVisible().catch(() => false);
     return {
       platformJobId: job.platformJobId,

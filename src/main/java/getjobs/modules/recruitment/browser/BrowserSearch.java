@@ -1,5 +1,8 @@
 package getjobs.modules.recruitment.browser;
 
 /** One keyword and city combination submitted to a platform search page. */
-public record BrowserSearch(String keyword, String cityCode) {
+public record BrowserSearch(String keyword, String cityCode, String regionName) {
+    public BrowserSearch(String keyword, String cityCode) {
+        this(keyword, cityCode, "");
+    }
 }

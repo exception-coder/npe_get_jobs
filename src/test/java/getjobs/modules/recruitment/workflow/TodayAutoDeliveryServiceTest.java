@@ -11,6 +11,22 @@ import static org.assertj.core.api.Assertions.*;
 
 class TodayAutoDeliveryServiceTest {
     @Test
+    void refusesToReportSuccessfulCompletionWhenTodayHasNoJobs() {
+        var jobs = mock(RecruitmentJobRegistryService.class);
+        var goals = mock(RecruitmentGoalService.class);
+        var goal = new RecruitmentGoalEntity(); goal.setId(1L);
+        when(goals.active()).thenReturn(goal);
+        when(jobs.todayIds("boss")).thenReturn(List.of());
+        var service = new TodayAutoDeliveryService(jobs, goals, mock(RecruitmentSearchPlanService.class),
+                mock(RecruitmentJobSelectionService.class), mock(RecruitmentContactHistoryService.class),
+                mock(RecruitmentWorkflowService.class), Runnable::run);
+
+        assertThatThrownBy(() -> service.start("boss", 1L, "您好", false, ""))
+                .hasMessageContaining("没有可处理的今日岗位");
+        assertThat(service.status().id()).isNull();
+    }
+
+    @Test
     void emptyGreetingNeverStartsAndPreviouslyContactedJobsNeverSend() {
         var jobs = mock(RecruitmentJobRegistryService.class);
         var goals = mock(RecruitmentGoalService.class);

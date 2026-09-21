@@ -48,7 +48,7 @@ test('BOSS prepareContact inspects the chat context without clicking or typing',
     'a[ka="header-message"]', 'a[ka="header-resume"]',
     'a[href*="/web/geek/chat"]', 'li.nav-figure',
   ].join(', ');
-  const visible = new Set(['a.btn.btn-startchat', authenticatedSelector]);
+  const visible = new Set(['a.btn.btn-startchat:visible', authenticatedSelector]);
   const page = {
     goto: async (url) => calls.push(['goto', url]),
     url: () => 'https://www.zhipin.com/job_detail/boss-1.html',
@@ -253,4 +253,23 @@ test('discovery stops after two stagnant scroll attempts', async () => {
   await actions.discover({ page: {} }, { maxScrolls: 8, limit: 100 });
 
   assert.equal(scrolls, 2);
+});
+
+test('discovery reserves capacity for every preferred region', async () => {
+  let region;
+  const actions = createRecruitmentActions({
+    authenticated: async () => true,
+    searchJobs: async (page, input) => { region = input.search.regionName; },
+    collectVisibleJobs: async (page, input) => ({
+      jobs: Array.from({ length: input.limit }, (_, index) => ({ platformJobId: `${region}-${index}` })),
+    }),
+  });
+  const result = await actions.discover({ page: {} }, {
+    searches: ['武夷山', '福州', '泉州', '晋江', '安溪'].map(regionName => ({ regionName })),
+    limit: 10,
+  });
+  assert.equal(result.discovered, 10);
+  for (const regionName of ['武夷山', '福州', '泉州', '晋江', '安溪']) {
+    assert.equal(result.jobs.filter(job => job.platformJobId.startsWith(regionName)).length, 2);
+  }
 });

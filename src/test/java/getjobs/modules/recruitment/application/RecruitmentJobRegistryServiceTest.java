@@ -42,5 +42,6 @@ class RecruitmentJobRegistryServiceTest {
         assertThat(captor.getValue().getHrActiveTime()).isEqualTo("刚刚活跃");
         assertThat(captor.getValue().getSkills()).isEqualTo("Java,Spring");
         assertThat(captor.getValue().getStatus()).isZero();
+        assertThat(captor.getValue().getUpdatedAt()).isNotNull();
     }
 }

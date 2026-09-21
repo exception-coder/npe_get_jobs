@@ -21,9 +21,8 @@ public class RecruitmentJobRegistryService {
     /** Freezes a bounded candidate set using the same local clock as persisted creation timestamps. */
     public List<Long> todayIds(String platform) {
         var start = java.time.LocalDate.now().atStartOfDay();
-        var rows = jobRepository
-                .findByPlatformAndIsDeletedFalseAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByIdAsc(
-                        platform, start, start.plusDays(1), org.springframework.data.domain.PageRequest.of(0, 501));
+        var rows = jobRepository.findTodayCandidates(
+                platform, start, start.plusDays(1), org.springframework.data.domain.PageRequest.of(0, 501));
         if (rows.size() > 500) {
             throw new IllegalStateException("今日岗位超过500个，请先缩小采集范围后自动投递");
         }
@@ -85,6 +84,9 @@ public class RecruitmentJobRegistryService {
     }
 
     private void applySnapshot(JobEntity entity, String platform, RecruitmentJob job) {
+        // This is also the last-seen timestamp used by today's delivery batch. Set it even when
+        // all scraped fields are unchanged, because Hibernate would otherwise skip @PreUpdate.
+        entity.setUpdatedAt(java.time.LocalDateTime.now());
         entity.setPlatform(platform);
         entity.setEncryptJobId(job.platformJobId());
         entity.setJobTitle(job.title());

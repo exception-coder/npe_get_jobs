@@ -18,7 +18,7 @@ async function fixture(run) {
     const url = route.request().url();
     visits.push(url);
     const html = url.includes('/job_detail/')
-      ? '<a class="btn btn-startchat" onclick="document.querySelector(\'textarea\').hidden=false">立即沟通</a><textarea hidden placeholder="请简短描述您的问题"></textarea>'
+      ? '<a class="btn btn-startchat" onclick="document.querySelector(\'textarea\').hidden=false">立即沟通</a><a class="btn btn-startchat" onclick="document.querySelector(\'textarea\').hidden=false">立即沟通</a><textarea hidden placeholder="请简短描述您的问题"></textarea>'
       : `<span class="name-box" onclick="document.querySelector('.chat-conversation').hidden=false"><span class="name-text">测试联系人</span>测试公司</span>
         <div class="chat-conversation" hidden><div>测试联系人</div><div>测试公司</div><div>Java开发</div>
         <div id="chat-input" contenteditable="true"></div>

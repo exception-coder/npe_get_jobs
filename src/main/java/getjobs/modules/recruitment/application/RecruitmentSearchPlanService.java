@@ -9,7 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Retrieves by short role queries; all intent requirements are evaluated after collection. */
+/** Retrieves by role and positive region requirements; matching still evaluates the full intent. */
 @Service
 public class RecruitmentSearchPlanService {
     private final RecruitmentGoalService goals;
@@ -24,9 +24,15 @@ public class RecruitmentSearchPlanService {
         Map<String, String> context = new LinkedHashMap<>(entity.getAdditionalConditions());
         context.put("intentVersion", entity.getId().toString());
         context.put("platform", platformId.value());
-        var conditions = new RecruitmentGoalConditions(card.summary(), card.searchTerms(), List.of(),
+        var region = card.requirements().get("regions");
+        List<String> regions = region != null && "specified".equals(region.state())
+                && !"exclude".equals(region.strength())
+                ? region.value().stream().map(String::trim).distinct().toList() : List.of();
+        var conditions = new RecruitmentGoalConditions(card.summary(), card.searchTerms(), regions,
                 null, null, null, null, List.of(), List.of(), List.of(), List.of(), null, context);
-        List<BrowserSearch> searches = card.searchTerms().stream().map(term -> new BrowserSearch(term, "")).toList();
+        List<String> searchRegions = regions.isEmpty() ? List.of("") : regions;
+        List<BrowserSearch> searches = searchRegions.stream().flatMap(name -> card.searchTerms().stream()
+                .map(term -> new BrowserSearch(term, "", name))).toList();
         return new RecruitmentSearchPlan(searches, Map.of(), "", conditions);
     }
 }
