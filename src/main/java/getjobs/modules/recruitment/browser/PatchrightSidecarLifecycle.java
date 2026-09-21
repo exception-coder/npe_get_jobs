@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
 /** Owns the local Patchright process when automatic startup is enabled. */
 @Component
@@ -37,7 +38,17 @@ public class PatchrightSidecarLifecycle implements SmartLifecycle {
                     .redirectErrorStream(true)
                     .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                     .start();
+            if (process.waitFor(500, TimeUnit.MILLISECONDS)) {
+                int exitCode = process.exitValue();
+                process = null;
+                throw new BrowserAutomationException(
+                        "Patchright sidecar exited during startup (code " + exitCode
+                                + "); stop any stale Node sidecar and restart the application");
+            }
             log.info("Patchright sidecar started, pid={}", process.pid());
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new BrowserAutomationException("Patchright sidecar startup was interrupted", exception);
         } catch (IOException exception) {
             throw new BrowserAutomationException("failed to start Patchright sidecar", exception);
         }

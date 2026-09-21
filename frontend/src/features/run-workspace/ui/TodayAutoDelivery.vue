@@ -21,10 +21,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { loadActiveRecruitmentGoal, loadAutoDelivery, startAutoDelivery, stopAutoDelivery, type AutoDeliveryProgress, type RecruitmentGoal } from '@/shared/api/recruitment';
+const GREETING_STORAGE_KEY = 'career-flow:auto-delivery-greeting';
 const props = defineProps<{ platform: string }>();
-const greeting = ref('');
+const greeting = ref(loadSavedGreeting());
 const sendImage = ref(false);
 const imagePath = ref('');
 const consent = ref(false);
@@ -36,6 +37,14 @@ const activeGoal = ref<RecruitmentGoal | null>(null);
 const running = computed(() => progress.value?.status === 'RUNNING');
 let timer: ReturnType<typeof setTimeout> | undefined;
 let disposed = false;
+function loadSavedGreeting() {
+  try { return localStorage.getItem(GREETING_STORAGE_KEY) ?? ''; }
+  catch { return ''; }
+}
+watch(greeting, value => {
+  try { localStorage.setItem(GREETING_STORAGE_KEY, value); }
+  catch { /* Keep the form usable when browser storage is unavailable. */ }
+});
 async function refresh() {
   try {
     progress.value = await loadAutoDelivery();

@@ -20,6 +20,7 @@ import getjobs.modules.recruitment.domain.RecruitmentPlatformId;
 @Component
 @EnableConfigurationProperties(PatchrightProperties.class)
 public class PatchrightBrowserClient implements BrowserAutomationPort {
+    private static final String REQUIRED_API_REVISION = "2026-09-21-contact-entry-v2";
     private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(45);
     private static final Duration ACTION_REQUEST_TIMEOUT = Duration.ofMinutes(10);
 
@@ -36,13 +37,16 @@ public class PatchrightBrowserClient implements BrowserAutomationPort {
     @Override
     public BrowserHealth health() {
         if (!properties.isEnabled()) {
-            return new BrowserHealth(false, "patchright", "disabled");
+            return new BrowserHealth(false, "patchright", "disabled", REQUIRED_API_REVISION);
         }
-        return get("/health", BrowserHealth.class);
+        BrowserHealth remote = get("/health", BrowserHealth.class);
+        return new BrowserHealth(remote.available() && REQUIRED_API_REVISION.equals(remote.apiRevision()),
+                remote.engine(), remote.version(), remote.apiRevision());
     }
 
     @Override
     public BrowserSession openSession(OpenBrowserSessionCommand command) {
+        requireCompatibleSidecar();
         return post("/v1/sessions", command, BrowserSession.class, DEFAULT_REQUEST_TIMEOUT);
     }
 
@@ -79,8 +83,17 @@ public class PatchrightBrowserClient implements BrowserAutomationPort {
             Object input,
             Class<T> responseType
     ) {
+        requireCompatibleSidecar();
         BrowserActionRequest request = new BrowserActionRequest(sessionId, platformId.value(), action, input);
         return post("/v1/actions", request, responseType, ACTION_REQUEST_TIMEOUT);
+    }
+
+    private void requireCompatibleSidecar() {
+        BrowserHealth remote = get("/health", BrowserHealth.class);
+        if (!remote.available() || !REQUIRED_API_REVISION.equals(remote.apiRevision())) {
+            throw new BrowserAutomationException(
+                    "浏览器服务仍是旧版本，请完全停止应用及残留 Node 进程后重新启动");
+        }
     }
 
     private <T> T get(String path, Class<T> responseType) {

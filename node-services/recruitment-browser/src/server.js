@@ -6,6 +6,7 @@ import { platformRegistry } from './platforms/index.js';
 
 const host = '127.0.0.1';
 const port = Number(process.env.NPE_PATCHRIGHT_PORT || 17321);
+const apiRevision = '2026-09-21-contact-entry-v2';
 const serviceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sessions = new BrowserSessionRegistry({
   profileRoot: process.env.NPE_BROWSER_PROFILE_ROOT || resolve(serviceRoot, '.profiles'),
@@ -31,7 +32,7 @@ const readJson = async (request) => {
 const server = http.createServer(async (request, response) => {
   try {
     if (request.method === 'GET' && request.url === '/health') {
-      send(response, 200, { available: true, engine: 'patchright', version: '1.60.2' });
+      send(response, 200, { available: true, engine: 'patchright', version: '1.60.2', apiRevision });
       return;
     }
     if (request.method === 'POST' && request.url === '/v1/sessions') {

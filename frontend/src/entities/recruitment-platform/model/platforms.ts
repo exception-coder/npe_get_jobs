@@ -16,6 +16,7 @@ export interface BrowserHealth {
   available: boolean;
   engine: string;
   version: string;
+  apiRevision?: string;
 }
 
 export const builtInPlatforms: RecruitmentPlatform[] = [

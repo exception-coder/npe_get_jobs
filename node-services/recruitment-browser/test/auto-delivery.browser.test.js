@@ -29,6 +29,9 @@ test('auto delivery requires edited text and consent, then supports stop', { ski
     await page.goto(process.env.NPE_UI_TEST_URL + '/__auto_preview');
     assert.equal(await page.getByRole('button', { name: '开始自动投递' }).isDisabled(), true);
     await page.getByLabel('自动打招呼文字').fill('您好，希望了解岗位。');
+    await page.reload();
+    assert.equal(await page.getByLabel('自动打招呼文字').inputValue(), '您好，希望了解岗位。');
+    assert.equal(await page.getByLabel('我已核对文字及当前意向，确认向匹配岗位真实发送').isChecked(), false);
     await page.getByLabel('我已核对文字及当前意向，确认向匹配岗位真实发送').check();
     await page.getByRole('button', { name: '开始自动投递' }).click();
     await page.getByRole('button', { name: '停止后续投递' }).waitFor();
