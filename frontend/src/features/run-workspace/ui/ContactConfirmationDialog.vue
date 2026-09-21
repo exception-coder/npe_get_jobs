@@ -3,7 +3,7 @@
     <section ref="dialog" class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="contact-confirm-title" @keydown.esc="$emit('close')">
       <button class="close-button" type="button" aria-label="关闭确认窗口" @click="$emit('close')"><i class="mdi mdi-close" /></button>
       <span>发送前确认</span>
-      <h3 id="contact-confirm-title">{{ draftOnly ? '确认建立沟通与附件选项' : '确认联系这个岗位？' }}</h3>
+      <h3 id="contact-confirm-title">确认发送消息与附件选项</h3>
 
       <div class="selected-job">
         <small>{{ platformName }}</small>
@@ -20,7 +20,7 @@
       <textarea
         id="contact-greeting" ref="greetingEditor" :value="greeting" maxlength="500" rows="5"
         placeholder="请先填写要发送给招聘者的招呼语"
-        @input="$emit('update:greeting', ($event.target as HTMLTextAreaElement).value)"
+        @input="updateGreeting(($event.target as HTMLTextAreaElement).value)"
       />
       <div class="character-count">{{ greeting.length }} / 500</div>
       <fieldset v-if="draftOnly" class="image-options" :disabled="submitting || defaultsLoading">
@@ -30,19 +30,19 @@
           <label for="resume-image-path">图片简历绝对路径</label>
           <input id="resume-image-path" v-model.trim="resumeImagePath" type="text"
             placeholder="请填写本机 PNG / JPEG 图片绝对路径" aria-describedby="image-send-note" />
-          <p id="image-send-note" class="side-effect-note">最大 5 MiB。确认后图片将立即发送给上方岗位对应的招聘者；文字仍只填入草稿。</p>
+          <p id="image-send-note" class="side-effect-note">最大 5 MiB。确认后文字与图片将发送给上方岗位对应的招聘者。</p>
           <p v-if="!resumeImagePath" role="status">请填写图片路径，或取消附图。</p>
         </template>
         <p v-if="defaultsError" role="status">{{ defaultsError }}</p>
       </fieldset>
-      <p v-if="draftOnly" class="side-effect-note">文字只填入草稿，请在 Boss 窗口检查后手动发送。勾选附图会立即发送图片；打开沟通入口也可能触发平台自身的招呼行为。</p>
+      <p v-if="draftOnly" class="side-effect-note">点击确认后将进入已核验的 Boss 会话，发送文字并等待平台送达回执；勾选后也会发送图片。</p>
       <p v-else class="side-effect-note">点击确认后，才会通过 {{ platformName }} 真实发起沟通或投递。</p>
 
       <div class="dialog-actions">
         <button type="button" @click="$emit('close')">再看一眼</button>
-        <button class="confirm" type="button" :disabled="!canConfirm || submitting" @click="$emit('confirm', { sendResumeImage: Boolean(draftOnly && sendResumeImage), resumeImagePath })">
+        <button class="confirm" type="button" :disabled="!canConfirm || submitting" @click="$emit('confirm', { sendResumeImage: Boolean(draftOnly && sendResumeImage), resumeImagePath, sendGreeting: true })">
           <i :class="submitting ? 'mdi mdi-loading mdi-spin' : 'mdi mdi-send-outline'" />
-          {{ submitting ? '正在处理…' : draftOnly ? sendResumeImage ? '建立沟通、填草稿并发送图片' : '建立沟通并填入草稿' : '确认联系这个岗位' }}
+          {{ submitting ? '正在发送并核验…' : sendResumeImage ? '确认发送文字和图片' : '确认发送消息' }}
         </button>
       </div>
     </section>
@@ -64,11 +64,18 @@ const props = defineProps<{
   draftOnly?: boolean;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   close: [];
   confirm: [options: ContactDeliveryOptions];
   'update:greeting': [value: string];
 }>();
+
+const CONTACT_GREETING_STORAGE_KEY = 'career-flow:last-contact-greeting';
+function updateGreeting(value: string) {
+  try { localStorage.setItem(CONTACT_GREETING_STORAGE_KEY, value); }
+  catch { /* Saving is optional; sending remains available. */ }
+  emit('update:greeting', value);
+}
 
 const dialog = ref<HTMLElement | null>(null);
 const greetingEditor = ref<HTMLTextAreaElement | null>(null);
@@ -83,7 +90,7 @@ const canConfirm = computed(() => props.preparation?.status === 'READY' && Boole
 const readinessTone = computed(() => props.preparation?.status === 'READY' ? 'ready' : 'blocked');
 const readinessTitle = computed(() => props.preparation?.status === 'READY' ? '沟通入口已就绪' : '暂时不能联系');
 const readinessMessage = computed(() => props.preparation?.status === 'READY'
-  ? '已定位这个岗位的沟通入口，但尚未点击或发送任何内容。'
+  ? '已定位并核验沟通入口；确认后才会发送内容。'
   : props.preparation?.reason || '没有找到可用的投递或打招呼入口，请稍后再试。');
 
 watch(() => props.open, async (open) => {

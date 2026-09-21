@@ -183,9 +183,11 @@ export function prepareWorkflowContact(taskId: string, platformJobId: string): P
 export interface ContactDeliveryOptions {
   sendResumeImage: boolean;
   resumeImagePath: string;
+  sendGreeting?: boolean;
 }
 
-export interface AutoDeliveryProgress { id: string | null; status: string; total: number; checked: number; sent: number; message: string }
+export interface AutoDeliveryOutcome { platformJobId: string; title: string; company: string; status: 'SENT' | 'SKIPPED' | 'FAILED'; reason: string }
+export interface AutoDeliveryProgress { id: string | null; status: string; total: number; checked: number; sent: number; message: string; outcomes: AutoDeliveryOutcome[] }
 export function loadAutoDelivery(): Promise<AutoDeliveryProgress> { return request('/api/recruitment/auto-delivery'); }
 export function stopAutoDelivery(): Promise<AutoDeliveryProgress> { return request('/api/recruitment/auto-delivery/stop', { method: 'POST' }); }
 export function startAutoDelivery(platform: string, goalId: number, greeting: string, options: ContactDeliveryOptions): Promise<AutoDeliveryProgress> {

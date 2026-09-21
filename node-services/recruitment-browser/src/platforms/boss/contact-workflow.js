@@ -106,10 +106,10 @@ async function uploadImageOnce(page, expected, file) {
 /** Sends once only after explicit consent and verifies a receipt in the selected conversation. */
 export async function sendConversationGreeting(page, expected, greeting) {
   await verifyConversation(page, expected);
-  const send = page.locator('.chat-conversation').getByRole('button', { name: '发送', exact: true });
-  if (await send.count() !== 1) throw new Error('TEXT_SEND_BUTTON_AMBIGUOUS');
+  const editor = page.locator(EDITOR);
+  if (await editor.count() !== 1 || !(await editor.isVisible())) throw new Error('CHAT_EDITOR_UNAVAILABLE');
   const before = await page.evaluate(textReceiptCount, { text: greeting });
-  await send.click();
+  await editor.press('Enter');
   await page.waitForFunction(textReceiptCount, { text: greeting, before }, { timeout: TIMEOUT });
   await verifyConversation(page, expected);
 }

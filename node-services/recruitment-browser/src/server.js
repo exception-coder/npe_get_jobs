@@ -6,7 +6,7 @@ import { platformRegistry } from './platforms/index.js';
 
 const host = '127.0.0.1';
 const port = Number(process.env.NPE_PATCHRIGHT_PORT || 17321);
-const apiRevision = '2026-09-21-contact-entry-v2';
+const apiRevision = '2026-09-21-contact-send-v3';
 const serviceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sessions = new BrowserSessionRegistry({
   profileRoot: process.env.NPE_BROWSER_PROFILE_ROOT || resolve(serviceRoot, '.profiles'),

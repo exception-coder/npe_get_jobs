@@ -14,6 +14,16 @@
     </form>
     <p v-if="platform !== 'boss'">目前仅支持 BOSS 直聘。</p>
     <p v-if="progress?.id" role="status">{{ progress.message }} · 已检查 {{ progress.checked }}/{{ progress.total }} · 已发送 {{ progress.sent }}</p>
+    <details v-if="progress?.outcomes?.length" class="delivery-results">
+      <summary>查看检查明细（已发送 {{ progress.sent }}，跳过 {{ skippedCount }}，失败 {{ failedCount }}）</summary>
+      <div class="result-list">
+        <article v-for="item in progress.outcomes" :key="`${item.platformJobId}-${item.status}`" :class="item.status.toLowerCase()">
+          <div><strong>{{ item.title }}</strong><span>{{ item.company }}</span></div>
+          <b>{{ outcomeLabel(item.status) }}</b>
+          <p>{{ item.reason }}</p>
+        </article>
+      </div>
+    </details>
     <button v-if="running" type="button" :disabled="pending || stopping" @click="stop">{{ stopping ? '等待当前岗位结束…' : '停止后续投递' }}</button>
     <p v-if="running">停止不会撤回正在发送的消息。请勿同时手动操作平台浏览器。</p>
     <p v-if="error" role="alert">{{ error }}</p>
@@ -35,6 +45,8 @@ const error = ref('');
 const progress = ref<AutoDeliveryProgress | null>(null);
 const activeGoal = ref<RecruitmentGoal | null>(null);
 const running = computed(() => progress.value?.status === 'RUNNING');
+const skippedCount = computed(() => progress.value?.outcomes?.filter(item => item.status === 'SKIPPED').length ?? 0);
+const failedCount = computed(() => progress.value?.outcomes?.filter(item => item.status === 'FAILED').length ?? 0);
 let timer: ReturnType<typeof setTimeout> | undefined;
 let disposed = false;
 function loadSavedGreeting() {
@@ -45,6 +57,9 @@ watch(greeting, value => {
   try { localStorage.setItem(GREETING_STORAGE_KEY, value); }
   catch { /* Keep the form usable when browser storage is unavailable. */ }
 });
+function outcomeLabel(status: string) {
+  return status === 'SENT' ? '已发送' : status === 'SKIPPED' ? '已跳过' : '失败';
+}
 async function refresh() {
   try {
     progress.value = await loadAutoDelivery();
@@ -84,4 +99,9 @@ button { justify-self: start; border: 1px solid var(--line); padding: 10px 14px;
 button:disabled { opacity: .5; cursor: not-allowed; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 [role=alert] { color: var(--danger); }
+.delivery-results { margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 10px 12px; }
+.delivery-results summary { cursor: pointer; color: var(--ink-strong); font-size: 12px; font-weight: 700; }
+.result-list { display: grid; gap: 8px; max-height: 360px; overflow: auto; margin-top: 10px; }
+.result-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; padding: 10px; border-radius: 8px; background: var(--surface-subtle); }
+.result-list article div { display: grid; min-width: 0; }.result-list strong, .result-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.result-list span, .result-list p { color: var(--ink-muted); font-size: 11px; }.result-list b { color: var(--ink-muted); font-size: 11px; }.result-list .sent b { color: var(--success); }.result-list .failed b { color: var(--danger); }.result-list p { grid-column: 1 / -1; margin: 3px 0 0; }
 </style>

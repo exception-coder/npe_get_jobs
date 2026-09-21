@@ -21,7 +21,7 @@ async function fixture(run) {
       ? '<a class="btn btn-startchat" onclick="document.querySelector(\'textarea\').hidden=false">立即沟通</a><a class="btn btn-startchat" onclick="document.querySelector(\'textarea\').hidden=false">立即沟通</a><textarea hidden placeholder="请简短描述您的问题"></textarea>'
       : `<span class="name-box" onclick="document.querySelector('.chat-conversation').hidden=false"><span class="name-text">测试联系人</span>测试公司</span>
         <div class="chat-conversation" hidden><div>测试联系人</div><div>测试公司</div><div>Java开发</div>
-        <div id="chat-input" contenteditable="true"></div>
+        <div id="chat-input" contenteditable="true" onkeydown="if(event.key==='Enter'){event.preventDefault();const bubble=document.createElement('div');const text=document.createElement('span');text.textContent=this.innerText;bubble.append(text,document.createTextNode('送达'));this.parentElement.append(bubble);this.innerText=''}"></div>
         <input type="file" accept="image/gif,image/jpeg,image/jpg,image/png" onchange="const box=document.createElement('div');box.innerHTML='<img class=message-image src=data:image/png;base64,${png}>送达';this.parentElement.append(box)">
         <button class="btn-send" onclick="throw Error('TEXT_SEND_FORBIDDEN')">发送</button></div>`;
     await route.fulfill({ contentType: 'text/html; charset=utf-8', body: html });
@@ -49,19 +49,19 @@ test('draft flow establishes contact before chat and never uploads by default', 
 test('explicit text send requires a new delivered message and clears the draft', async () => {
   await fixture(async page => {
     await contactThroughMessagePage(page, job, { greeting: '您好' });
-    await page.locator('.btn-send').evaluate(button => {
-      button.onclick = () => {
-        const editor = document.querySelector('#chat-input');
-        const bubble = document.createElement('div');
-        const text = document.createElement('span');
-        text.textContent = editor.innerText;
-        bubble.append(text, document.createTextNode('送达'));
-        button.parentElement.append(bubble);
-        editor.innerText = '';
-      };
-    });
     await sendConversationGreeting(page, { ...job, recruiterName: '测试联系人' }, '您好');
     assert.equal(await page.locator('#chat-input').innerText(), '');
+  });
+});
+
+test('explicitly confirmed contact presses Enter and records verified text delivery', async () => {
+  await fixture(async page => {
+    const result = await contactThroughMessagePage(page, job, {
+      greeting: '您好', deliveryOptions: { sendGreeting: true },
+    });
+    assert.equal(result.status, 'SUCCEEDED', JSON.stringify(result));
+    assert.equal(result.textSent, true);
+    assert.equal(result.reason, 'TEXT_DELIVERED');
   });
 });
 

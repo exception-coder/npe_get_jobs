@@ -154,6 +154,7 @@ import RecruitmentIntentCard from './RecruitmentIntentCard.vue';
 type WorkspaceView = 'operate' | 'history' | 'assets';
 const route = useRoute();
 const router = useRouter();
+const CONTACT_GREETING_STORAGE_KEY = 'career-flow:last-contact-greeting';
 const candidateIntroduction = useCandidateIntroduction();
 const platforms = ref(builtInPlatforms);
 const modelReady = ref(false);
@@ -174,7 +175,7 @@ const authenticated = ref(false);
 const pendingStart = ref(false);
 const confirmDialog = ref(false);
 const selectedJobId = ref('');
-const contactGreeting = ref('');
+const contactGreeting = ref(loadSavedContactGreeting());
 const contactPreparation = ref<ContactPreparation | null>(null);
 const preparingContact = ref(false);
 const confirmingContact = ref(false);
@@ -194,6 +195,11 @@ const selectedPlatformCode = computed(() => selectedPlatform.value as PlatformCo
 const platformStatusLabel = computed(() => authenticated.value ? '已登录' : openingSession.value ? '正在检查' : '未登录');
 const greeting = computed(() => new Date().getHours() < 12 ? '早上好，张凯' : new Date().getHours() < 18 ? '下午好，张凯' : '晚上好，张凯');
 const selectedJob = computed(() => snapshot.value?.jobs.find((job) => job.platformJobId === selectedJobId.value) ?? null);
+
+function loadSavedContactGreeting() {
+  try { return localStorage.getItem(CONTACT_GREETING_STORAGE_KEY) ?? ''; }
+  catch { return ''; }
+}
 
 loadRecruitmentPlatforms().then((value) => { platforms.value = value; }).catch(() => undefined);
 
@@ -386,6 +392,10 @@ watch([selectedPlatform, activeView], ([platform, view]) => {
 });
 watch(goal, (value) => {
   if (interpretedGoal.value && interpretedGoal.value.rawGoal !== value.trim()) interpretedGoal.value = null;
+});
+watch(contactGreeting, value => {
+  try { localStorage.setItem(CONTACT_GREETING_STORAGE_KEY, value); }
+  catch { /* Keep contact flow usable if browser storage is disabled. */ }
 });
 
 onMounted(async () => {

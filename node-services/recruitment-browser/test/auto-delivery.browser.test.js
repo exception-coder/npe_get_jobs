@@ -19,7 +19,8 @@ test('auto delivery requires edited text and consent, then supports stop', { ski
           status = 'RUNNING'; sends++;
         }
       }
-      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ id: 'test', status, total: 10, checked: 0, sent: 0, message: '模拟任务' }) });
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ id: 'test', status, total: 10, checked: 1, sent: 0,
+        message: '模拟任务', outcomes: [{ platformJobId: 'job-1', title: '运营', company: '测试公司', status: 'SKIPPED', reason: '关键信息不足，请先核实' }] }) });
     });
     await page.route('**/__auto_preview', route => route.fulfill({ contentType: 'text/html', body: `<div id="app" style="max-width:800px;margin:auto"></div><script type="module">
       import {createApp,h} from '/node_modules/.vite/deps/vue.js';
@@ -35,6 +36,8 @@ test('auto delivery requires edited text and consent, then supports stop', { ski
     await page.getByLabel('我已核对文字及当前意向，确认向匹配岗位真实发送').check();
     await page.getByRole('button', { name: '开始自动投递' }).click();
     await page.getByRole('button', { name: '停止后续投递' }).waitFor();
+    await page.locator('.delivery-results summary').click();
+    assert.match(await page.locator('.delivery-results').innerText(), /运营[\s\S]*关键信息不足/);
     assert.equal(sends, 1);
     await page.getByRole('button', { name: '停止后续投递' }).click();
     await page.screenshot({ path: process.env.TEMP + '/npe-auto-desktop.png' });

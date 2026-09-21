@@ -11,6 +11,39 @@ import static org.assertj.core.api.Assertions.*;
 
 class TodayAutoDeliveryServiceTest {
     @Test
+    void exposesPerJobReasonsWhenAllCheckedJobsAreSkipped() {
+        var jobs = mock(RecruitmentJobRegistryService.class);
+        var goals = mock(RecruitmentGoalService.class);
+        var plans = mock(RecruitmentSearchPlanService.class);
+        var selection = mock(RecruitmentJobSelectionService.class);
+        var history = mock(RecruitmentContactHistoryService.class);
+        var goal = new RecruitmentGoalEntity(); goal.setId(1L);
+        when(goals.active()).thenReturn(goal);
+        when(plans.resolve(any(), eq(1L))).thenReturn(new RecruitmentSearchPlan(List.of(), java.util.Map.of(), "", null));
+        when(jobs.todayIds("boss")).thenReturn(List.of(2L));
+        var job = new RecruitmentJob("j1", "直播运营", "茶企", "福州", "8K", "JD", "https://example.com");
+        when(jobs.requireRegisteredJob(2L)).thenReturn(new RecruitmentJobRegistryService.RegisteredJob("boss", job));
+        when(history.contactedIds("boss", List.of(job))).thenReturn(Set.of());
+        var match = new IntentMatchResult(1L, "hash", "review", "关键信息不足，请先核实",
+                List.of(new IntentMatchResult.Check("requirements.skills", "unknown", "岗位未说明茶行业经验", "")));
+        var evaluated = new RecruitmentJob(job.platformJobId(), job.title(), job.company(), job.city(), job.salary(),
+                job.description(), job.href(), job.facts(), match);
+        when(selection.select(List.of(job), null)).thenReturn(List.of(evaluated));
+        var service = new TodayAutoDeliveryService(jobs, goals, plans, selection, history,
+                mock(RecruitmentWorkflowService.class), Runnable::run);
+
+        service.start("boss", 1L, "您好", false, "");
+
+        assertThat(service.status().checked()).isOne();
+        assertThat(service.status().sent()).isZero();
+        assertThat(service.status().outcomes()).singleElement().satisfies(outcome -> {
+            assertThat(outcome.title()).isEqualTo("直播运营");
+            assertThat(outcome.status()).isEqualTo("SKIPPED");
+            assertThat(outcome.reason()).contains("关键信息不足", "岗位未说明茶行业经验");
+        });
+    }
+
+    @Test
     void refusesToReportSuccessfulCompletionWhenTodayHasNoJobs() {
         var jobs = mock(RecruitmentJobRegistryService.class);
         var goals = mock(RecruitmentGoalService.class);
@@ -46,6 +79,10 @@ class TodayAutoDeliveryServiceTest {
         when(history.contactedIds("boss", List.of(job))).thenReturn(Set.of("j1"));
         assertThat(service.start("boss", 1L, "您好", false, "").status()).isEqualTo("COMPLETED");
         assertThat(service.status().sent()).isZero();
+        assertThat(service.status().outcomes()).singleElement().satisfies(outcome -> {
+            assertThat(outcome.status()).isEqualTo("SKIPPED");
+            assertThat(outcome.reason()).contains("成功投递记录");
+        });
         verifyNoInteractions(selection, workflows);
     }
 }

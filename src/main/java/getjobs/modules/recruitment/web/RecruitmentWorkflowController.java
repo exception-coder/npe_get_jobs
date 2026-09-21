@@ -51,7 +51,7 @@ public class RecruitmentWorkflowController {
     ) {
         return workflowService.confirmContact(taskId, request.platformJobId(), request.greeting(),
                 new getjobs.modules.recruitment.domain.ContactDeliveryOptions(
-                        request.sendResumeImage(), request.resumeImagePath()));
+                        request.sendResumeImage(), request.resumeImagePath(), request.sendGreeting()));
     }
 
     @PostMapping("/{taskId}/contact/prepare")
@@ -70,6 +70,7 @@ public class RecruitmentWorkflowController {
     }
 
     /** Explicitly confirmed single-candidate contact request. */
-    public record ContactRequest(String platformJobId, String greeting, Boolean sendResumeImage, String resumeImagePath) {
+    public record ContactRequest(String platformJobId, String greeting, Boolean sendResumeImage,
+                                 String resumeImagePath, Boolean sendGreeting) {
     }
 }
