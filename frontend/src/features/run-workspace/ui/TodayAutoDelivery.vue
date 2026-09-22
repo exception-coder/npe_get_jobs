@@ -6,6 +6,10 @@
     <form @submit.prevent="start">
       <fieldset :disabled="running || pending">
         <label>自动打招呼文字<textarea v-model="greeting" required maxlength="500" rows="3" placeholder="请编辑本次统一发送的介绍与沟通意愿，最多500字" /></label>
+        <label>补充判定规则（可选）
+          <textarea v-model="decisionGuidance" maxlength="2000" rows="3" placeholder="例如：JD 未提供工作年限时，不要求明确年限；职位方向符合目标岗位即可继续投递。明确写出的冲突条件仍不会被忽略。" />
+          <small>用于补充“信息缺失时如何判断”，不会覆盖 JD 中明确不符合的条件。修改后会按新规则重新判断。</small>
+        </label>
         <label class="check"><input v-model="sendImage" type="checkbox" />同时发送简历图片</label>
         <label v-if="sendImage">图片简历路径<input v-model.trim="imagePath" required placeholder="本机 PNG / JPG 图片的绝对路径" /></label>
         <label class="check"><input v-model="consent" type="checkbox" required />我已核对文字及当前意向，确认向匹配岗位真实发送</label>
@@ -14,14 +18,15 @@
     </form>
     <p v-if="platform !== 'boss'">目前仅支持 BOSS 直聘。</p>
     <p v-if="progress?.id" role="status">{{ progress.message }} · 已检查 {{ progress.checked }}/{{ progress.total }} · 已发送 {{ progress.sent }}</p>
-    <details v-if="progress?.outcomes?.length" class="delivery-results">
+    <details v-if="progress?.outcomes?.length" class="delivery-results" open>
       <summary>查看检查明细（已发送 {{ progress.sent }}，跳过 {{ skippedCount }}，失败 {{ failedCount }}）</summary>
-      <div class="result-list">
-        <article v-for="item in progress.outcomes" :key="`${item.platformJobId}-${item.status}`" :class="item.status.toLowerCase()">
-          <div><strong>{{ item.title }}</strong><span>{{ item.company }}</span></div>
-          <b>{{ outcomeLabel(item.status) }}</b>
-          <p>{{ item.reason }}</p>
-        </article>
+      <div class="result-groups">
+        <AutoDeliveryOutcomeGroup title="明确不符合" description="存在可核验的必要条件冲突；相同 JD 和规则下将直接复用"
+          empty-text="当前没有明确不符合的岗位" tone="negative" :outcomes="rejectedOutcomes" :open="true" />
+        <AutoDeliveryOutcomeGroup title="无法判定" description="JD 信息不足；可补充上方规则后在下一批重新判断"
+          empty-text="当前没有需要补充判断的岗位" tone="warning" :outcomes="uncertainOutcomes" :open="true" />
+        <AutoDeliveryOutcomeGroup title="其他处理结果" description="已发送、历史已投递或发送失败"
+          empty-text="暂无其他处理结果" tone="neutral" :outcomes="otherOutcomes" />
       </div>
     </details>
     <button v-if="running" type="button" :disabled="pending || stopping" @click="stop">{{ stopping ? '等待当前岗位结束…' : '停止后续投递' }}</button>
@@ -33,9 +38,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { loadActiveRecruitmentGoal, loadAutoDelivery, startAutoDelivery, stopAutoDelivery, type AutoDeliveryProgress, type RecruitmentGoal } from '@/shared/api/recruitment';
+import AutoDeliveryOutcomeGroup from './AutoDeliveryOutcomeGroup.vue';
 const GREETING_STORAGE_KEY = 'career-flow:auto-delivery-greeting';
+const DECISION_GUIDANCE_STORAGE_KEY = 'career-flow:auto-delivery-decision-guidance';
 const props = defineProps<{ platform: string }>();
 const greeting = ref(loadSavedGreeting());
+const decisionGuidance = ref(loadSavedDecisionGuidance());
 const sendImage = ref(false);
 const imagePath = ref('');
 const consent = ref(false);
@@ -47,19 +55,27 @@ const activeGoal = ref<RecruitmentGoal | null>(null);
 const running = computed(() => progress.value?.status === 'RUNNING');
 const skippedCount = computed(() => progress.value?.outcomes?.filter(item => item.status === 'SKIPPED').length ?? 0);
 const failedCount = computed(() => progress.value?.outcomes?.filter(item => item.status === 'FAILED').length ?? 0);
+const rejectedOutcomes = computed(() => progress.value?.outcomes?.filter(item => item.decision === 'REJECTED') ?? []);
+const uncertainOutcomes = computed(() => progress.value?.outcomes?.filter(item => item.decision === 'UNCERTAIN') ?? []);
+const otherOutcomes = computed(() => progress.value?.outcomes?.filter(item => !['REJECTED', 'UNCERTAIN'].includes(item.decision)) ?? []);
 let timer: ReturnType<typeof setTimeout> | undefined;
 let disposed = false;
 function loadSavedGreeting() {
   try { return localStorage.getItem(GREETING_STORAGE_KEY) ?? ''; }
   catch { return ''; }
 }
+function loadSavedDecisionGuidance() {
+  try { return localStorage.getItem(DECISION_GUIDANCE_STORAGE_KEY) ?? ''; }
+  catch { return ''; }
+}
 watch(greeting, value => {
   try { localStorage.setItem(GREETING_STORAGE_KEY, value); }
   catch { /* Keep the form usable when browser storage is unavailable. */ }
 });
-function outcomeLabel(status: string) {
-  return status === 'SENT' ? '已发送' : status === 'SKIPPED' ? '已跳过' : '失败';
-}
+watch(decisionGuidance, value => {
+  try { localStorage.setItem(DECISION_GUIDANCE_STORAGE_KEY, value); }
+  catch { /* Keep the form usable when browser storage is unavailable. */ }
+});
 async function refresh() {
   try {
     progress.value = await loadAutoDelivery();
@@ -73,7 +89,7 @@ async function refresh() {
 async function start() {
   if (pending.value || running.value || !consent.value || !activeGoal.value) return;
   pending.value = true; error.value = ''; stopping.value = false;
-  try { progress.value = await startAutoDelivery(props.platform, activeGoal.value.id, greeting.value.trim(), { sendResumeImage: sendImage.value, resumeImagePath: imagePath.value }); consent.value = false; }
+  try { progress.value = await startAutoDelivery(props.platform, activeGoal.value.id, greeting.value.trim(), { sendResumeImage: sendImage.value, resumeImagePath: imagePath.value }, decisionGuidance.value.trim()); consent.value = false; }
   catch (reason) { error.value = reason instanceof Error ? reason.message : '启动失败，请检查服务'; }
   finally { pending.value = false; }
 }
@@ -94,6 +110,7 @@ p { font-size: 12px; line-height: 1.6; color: var(--ink-muted); }
 fieldset { display: grid; gap: 14px; padding: 0; border: 0; min-width: 0; }
 label { display: grid; gap: 8px; font-size: 13px; }
 textarea, input:not([type=checkbox]) { width: 100%; min-width: 0; padding: 10px; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--radius-control); }
+label small { color: var(--ink-muted); font-size: 11px; line-height: 1.5; }
 .check { display: flex; align-items: center; }
 button { justify-self: start; border: 1px solid var(--line); padding: 10px 14px; border-radius: var(--radius-control); background: var(--ink-strong); color: var(--surface); cursor: pointer; }
 button:disabled { opacity: .5; cursor: not-allowed; }
@@ -101,7 +118,5 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 [role=alert] { color: var(--danger); }
 .delivery-results { margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 10px 12px; }
 .delivery-results summary { cursor: pointer; color: var(--ink-strong); font-size: 12px; font-weight: 700; }
-.result-list { display: grid; gap: 8px; max-height: 360px; overflow: auto; margin-top: 10px; }
-.result-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; padding: 10px; border-radius: 8px; background: var(--surface-subtle); }
-.result-list article div { display: grid; min-width: 0; }.result-list strong, .result-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.result-list span, .result-list p { color: var(--ink-muted); font-size: 11px; }.result-list b { color: var(--ink-muted); font-size: 11px; }.result-list .sent b { color: var(--success); }.result-list .failed b { color: var(--danger); }.result-list p { grid-column: 1 / -1; margin: 3px 0 0; }
+.result-groups { max-height: min(58vh, 620px); overflow: auto; margin-top: 8px; padding-inline: 2px; }
 </style>

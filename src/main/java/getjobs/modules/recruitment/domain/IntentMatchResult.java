@@ -5,12 +5,17 @@ import java.util.Map;
 
 /** Explainable recommendation, not permission to send messages. */
 public record IntentMatchResult(Long intentVersion, String jdVersion, String recommendation,
-                                String summary, List<Check> checks) {
+                                String confidence, String summary, List<Check> checks) {
+    public IntentMatchResult(Long intentVersion, String jdVersion, String recommendation,
+                             String summary, List<Check> checks) {
+        this(intentVersion, jdVersion, recommendation, confidenceFor(recommendation), summary, checks);
+    }
     /** matched means the requirement is satisfied, including exclusion requirements. */
     public record Check(String requirementRef, String result, String reason, String jdEvidence) { }
 
     /** Missing/invalid evidence never counts as a pass. */
-    public static IntentMatchResult decide(Long version, String hash, RecruitmentIntentCard card, List<Check> proposed) {
+    public static IntentMatchResult decide(Long version, String hash, RecruitmentIntentCard card,
+                                           List<Check> proposed) {
         List<Check> checks = proposed == null ? List.of() : proposed;
         List<Check> normalized = new java.util.ArrayList<>();
         boolean unknown = false;
@@ -32,7 +37,12 @@ public record IntentMatchResult(Long intentVersion, String jdVersion, String rec
         }
         String decision = failed ? "skip" : unknown ? "review" : "apply";
         String summary = failed ? "存在明确不符合的必要条件" : unknown ? "关键信息不足，请先核实" : "已满足当前意向的必要条件";
-        return new IntentMatchResult(version, hash, decision, summary, List.copyOf(normalized));
+        return new IntentMatchResult(version, hash, decision, confidenceFor(decision), summary,
+                List.copyOf(normalized));
+    }
+
+    private static String confidenceFor(String recommendation) {
+        return "review".equals(recommendation) ? "low" : "high";
     }
 
     private static boolean valid(Check check) {

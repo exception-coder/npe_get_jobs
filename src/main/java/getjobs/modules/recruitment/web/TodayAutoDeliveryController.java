@@ -14,12 +14,13 @@ public class TodayAutoDeliveryController {
     @PostMapping
     public TodayAutoDeliveryService.Progress start(@RequestBody Request request) {
         if (!Boolean.TRUE.equals(request.confirmSend())) throw new IllegalArgumentException("请确认真实发送");
-        return service.start(request.platform(), request.goalId(), request.greeting(), Boolean.TRUE.equals(request.sendResumeImage()),
-                request.resumeImagePath());
+        return service.start(request.platform(), request.goalId(), request.greeting(),
+                Boolean.TRUE.equals(request.sendResumeImage()), request.resumeImagePath(),
+                request.decisionGuidance());
     }
     @PostMapping("/stop")
     public TodayAutoDeliveryService.Progress stop() { return service.stop(); }
     /** User-edited greeting and image consent are frozen for this batch. */
     public record Request(String platform, Long goalId, String greeting, Boolean sendResumeImage,
-                          String resumeImagePath, Boolean confirmSend) { }
+                          String resumeImagePath, String decisionGuidance, Boolean confirmSend) { }
 }

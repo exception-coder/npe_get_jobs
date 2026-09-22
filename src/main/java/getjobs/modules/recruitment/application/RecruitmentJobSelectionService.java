@@ -22,8 +22,19 @@ public class RecruitmentJobSelectionService {
         if (goal == null || !goal.additionalConditions().containsKey("intentCard")) {
             throw new IllegalArgumentException("请先确认求职意向卡");
         }
-        List<RecruitmentJob> evaluated = jobs.stream().map(job -> matcher.match(job, goal)).toList();
-        evidence.record(goal.additionalConditions().get("platform"), evaluated);
-        return evaluated;
+        String platform = goal.additionalConditions().get("platform");
+        var cached = evidence.reusableRejections(platform, jobs, goal);
+        List<RecruitmentJob> evaluated = new java.util.ArrayList<>(jobs.size());
+        List<RecruitmentJob> fresh = new java.util.ArrayList<>(jobs.size());
+        for (RecruitmentJob job : jobs) {
+            RecruitmentJob result = cached.get(job.platformJobId());
+            if (result == null) {
+                result = matcher.match(job, goal);
+                fresh.add(result);
+            }
+            evaluated.add(result);
+        }
+        evidence.record(platform, fresh, goal);
+        return List.copyOf(evaluated);
     }
 }

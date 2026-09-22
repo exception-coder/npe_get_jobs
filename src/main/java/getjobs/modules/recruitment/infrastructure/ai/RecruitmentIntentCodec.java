@@ -4,7 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import getjobs.modules.recruitment.domain.RecruitmentIntentCard;
+import getjobs.modules.recruitment.domain.IntentMatchResult;
 import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 
 /** Strict boundary for persisted and model-generated intent JSON. */
 @Component
@@ -20,6 +26,11 @@ public class RecruitmentIntentCodec implements getjobs.modules.recruitment.spi.R
         RecruitmentIntentCard card = decode(json, RecruitmentIntentCard.class);
         card.validate();
         return card;
+    }
+
+    @Override
+    public IntentMatchResult readMatch(String json) {
+        return decode(json, IntentMatchResult.class);
     }
 
     public <T> T decode(String json, Class<T> type) {
@@ -39,6 +50,16 @@ public class RecruitmentIntentCodec implements getjobs.modules.recruitment.spi.R
             return mapper.writeValueAsString(value);
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException("无法序列化意向内容", exception);
+        }
+    }
+
+    @Override
+    public String fingerprint(Object value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(write(value).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("无法计算内容版本", exception);
         }
     }
 }

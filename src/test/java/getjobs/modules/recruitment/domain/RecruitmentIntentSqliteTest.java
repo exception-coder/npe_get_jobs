@@ -28,17 +28,22 @@ class RecruitmentIntentSqliteTest {
             var goal = new RecruitmentGoalEntity();
             goal.setRawGoal("博士在读寻找疾病生物学岗位");
             goal.setInterpreterVersion("recruitment-intent-v2");
-            goal.setAdditionalConditions(Map.of("intentCard", codec.write(RecruitmentIntentCardTest.fixture()), "intentStatus", "confirmed"));
+            goal.setAdditionalConditions(Map.of("intentCard",
+                    codec.write(RecruitmentIntentCardTest.fixture()), "intentStatus", "confirmed"));
             session.persist(goal);
             var result = new RecruitmentIntentMatchEntity();
             result.setIntentVersion(goal.getId()); result.setPlatform("boss"); result.setPlatformJobId("job1");
-            result.setJdVersion("hash1"); result.setRecommendation("review");
+            result.setJdVersion("hash1"); result.setRecommendation("skip"); result.setConfidence("high");
+            result.setDecisionContext("rules-hash");
             result.setJobSnapshot("{\"title\":\"疾病生物学\"}"); result.setResultJson("{\"recommendation\":\"review\"}");
             session.persist(result);
             transaction.commit(); session.clear();
             assertThat(codec.read(session.find(RecruitmentGoalEntity.class, goal.getId())
                     .getAdditionalConditions().get("intentCard")).searchTerms()).containsExactly("疾病生物学");
-            assertThat(session.find(RecruitmentIntentMatchEntity.class, result.getId()).getIntentVersion()).isEqualTo(goal.getId());
+            var restored = session.find(RecruitmentIntentMatchEntity.class, result.getId());
+            assertThat(restored.getIntentVersion()).isEqualTo(goal.getId());
+            assertThat(restored.getConfidence()).isEqualTo("high");
+            assertThat(restored.getDecisionContext()).isEqualTo("rules-hash");
         }
     }
 }

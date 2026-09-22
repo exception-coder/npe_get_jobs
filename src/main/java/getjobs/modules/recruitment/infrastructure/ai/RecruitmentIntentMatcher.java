@@ -7,11 +7,8 @@ import getjobs.modules.recruitment.domain.RecruitmentGoalConditions;
 import getjobs.modules.recruitment.domain.RecruitmentJob;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** Matches only supplied job evidence; the domain policy determines the recommendation. */
@@ -30,10 +27,15 @@ public class RecruitmentIntentMatcher implements getjobs.modules.recruitment.spi
         var card = codec.read(goal.additionalConditions().get("intentCard"));
         Long version = Long.valueOf(goal.additionalConditions().get("intentVersion"));
         String evidence = codec.write(job);
-        String hash = digest(evidence);
+        String hash = codec.fingerprint(job);
         List<IntentMatchResult.Check> checks = List.of();
         if (job.description() != null && !job.description().isBlank() && evidence.length() <= 50000) {
-            checks = requestChecks(Map.of("intent", card, "requiredChecks", card.checkStrengths(), "job", job));
+            var input = new LinkedHashMap<String, Object>();
+            input.put("intent", card);
+            input.put("requiredChecks", card.checkStrengths());
+            input.put("job", job);
+            input.put("userDecisionGuidance", goal.additionalConditions().getOrDefault("decisionGuidance", ""));
+            checks = requestChecks(input);
         }
         var verified = checks.stream().map(check -> verifyEvidence(check, evidence)).toList();
         var result = IntentMatchResult.decide(version, hash, card, verified);
@@ -51,6 +53,8 @@ public class RecruitmentIntentMatcher implements getjobs.modules.recruitment.spi
                 targetPositions检查是否属于任一未排除目标职位，不要求同时匹配全部职位；明确排除职位不能通过。
                 candidateContext检查JD专业、学历、毕业时间、经验等准入资格，博士在读不能当成已毕业，科研不等于工作年限。
                 专业相近不能推断满足明确的限定专业；关键信息缺失为unknown，不能因JD未写而默认通过。
+                userDecisionGuidance是用户补充的缺失信息判定规则，只能用于把规则明确覆盖的缺失项判为满足；
+                不能覆盖JD中明确冲突的学历、经验、地域、薪资或排除条件，也不能把无关岗位判为满足。
                 补充条件仅在appliesTo岗位范围内生效，不适用时给matched并以岗位名称作依据说明不适用。
                 must与prefer都逐项检查，最终建议由程序决定。薪资单位不同而缺少换算依据时unknown。
                 jdEvidence必须是提供的岗位数据中连续的原文片段，不要改写，不要引用意向内容冒充JD。
@@ -79,15 +83,6 @@ public class RecruitmentIntentMatcher implements getjobs.modules.recruitment.spi
             return new IntentMatchResult.Check(check.requirementRef(), "unknown", "岗位缺少可核验原文依据", "");
         }
         return check;
-    }
-
-    private String digest(String evidence) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(evidence.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("无法计算岗位版本", exception);
-        }
     }
 
     /** Model response envelope. */

@@ -11,6 +11,7 @@ export interface RecruitmentJob {
   href: string;
   facts: RecruitmentJobFacts;
   intentMatch?: { intentVersion: number; jdVersion: string; recommendation: 'apply' | 'skip' | 'review'; summary: string;
+    confidence: 'high' | 'medium' | 'low';
     checks: { requirementRef: string; result: string; reason: string; jdEvidence: string }[] };
 }
 
@@ -186,12 +187,14 @@ export interface ContactDeliveryOptions {
   sendGreeting?: boolean;
 }
 
-export interface AutoDeliveryOutcome { platformJobId: string; title: string; company: string; status: 'SENT' | 'SKIPPED' | 'FAILED'; reason: string }
+export interface AutoDeliveryOutcome { platformJobId: string; title: string; company: string; href: string; status: 'SENT' | 'SKIPPED' | 'FAILED';
+  decision: 'SENT' | 'REJECTED' | 'UNCERTAIN' | 'HISTORY' | 'DELIVERY_FAILED'; confidence: 'high' | 'medium' | 'low' | null; reason: string }
 export interface AutoDeliveryProgress { id: string | null; status: string; total: number; checked: number; sent: number; message: string; outcomes: AutoDeliveryOutcome[] }
 export function loadAutoDelivery(): Promise<AutoDeliveryProgress> { return request('/api/recruitment/auto-delivery'); }
 export function stopAutoDelivery(): Promise<AutoDeliveryProgress> { return request('/api/recruitment/auto-delivery/stop', { method: 'POST' }); }
-export function startAutoDelivery(platform: string, goalId: number, greeting: string, options: ContactDeliveryOptions): Promise<AutoDeliveryProgress> {
-  return request('/api/recruitment/auto-delivery', { method: 'POST', body: JSON.stringify({ platform, goalId, greeting, ...options, confirmSend: true }) });
+export function startAutoDelivery(platform: string, goalId: number, greeting: string, options: ContactDeliveryOptions,
+  decisionGuidance: string): Promise<AutoDeliveryProgress> {
+  return request('/api/recruitment/auto-delivery', { method: 'POST', body: JSON.stringify({ platform, goalId, greeting, decisionGuidance, ...options, confirmSend: true }) });
 }
 
 export function loadContactDefaults(): Promise<{ data?: { resumeImagePath?: string; sendImgResume?: boolean } }> {

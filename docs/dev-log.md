@@ -700,3 +700,10 @@
 - `src/main/java/getjobs/controller/JobController.java`：`list` 接口增加 `@RequestParam(required = false) Integer status`
 - `frontend/src/modules/intelligent-job-search/api/jobRecordsApi.ts`：`JobQueryParams` 增加可选 `status` 字段
 - `frontend/src/modules/intelligent-job-search/views/PlatformRecordsView.vue`：搜索栏增加状态筛选下拉，切换平台时重置筛选条件
+
+## 2026-09-22 自动投递判定缓存与检查明细优化
+
+- 任务：优化大量岗位检查结果的呈现；持久化并复用输入未变化的高置信度明确拒绝；补充原 JD 链接、判定类别与置信度；允许用户保存补充判定规则。
+- 变更文件：自动投递 Vue 工作区与 API、Java 意向匹配和证据持久化链路、`recruitment_intent_match` 基线 DDL、Java/Node/浏览器测试、README 及 `openspec/changes/optimize-auto-delivery-decisions/`。
+- 关键设计决策：结果按“明确不符合”和“无法判定”分组，每组初始渲染 20 条；缓存键包含平台、岗位 ID、JD 指纹、意向版本和规则指纹，只复用高置信度明确拒绝；用户规则仅解释缺失信息，不覆盖 JD 明确冲突。
+- 验证：Java 47 项通过，Node 35 项通过（6 项无 URL 跳过），真实 Vite 浏览器场景通过，前端生产构建通过；DDL 权威来源未核验，字段映射由 SQLite 回归覆盖。

@@ -31,7 +31,8 @@ public class TodayAutoDeliveryService {
         this.history = history; this.workflows = workflows; this.executor = executor;
     }
 
-    public synchronized Progress start(String platform, Long goalId, String greeting, boolean image, String imagePath) {
+    public synchronized Progress start(String platform, Long goalId, String greeting, boolean image, String imagePath,
+                                       String decisionGuidance) {
         if ("RUNNING".equals(progress.status())) throw new IllegalStateException("自动投递仍在运行");
         if (!"boss".equals(platform)) throw new IllegalArgumentException("自动投递目前仅支持 BOSS");
         if (greeting == null || greeting.isBlank() || greeting.trim().length() > 500) {
@@ -40,12 +41,15 @@ public class TodayAutoDeliveryService {
         var active = goals.active();
         if (active == null) throw new IllegalArgumentException("请先确认求职意向");
         if (!active.getId().equals(goalId)) throw new IllegalArgumentException("当前意向已变化，请重新核对后投递");
-        var plan = plans.resolve(new RecruitmentPlatformId(platform), active.getId());
-        var options = new ContactDeliveryOptions(image, imagePath, true);
         var ids = jobs.todayIds(platform);
         if (ids.isEmpty()) {
             throw new IllegalStateException("没有可处理的今日岗位，请先完成一次岗位寻找后再投递");
         }
+        String guidance = decisionGuidance == null ? "" : decisionGuidance.trim();
+        if (guidance.length() > 2000) throw new IllegalArgumentException("补充判定规则不能超过2000字");
+        var plan = plans.resolve(new RecruitmentPlatformId(platform), active.getId())
+                .withDecisionGuidance(guidance);
+        var options = new ContactDeliveryOptions(image, imagePath, true);
         stopping = false;
         progress = new Progress(UUID.randomUUID().toString(), "RUNNING", ids.size(), 0, 0,
                 "正在匹配今日岗位", List.of());
@@ -75,14 +79,17 @@ public class TodayAutoDeliveryService {
                 var job = jobs.requireRegisteredJob(id).job();
                 checked++;
                 if (!history.contactedIds(platform, List.of(job)).isEmpty()) {
-                    addOutcome(job, "SKIPPED", "该岗位已有成功投递记录");
+                    addOutcome(job, "SKIPPED", "HISTORY", null, "该岗位已有成功投递记录");
                     update("RUNNING", checked, sent, "跳过历史已投递岗位");
                     continue;
                 }
                 var matched = selection.select(List.of(job), plan.goal()).getFirst();
                 if (matched.intentMatch() == null || !"apply".equals(matched.intentMatch().recommendation())) {
                     String reason = matchReason(matched);
-                    addOutcome(job, "SKIPPED", reason);
+                    String decision = matched.intentMatch() == null ? "UNCERTAIN"
+                            : "skip".equals(matched.intentMatch().recommendation()) ? "REJECTED" : "UNCERTAIN";
+                    String confidence = matched.intentMatch() == null ? "low" : matched.intentMatch().confidence();
+                    addOutcome(job, "SKIPPED", decision, confidence, reason);
                     update("RUNNING", checked, sent, "跳过不符或待核实岗位：" + job.title());
                     continue;
                 }
@@ -100,12 +107,12 @@ public class TodayAutoDeliveryService {
                     String reason = task.error() != null ? task.error() : task.contactResults().stream()
                             .map(ContactResult::reason).filter(value -> value != null && !value.isBlank())
                             .findFirst().orElse("未检测到文字送达回执，请核对平台记录");
-                    addOutcome(job, "FAILED", reason);
+                    addOutcome(job, "FAILED", "DELIVERY_FAILED", null, reason);
                     update("RUNNING", checked, sent, "投递未确认成功：" + job.title());
                     continue;
                 }
                 sent++;
-                addOutcome(job, "SENT", "文字已发送并检测到平台回执");
+                addOutcome(job, "SENT", "SENT", matched.intentMatch().confidence(), "文字已发送并检测到平台回执");
                 update("RUNNING", checked, sent, "已发送：" + job.title());
                 for (int second = 0; second < 10 && !stopping; second++) Thread.sleep(1000);
             }
@@ -122,9 +129,11 @@ public class TodayAutoDeliveryService {
         progress = new Progress(progress.id(), status, progress.total(), checked, sent, message, progress.outcomes());
     }
 
-    private void addOutcome(getjobs.modules.recruitment.domain.RecruitmentJob job, String status, String reason) {
+    private void addOutcome(getjobs.modules.recruitment.domain.RecruitmentJob job, String status,
+                            String decision, String confidence, String reason) {
         List<Outcome> values = new java.util.ArrayList<>(progress.outcomes());
-        values.add(new Outcome(job.platformJobId(), job.title(), job.company(), status, reason));
+        values.add(new Outcome(job.platformJobId(), job.title(), job.company(), job.href(), status,
+                decision, confidence, reason));
         progress = new Progress(progress.id(), progress.status(), progress.total(), progress.checked(),
                 progress.sent(), progress.message(), values);
     }
@@ -145,5 +154,6 @@ public class TodayAutoDeliveryService {
         public Progress { outcomes = outcomes == null ? List.of() : List.copyOf(outcomes); }
     }
 
-    public record Outcome(String platformJobId, String title, String company, String status, String reason) { }
+    public record Outcome(String platformJobId, String title, String company, String href, String status,
+                          String decision, String confidence, String reason) { }
 }
