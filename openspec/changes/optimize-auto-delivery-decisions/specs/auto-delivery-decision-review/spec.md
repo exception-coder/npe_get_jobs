@@ -1,5 +1,16 @@
 ## ADDED Requirements
 
+### Requirement: Uncontacted jobs are eligible regardless of discovery date
+The system SHALL select automatic-delivery candidates from uncontacted jobs on the requested platform without requiring the job to have been discovered or refreshed on the current date. The candidate set SHALL remain bounded and SHALL exclude jobs already marked as contacted successfully.
+
+#### Scenario: Older uncontacted job remains eligible
+- **WHEN** a job belongs to the requested platform, was discovered before today, and has no successful contact record
+- **THEN** the job is included in the frozen automatic-delivery candidate set
+
+#### Scenario: Previously contacted job remains excluded
+- **WHEN** a job has already been marked as contacted successfully
+- **THEN** the job is excluded from the automatic-delivery candidate set regardless of discovery date
+
 ### Requirement: Large result sets remain usable
 The system SHALL group automatic-delivery check outcomes by decision class and SHALL initially render no more than 20 entries in each expanded group. The user SHALL be able to reveal subsequent entries in bounded batches.
 

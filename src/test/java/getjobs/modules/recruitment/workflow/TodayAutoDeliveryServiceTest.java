@@ -20,7 +20,7 @@ class TodayAutoDeliveryServiceTest {
         var goal = new RecruitmentGoalEntity(); goal.setId(1L);
         when(goals.active()).thenReturn(goal);
         when(plans.resolve(any(), eq(1L))).thenReturn(plan());
-        when(jobs.todayIds("boss")).thenReturn(List.of(2L));
+        when(jobs.deliveryCandidateIds("boss")).thenReturn(List.of(2L));
         var job = new RecruitmentJob("j1", "直播运营", "茶企", "福州", "8K", "JD", "https://example.com");
         when(jobs.requireRegisteredJob(2L)).thenReturn(new RecruitmentJobRegistryService.RegisteredJob("boss", job));
         when(history.contactedIds("boss", List.of(job))).thenReturn(Set.of());
@@ -46,18 +46,18 @@ class TodayAutoDeliveryServiceTest {
     }
 
     @Test
-    void refusesToReportSuccessfulCompletionWhenTodayHasNoJobs() {
+    void refusesToStartWhenNoUncontactedJobsRemain() {
         var jobs = mock(RecruitmentJobRegistryService.class);
         var goals = mock(RecruitmentGoalService.class);
         var goal = new RecruitmentGoalEntity(); goal.setId(1L);
         when(goals.active()).thenReturn(goal);
-        when(jobs.todayIds("boss")).thenReturn(List.of());
+        when(jobs.deliveryCandidateIds("boss")).thenReturn(List.of());
         var service = new TodayAutoDeliveryService(jobs, goals, mock(RecruitmentSearchPlanService.class),
                 mock(RecruitmentJobSelectionService.class), mock(RecruitmentContactHistoryService.class),
                 mock(RecruitmentWorkflowService.class), Runnable::run);
 
         assertThatThrownBy(() -> service.start("boss", 1L, "您好", false, "", ""))
-                .hasMessageContaining("没有可处理的今日岗位");
+                .hasMessageContaining("没有可处理的未投递岗位");
         assertThat(service.status().id()).isNull();
     }
 
@@ -75,7 +75,7 @@ class TodayAutoDeliveryServiceTest {
         var goal = new RecruitmentGoalEntity(); goal.setId(1L);
         when(goals.active()).thenReturn(goal);
         when(plans.resolve(any(), eq(1L))).thenReturn(plan());
-        when(jobs.todayIds("boss")).thenReturn(List.of(2L));
+        when(jobs.deliveryCandidateIds("boss")).thenReturn(List.of(2L));
         var job = new RecruitmentJob("j1", "Java", "公司", "广州", "25K", "JD", "https://example.com");
         when(jobs.requireRegisteredJob(2L)).thenReturn(new RecruitmentJobRegistryService.RegisteredJob("boss", job));
         when(history.contactedIds("boss", List.of(job))).thenReturn(Set.of("j1"));

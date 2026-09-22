@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
 
-/** Sequential, explicitly authorized delivery of a frozen today's candidate set. */
+/** Sequential, explicitly authorized delivery of a frozen uncontacted candidate set. */
 @Service
 public class TodayAutoDeliveryService {
     private final RecruitmentJobRegistryService jobs;
@@ -41,9 +41,9 @@ public class TodayAutoDeliveryService {
         var active = goals.active();
         if (active == null) throw new IllegalArgumentException("请先确认求职意向");
         if (!active.getId().equals(goalId)) throw new IllegalArgumentException("当前意向已变化，请重新核对后投递");
-        var ids = jobs.todayIds(platform);
+        var ids = jobs.deliveryCandidateIds(platform);
         if (ids.isEmpty()) {
-            throw new IllegalStateException("没有可处理的今日岗位，请先完成一次岗位寻找后再投递");
+            throw new IllegalStateException("没有可处理的未投递岗位");
         }
         String guidance = decisionGuidance == null ? "" : decisionGuidance.trim();
         if (guidance.length() > 2000) throw new IllegalArgumentException("补充判定规则不能超过2000字");
@@ -52,7 +52,7 @@ public class TodayAutoDeliveryService {
         var options = new ContactDeliveryOptions(image, imagePath, true);
         stopping = false;
         progress = new Progress(UUID.randomUUID().toString(), "RUNNING", ids.size(), 0, 0,
-                "正在匹配今日岗位", List.of());
+                "正在匹配未投递岗位", List.of());
         try {
             executor.execute(() -> execute(platform, ids, plan, greeting.trim(), options));
         } catch (RuntimeException exception) {
@@ -116,7 +116,8 @@ public class TodayAutoDeliveryService {
                 update("RUNNING", checked, sent, "已发送：" + job.title());
                 for (int second = 0; second < 10 && !stopping; second++) Thread.sleep(1000);
             }
-            update(stopping ? "STOPPED" : "COMPLETED", checked, sent, stopping ? "已停止后续投递" : "今日岗位处理完成");
+            update(stopping ? "STOPPED" : "COMPLETED", checked, sent,
+                    stopping ? "已停止后续投递" : "未投递岗位处理完成");
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             update("FAILED", checked, sent, "任务中断，请核对最后一个岗位的投递记录");

@@ -1,8 +1,8 @@
 <template>
   <section class="auto-delivery" aria-labelledby="auto-delivery-title">
-    <h3 id="auto-delivery-title">自动投递今日岗位</h3>
+    <h3 id="auto-delivery-title">自动投递未处理岗位</h3>
     <p>{{ activeGoal ? `使用已确认意向 #${activeGoal.id}：${activeGoal.summary}` : '请先确认求职意向，再启动自动投递。' }}</p>
-    <p>仅处理今天新入库的岗位，按当前已确认意向匹配；已投递、不符合或待核实的岗位跳过。日期按服务所在时区计算。</p>
+    <p>处理岗位库中尚未投递的岗位，不限制采集日期；按当前已确认意向匹配，明确不符合的岗位会跳过。</p>
     <form @submit.prevent="start">
       <fieldset :disabled="running || pending">
         <label>自动打招呼文字<textarea v-model="greeting" required maxlength="500" rows="3" placeholder="请编辑本次统一发送的介绍与沟通意愿，最多500字" /></label>

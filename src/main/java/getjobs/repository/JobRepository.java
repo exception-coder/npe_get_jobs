@@ -15,12 +15,11 @@ import java.util.Set;
 /** Persists the workspace job ledger and confirmed contact history. */
 public interface JobRepository extends JpaRepository<JobEntity, Long> {
 
-    /** Candidates first discovered or rediscovered today, ordered deterministically. */
+    /** Uncontacted delivery candidates, independent of their discovery date. */
     @Query("SELECT j FROM JobEntity j WHERE j.platform = :platform AND j.isDeleted = false "
-            + "AND ((j.createdAt >= :start AND j.createdAt < :end) "
-            + "OR (j.updatedAt >= :start AND j.updatedAt < :end)) ORDER BY j.id ASC")
-    List<JobEntity> findTodayCandidates(@Param("platform") String platform,
-            @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
+            + "AND (j.status IS NULL OR j.status <> 3) "
+            + "AND (j.isContacted IS NULL OR j.isContacted = false) ORDER BY j.id ASC")
+    List<JobEntity> findDeliveryCandidates(@Param("platform") String platform, Pageable pageable);
 
     /** Updates one manual marker without overwriting a concurrently confirmed success. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)

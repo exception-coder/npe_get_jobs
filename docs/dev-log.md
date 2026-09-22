@@ -707,3 +707,9 @@
 - 变更文件：自动投递 Vue 工作区与 API、Java 意向匹配和证据持久化链路、`recruitment_intent_match` 基线 DDL、Java/Node/浏览器测试、README 及 `openspec/changes/optimize-auto-delivery-decisions/`。
 - 关键设计决策：结果按“明确不符合”和“无法判定”分组，每组初始渲染 20 条；缓存键包含平台、岗位 ID、JD 指纹、意向版本和规则指纹，只复用高置信度明确拒绝；用户规则仅解释缺失信息，不覆盖 JD 明确冲突。
 - 验证：Java 47 项通过，Node 35 项通过（6 项无 URL 跳过），真实 Vite 浏览器场景通过，前端生产构建通过；DDL 权威来源未核验，字段映射由 SQLite 回归覆盖。
+
+## 2026-09-22 自动投递取消当日采集限制
+
+- 任务：允许岗位库中历史未投递、未形成明确过滤结论的岗位进入自动投递，不再要求岗位必须当日采集或更新。
+- 变更文件：`JobRepository`、`RecruitmentJobRegistryService`、`TodayAutoDeliveryService`、自动投递页面、相关测试、README 与 OpenSpec。
+- 关键设计决策：候选查询直接排除已成功联系岗位并保留 500 条上限；明确拒绝仍由判定证据缓存跳过，平台和当前求职意向过滤保持不变。

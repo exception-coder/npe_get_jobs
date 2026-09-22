@@ -10,11 +10,26 @@ import org.mockito.ArgumentCaptor;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class RecruitmentJobRegistryServiceTest {
+    @Test
+    void loadsUncontactedCandidatesWithoutDiscoveryDateFilter() {
+        JobRepository repository = mock(JobRepository.class);
+        JobEntity oldJob = new JobEntity();
+        oldJob.setId(7L);
+        when(repository.findDeliveryCandidates(eq("boss"), any())).thenReturn(List.of(oldJob));
+
+        RecruitmentJobRegistryService service = new RecruitmentJobRegistryService(repository);
+
+        assertThat(service.deliveryCandidateIds("boss")).containsExactly(7L);
+        verify(repository).findDeliveryCandidates(eq("boss"), any());
+    }
+
     @Test
     void registersNormalizedJobWithPlatformScopedIdentity() {
         JobRepository repository = mock(JobRepository.class);
