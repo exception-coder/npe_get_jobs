@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { openMessagePage, requireConfirmedImage } from './message-page.js';
 
 const EDITOR = '#chat-input[contenteditable="true"]';
+const SEND_BUTTON = '.btn-send:visible';
 const IMAGE_INPUT = 'input[type="file"][accept="image/gif,image/jpeg,image/jpg,image/png"]';
 const TIMEOUT = 15_000;
 const attemptedJobsByPage = new WeakMap();
@@ -108,8 +109,10 @@ export async function sendConversationGreeting(page, expected, greeting) {
   await verifyConversation(page, expected);
   const editor = page.locator(EDITOR);
   if (await editor.count() !== 1 || !(await editor.isVisible())) throw new Error('CHAT_EDITOR_UNAVAILABLE');
+  const sendButton = page.locator(SEND_BUTTON);
+  if (await sendButton.count() !== 1 || !(await sendButton.isEnabled())) throw new Error('CHAT_SEND_BUTTON_UNAVAILABLE');
   const before = await page.evaluate(textReceiptCount, { text: greeting });
-  await editor.press('Enter');
+  await sendButton.click();
   await page.waitForFunction(textReceiptCount, { text: greeting, before }, { timeout: TIMEOUT });
   await verifyConversation(page, expected);
 }
