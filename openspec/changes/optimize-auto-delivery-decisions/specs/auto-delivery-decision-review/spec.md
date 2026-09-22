@@ -45,15 +45,19 @@ Each check outcome SHALL expose its decision class and reason. When the source j
 - **THEN** the user can open the original JD and can see the rejection reason and confidence
 
 ### Requirement: User can supplement missing-information rules
-The system SHALL allow the user to save and submit up to 2000 characters of decision guidance. The matcher SHALL use that guidance to interpret missing or unstated conditions, but MUST NOT use it to override an explicit JD conflict or a clearly unrelated role.
+The system SHALL allow the user to save and submit up to 2000 characters of decision guidance. The matcher SHALL honor explicit user waivers for qualification dimensions such as education and experience, including when the JD states a conflicting requirement. A waiver MUST cite exact guidance evidence and MUST NOT override target-position relevance or an explicitly excluded role.
 
 #### Scenario: JD omits an experience requirement
 - **WHEN** the user guidance says explicit years are not required and the JD does not state an experience requirement
 - **THEN** the matcher considers that guidance while deciding whether the target role is suitable
 
-#### Scenario: JD explicitly conflicts with the target
-- **WHEN** the JD explicitly states a condition that conflicts with a required target condition
-- **THEN** user guidance does not turn that explicit conflict into a match
+#### Scenario: User explicitly waives education and experience
+- **WHEN** user guidance says not to consider education or work experience and the JD states education or experience requirements
+- **THEN** those qualification dimensions are treated as satisfied using the exact guidance text as evidence
+
+#### Scenario: Role relevance remains mandatory
+- **WHEN** a job is unrelated to the target position or is explicitly excluded
+- **THEN** user guidance does not turn that job into a match
 
 #### Scenario: User revisits the workspace
 - **WHEN** the user previously entered decision guidance in the same browser

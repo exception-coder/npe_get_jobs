@@ -7,8 +7,8 @@
       <fieldset :disabled="running || pending">
         <label>自动打招呼文字<textarea v-model="greeting" required maxlength="500" rows="3" placeholder="请编辑本次统一发送的介绍与沟通意愿，最多500字" /></label>
         <label>补充判定规则（可选）
-          <textarea v-model="decisionGuidance" maxlength="2000" rows="3" placeholder="例如：JD 未提供工作年限时，不要求明确年限；职位方向符合目标岗位即可继续投递。明确写出的冲突条件仍不会被忽略。" />
-          <small>用于补充“信息缺失时如何判断”，不会覆盖 JD 中明确不符合的条件。修改后会按新规则重新判断。</small>
+          <textarea v-model="decisionGuidance" maxlength="2000" rows="3" placeholder="例如：茶行业相关岗位都可投递，不看学历和工作年限。岗位方向和明确排除职位仍会核验。" />
+        <small>可明确写出要忽略的学历、经验等条件；岗位方向和明确排除职位仍会核验。修改后会按新规则重新判断。</small>
         </label>
         <label class="check"><input v-model="sendImage" type="checkbox" />同时发送简历图片</label>
         <label v-if="sendImage">图片简历路径<input v-model.trim="imagePath" required placeholder="本机 PNG / JPG 图片的绝对路径" /></label>
