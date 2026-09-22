@@ -1,5 +1,16 @@
 ## ADDED Requirements
 
+### Requirement: BOSS search remains city-wide
+The system SHALL restrict BOSS searches at city level only. When a user names a district or county, the system SHALL resolve its parent city but MUST NOT send an `areaBusiness` district or business-area filter.
+
+#### Scenario: User requests a county-level place
+- **WHEN** the user requests 安溪 as a preferred place
+- **THEN** the BOSS search uses the 泉州 city code and leaves district and business-area filters unrestricted
+
+#### Scenario: Search input contains a stale district code
+- **WHEN** a BOSS search input contains both a city code and an `areaBusiness` value
+- **THEN** the generated search URL omits `areaBusiness`
+
 ### Requirement: Uncontacted jobs are eligible regardless of discovery date
 The system SHALL select automatic-delivery candidates from uncontacted jobs on the requested platform without requiring the job to have been discovered or refreshed on the current date. The candidate set SHALL remain bounded and SHALL exclude jobs already marked as contacted successfully.
 

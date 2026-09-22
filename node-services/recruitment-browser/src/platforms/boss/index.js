@@ -119,8 +119,8 @@ const definition = {
   },
   jobId: idFromUrl,
   scrollContainers: ['.job-list-container', '.job-list-box'],
-  buildSearchUrl: ({ keyword, cityCode, areaBusiness }, filters) => queryString('https://www.zhipin.com/web/geek/jobs', {
-    city: cityCode, areaBusiness, query: keyword, jobType: filters.jobType, salary: filters.salary,
+  buildSearchUrl: ({ keyword, cityCode }, filters) => queryString('https://www.zhipin.com/web/geek/jobs', {
+    city: cityCode, query: keyword, jobType: filters.jobType, salary: filters.salary,
     experience: filters.experience, degree: filters.degree, scale: filters.scale,
     industry: filters.industry, stage: filters.stage,
   }),

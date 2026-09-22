@@ -11,7 +11,7 @@ const tree = [{ name: '福建', subLevelModelList: [
   { name: '南平', code: 101230900, subLevelModelList: [{ name: '武夷山市', code: 350782 }] },
 ] }];
 
-test('preferred cities and counties become explicit BOSS search URL filters', async () => {
+test('preferred cities and counties use city-level BOSS filters only', async () => {
   let currentUrl = 'https://www.zhipin.com/web/geek/jobs?city=101230400';
   let requests = 0;
   const page = {
@@ -28,17 +28,21 @@ test('preferred cities and counties become explicit BOSS search URL filters', as
     }) }),
   };
   const state = {};
-  for (const [regionName, city, area] of [
-    ['武夷山', '101230900', '350782'], ['福州市', '101230100', null],
-    ['泉州', '101230500', null], ['晋江', '101230500', '350582'], ['安溪', '101230500', '350524'],
+  for (const [regionName, city] of [
+    ['武夷山', '101230900'], ['福州市', '101230100'],
+    ['泉州', '101230500'], ['晋江', '101230500'], ['安溪', '101230500'],
   ]) {
     await boss.actions.searchJobs({ page, state }, { search: { keyword: '茶行业', regionName } });
     const url = new URL(currentUrl);
     assert.equal(url.searchParams.get('city'), city);
-    assert.equal(url.searchParams.get('areaBusiness'), area);
+    assert.equal(url.searchParams.get('areaBusiness'), null);
     assert.equal(url.searchParams.get('query'), '茶行业');
   }
   assert.equal(requests, 1);
+  await boss.actions.searchJobs({ page, state }, {
+    search: { keyword: '茶行业', cityCode: '101230500', areaBusiness: '350524' },
+  });
+  assert.equal(new URL(currentUrl).searchParams.get('areaBusiness'), null);
   const before = currentUrl;
   await assert.rejects(boss.actions.searchJobs({ page, state }, {
     search: { keyword: '茶行业', regionName: '未知城市' },

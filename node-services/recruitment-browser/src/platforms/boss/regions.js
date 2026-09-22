@@ -9,13 +9,13 @@ export const resolveBossRegion = (provinces, name) => {
       if (normalize(city.name) === target) matches.push({ cityCode: String(city.code) });
       for (const district of city.subLevelModelList || []) {
         if (normalize(district.name) === target) {
-          matches.push({ cityCode: String(city.code), areaBusiness: String(district.code) });
+          matches.push({ cityCode: String(city.code) });
         }
       }
     }
   }
   const unique = [...new Map(matches.map(value => [JSON.stringify(value), value])).values()];
-  if (unique.length !== 1) throw new Error(`无法唯一识别 BOSS 搜索区域“${name}”，请填写明确的城市或区县名称`);
+  if (unique.length !== 1) throw new Error(`无法唯一识别 BOSS 搜索城市“${name}”，请填写明确的城市或区县名称`);
   return unique[0];
 };
 
