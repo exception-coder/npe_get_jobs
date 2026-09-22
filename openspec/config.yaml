@@ -1,0 +1,24 @@
+schema: spec-driven
+
+context: |
+  npe_get_jobs uses AGENTS.md as the project rule and context router. Read
+  docs/INDEX.md for human-maintained project knowledge. openspec/specs contains
+  accepted behavior and openspec/changes contains proposed behavior. Graphify
+  provides current implementation coordinates, not business truth.
+
+  Before relying on Graphify, compare its manifest with Git HEAD and affected
+  working-tree files. Verify exact behavior through targeted source and tests.
+  OpenSpec structural validation does not replace implementation, database,
+  runtime, or release-artifact verification.
+
+rules:
+  proposal:
+    - Keep one change independently reviewable and state the goal, non-goals, evidence sources, and unresolved decisions.
+  specs:
+    - Describe observable behavior and scenarios rather than copied implementation structure.
+  design:
+    - Cite current source or Graphify coordinates and record verification and rollback strategy.
+  tasks:
+    - Keep tasks independently verifiable and do not mark them complete before evidence exists.
+    - Update the active change when implementation discoveries alter scope, behavior, contracts, or acceptance evidence.
+    - Keep unresolved or unverified work active; do not archive merely because code was edited.

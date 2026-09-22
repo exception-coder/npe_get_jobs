@@ -1,0 +1,13 @@
+# Graphify input boundary shared by the project team.
+# Project-specific generated or vendored paths may be appended here.
+
+graphify-out/
+**/node_modules/
+**/vendor/
+**/target/
+**/build/
+**/dist/
+**/coverage/
+**/*.min.js
+**/*.min.css
+**/*.map
