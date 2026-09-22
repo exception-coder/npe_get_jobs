@@ -57,7 +57,7 @@ test('explicit text send requires a new delivered message and clears the draft',
 test('explicitly confirmed contact clicks the visible send button and records verified text delivery', async () => {
   await fixture(async page => {
     const result = await contactThroughMessagePage(page, job, {
-      greeting: '您好', deliveryOptions: { sendGreeting: true },
+      greeting: '您好', confirmContact: true, deliveryOptions: { sendGreeting: false },
     });
     assert.equal(result.status, 'SUCCEEDED', JSON.stringify(result));
     assert.equal(result.textSent, true);

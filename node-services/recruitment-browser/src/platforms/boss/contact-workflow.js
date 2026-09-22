@@ -155,7 +155,7 @@ export async function contactThroughMessagePage(page, job, input, state) {
     await verifyConversation(page, expected);
     await fillConversationDraft(page, input.greeting);
     result.draftFilled = true;
-    if (input.deliveryOptions?.sendGreeting === true) {
+    if (input.confirmContact === true) {
       result.reason = 'TEXT_SEND_UNCERTAIN_VERIFY_PLATFORM';
       await sendConversationGreeting(page, expected, input.greeting);
       result.textSent = true;

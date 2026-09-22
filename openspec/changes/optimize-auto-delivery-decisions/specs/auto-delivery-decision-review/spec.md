@@ -1,5 +1,16 @@
 ## ADDED Requirements
 
+### Requirement: Confirmed automatic delivery sends the greeting
+The system SHALL use the same confirmed BOSS send action for automatic delivery and single-job delivery. When `confirmContact` is true, it SHALL click the visible send control and SHALL report success only after the editor clears and a new delivered or read receipt appears. Attachment options MUST NOT downgrade a confirmed greeting to a draft.
+
+#### Scenario: Automatic delivery confirms contact with default attachment options
+- **WHEN** automatic delivery submits a greeting with `confirmContact` true and no text-specific attachment option
+- **THEN** the greeting is sent rather than left in the editor as a draft
+
+#### Scenario: Platform does not confirm delivery
+- **WHEN** the editor remains populated or no new delivered/read receipt appears after the send action
+- **THEN** the attempt is reported as failed or uncertain and is not recorded as successfully contacted
+
 ### Requirement: BOSS search remains city-wide
 The system SHALL restrict BOSS searches at city level only. When a user names a district or county, the system SHALL resolve its parent city but MUST NOT send an `areaBusiness` district or business-area filter.
 

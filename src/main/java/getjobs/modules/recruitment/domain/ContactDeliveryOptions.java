@@ -1,6 +1,6 @@
 package getjobs.modules.recruitment.domain;
 
-/** Per-attempt image consent; text remains a draft on BOSS. */
+/** Per-attempt attachment options; confirmed contact requests always send their greeting. */
 public record ContactDeliveryOptions(
         Boolean sendResumeImage,
         String resumeImagePath,
