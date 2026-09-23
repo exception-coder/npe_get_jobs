@@ -20,7 +20,7 @@ import getjobs.modules.recruitment.domain.RecruitmentPlatformId;
 @Component
 @EnableConfigurationProperties(PatchrightProperties.class)
 public class PatchrightBrowserClient implements BrowserAutomationPort {
-    private static final String REQUIRED_API_REVISION = "2026-09-22-confirmed-send-v6";
+    private static final String REQUIRED_API_REVISION = "2026-09-23-enter-send-v7";
     private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(45);
     private static final Duration ACTION_REQUEST_TIMEOUT = Duration.ofMinutes(10);
 

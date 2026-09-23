@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Confirmed automatic delivery sends the greeting
-The system SHALL use the same confirmed BOSS send action for automatic delivery and single-job delivery. When `confirmContact` is true, it SHALL click the visible send control and SHALL report success only after the editor clears and a new delivered or read receipt appears. Attachment options MUST NOT downgrade a confirmed greeting to a draft.
+The system SHALL use the same confirmed BOSS send action for automatic delivery and single-job delivery. When `confirmContact` is true, it SHALL focus the verified editor and trigger BOSS's Enter-to-send action, with the visible send control as a compatibility fallback when Enter does not clear the editor. It SHALL report success only after the editor clears and a new delivered or read receipt appears. Attachment options MUST NOT downgrade a confirmed greeting to a draft.
 
 #### Scenario: Automatic delivery confirms contact with default attachment options
 - **WHEN** automatic delivery submits a greeting with `confirmContact` true and no text-specific attachment option

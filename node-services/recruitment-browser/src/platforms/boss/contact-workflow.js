@@ -109,10 +109,21 @@ export async function sendConversationGreeting(page, expected, greeting) {
   await verifyConversation(page, expected);
   const editor = page.locator(EDITOR);
   if (await editor.count() !== 1 || !(await editor.isVisible())) throw new Error('CHAT_EDITOR_UNAVAILABLE');
-  const sendButton = page.locator(SEND_BUTTON);
-  if (await sendButton.count() !== 1 || !(await sendButton.isEnabled())) throw new Error('CHAT_SEND_BUTTON_UNAVAILABLE');
   const before = await page.evaluate(textReceiptCount, { text: greeting });
-  await sendButton.click();
+  await editor.focus();
+  await editor.press('Enter');
+  const editorCleared = await page.waitForFunction(() => {
+    const target = document.querySelector('#chat-input');
+    return !target?.innerText.trim();
+  }, undefined, { timeout: 2_000 }).then(() => true).catch(() => false);
+  if (!editorCleared) {
+    const sendButton = page.locator(SEND_BUTTON).first();
+    if (!(await sendButton.isVisible().catch(() => false))
+        || !(await sendButton.isEnabled().catch(() => false))) {
+      throw new Error('CHAT_SEND_ACTION_UNAVAILABLE');
+    }
+    await sendButton.click();
+  }
   await page.waitForFunction(textReceiptCount, { text: greeting, before }, { timeout: TIMEOUT });
   await verifyConversation(page, expected);
 }
