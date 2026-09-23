@@ -1,15 +1,60 @@
 package getjobs.modules.recruitment.workflow;
 
 import getjobs.modules.recruitment.application.*;
+import getjobs.modules.recruitment.browser.BrowserContactPreparationResult;
 import getjobs.modules.recruitment.domain.*;
 import getjobs.repository.entity.RecruitmentGoalEntity;
 import org.junit.jupiter.api.Test;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.*;
 
 class TodayAutoDeliveryServiceTest {
+    @Test
+    void preparesContactBeforeConfirmingAutomaticDelivery() {
+        var jobs = mock(RecruitmentJobRegistryService.class);
+        var goals = mock(RecruitmentGoalService.class);
+        var plans = mock(RecruitmentSearchPlanService.class);
+        var selection = mock(RecruitmentJobSelectionService.class);
+        var history = mock(RecruitmentContactHistoryService.class);
+        var workflows = mock(RecruitmentWorkflowService.class);
+        var goal = new RecruitmentGoalEntity(); goal.setId(1L);
+        var job = new RecruitmentJob("j1", "Java", "公司", "广州", "25K", "JD",
+                "https://www.zhipin.com/job_detail/j1.html");
+        var match = new IntentMatchResult(1L, "hash", "apply", "符合意向", List.of());
+        var matched = new RecruitmentJob(job.platformJobId(), job.title(), job.company(), job.city(), job.salary(),
+                job.description(), job.href(), job.facts(), match);
+        var taskId = UUID.randomUUID();
+        var started = snapshot(taskId, WorkflowStatus.AWAITING_CONFIRMATION, matched, List.of());
+        var delivered = new ContactResult("j1", ContactResult.ContactStatus.SUCCEEDED,
+                "TEXT_DELIVERED", true, true, true, false);
+        var completed = snapshot(taskId, WorkflowStatus.COMPLETED, matched, List.of(delivered));
+        when(goals.active()).thenReturn(goal);
+        when(plans.resolve(any(), eq(1L))).thenReturn(plan());
+        when(jobs.deliveryCandidateIds("boss")).thenReturn(List.of(2L));
+        when(jobs.requireRegisteredJob(2L)).thenReturn(new RecruitmentJobRegistryService.RegisteredJob("boss", job));
+        when(history.contactedIds("boss", List.of(job))).thenReturn(Set.of());
+        when(selection.select(eq(List.of(job)), any(RecruitmentGoalConditions.class))).thenReturn(List.of(matched));
+        when(workflows.startFromJob(2L)).thenReturn(started);
+        when(workflows.prepareContact(taskId, "j1")).thenReturn(new BrowserContactPreparationResult(
+                List.of(new ContactPreparation("j1", ContactPreparation.PreparationStatus.READY,
+                        job.href(), true, false, null)), 1, false));
+        when(workflows.confirmContact(eq(taskId), eq("j1"), eq("您好"), any(ContactDeliveryOptions.class)))
+                .thenReturn(completed);
+        var service = new TodayAutoDeliveryService(jobs, goals, plans, selection, history, workflows, Runnable::run);
+
+        service.start("boss", 1L, "您好", false, "", "");
+
+        var order = inOrder(workflows);
+        order.verify(workflows).startFromJob(2L);
+        order.verify(workflows).prepareContact(taskId, "j1");
+        order.verify(workflows).confirmContact(eq(taskId), eq("j1"), eq("您好"), any(ContactDeliveryOptions.class));
+        assertThat(service.status().sent()).isOne();
+    }
+
     @Test
     void exposesPerJobReasonsWhenAllCheckedJobsAreSkipped() {
         var jobs = mock(RecruitmentJobRegistryService.class);
@@ -93,5 +138,12 @@ class TodayAutoDeliveryServiceTest {
                 List.of(), List.of(), List.of(), List.of(), null,
                 java.util.Map.of("intentCard", "{}", "intentVersion", "1", "platform", "boss"));
         return new RecruitmentSearchPlan(List.of(), java.util.Map.of(), "", goal);
+    }
+
+    private RecruitmentWorkflowSnapshot snapshot(UUID taskId, WorkflowStatus status, RecruitmentJob job,
+                                                   List<ContactResult> results) {
+        return new RecruitmentWorkflowSnapshot(taskId, "boss", null, status, WorkflowStage.CONTACT,
+                1, 1, 1, results.size(), null, null,
+                status == WorkflowStatus.AWAITING_CONFIRMATION, "您好", List.of(job), results, Instant.now());
     }
 }

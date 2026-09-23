@@ -2,6 +2,7 @@ package getjobs.modules.recruitment.workflow;
 
 import getjobs.modules.recruitment.application.*;
 import getjobs.modules.recruitment.domain.ContactDeliveryOptions;
+import getjobs.modules.recruitment.domain.ContactPreparation;
 import getjobs.modules.recruitment.domain.ContactResult;
 import getjobs.modules.recruitment.domain.RecruitmentPlatformId;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -96,6 +97,18 @@ public class TodayAutoDeliveryService {
                 if (stopping) break;
                 update("RUNNING", checked, sent, "正在投递：" + job.company() + " · " + job.title());
                 var task = workflows.startFromJob(id);
+                if (stopping) break;
+                var preparation = workflows.prepareContact(task.taskId(), job.platformJobId());
+                var ready = preparation.results().stream().filter(result ->
+                                job.platformJobId().equals(result.platformJobId()))
+                        .findFirst().orElse(null);
+                if (ready == null || ready.status() != ContactPreparation.PreparationStatus.READY) {
+                    String reason = ready == null || ready.reason() == null || ready.reason().isBlank()
+                            ? "未找到可用的沟通入口" : ready.reason();
+                    addOutcome(job, "FAILED", "DELIVERY_FAILED", null, reason);
+                    update("RUNNING", checked, sent, "沟通入口未就绪：" + job.title());
+                    continue;
+                }
                 if (stopping) break;
                 task = workflows.confirmContact(task.taskId(), job.platformJobId(), greeting, options);
                 while (task.status() == WorkflowStatus.RUNNING || task.status() == WorkflowStatus.QUEUED) {
