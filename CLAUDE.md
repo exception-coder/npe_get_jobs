@@ -132,6 +132,8 @@ page.waitForTimeout(500);
 
 ## Git 提交规范
 
+提交后自动推送的项目约定见 [`AGENTS.md`](AGENTS.md)，后续任务按该文件执行。
+
 遵循 Conventional Commits：
 
 ```

@@ -22,6 +22,8 @@ Keep project architecture, naming, build, test, deployment, data, and compatibil
 
 Do not copy team-wide rules, generated Graphify reports, OpenSpec artifacts, or external domain knowledge into a second project-local source of truth.
 
+The user authorizes automatic pushes for this repository: after each successful local commit, push the current branch to `origin` without asking for confirmation again. An explicit instruction for the current task not to commit or push takes precedence. If pushing fails, preserve the local commit and report the failure; do not force-push.
+
 ## Workspace safety
 
 Preserve unrelated working-tree changes. Limit edits and verification to task-owned files. Project-specific Skills belong under `.codex/skills/` only when they provide a real reusable capability; do not create placeholder Skill directories.
