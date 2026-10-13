@@ -1,6 +1,7 @@
 package getjobs.modules.recruitment.application;
 
 import getjobs.modules.recruitment.domain.RecruitmentJob;
+import getjobs.modules.recruitment.domain.IntentMatchResult;
 import getjobs.modules.recruitment.spi.RecruitmentIntentSerialization;
 import getjobs.repository.RecruitmentIntentMatchRepository;
 import getjobs.repository.entity.RecruitmentIntentMatchEntity;
@@ -83,6 +84,7 @@ public class RecruitmentMatchEvidenceService {
     }
 
     private String decisionContext(Long intentVersion, String guidance) {
-        return codec.fingerprint(List.of(intentVersion.toString(), guidance == null ? "" : guidance.trim()));
+        return codec.fingerprint(List.of(IntentMatchResult.POLICY_VERSION, intentVersion.toString(),
+                guidance == null ? "" : guidance.trim()));
     }
 }

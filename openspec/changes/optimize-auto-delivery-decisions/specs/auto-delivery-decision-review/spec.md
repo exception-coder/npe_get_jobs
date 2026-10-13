@@ -49,14 +49,14 @@ The system SHALL group automatic-delivery check outcomes by decision class and S
 - **THEN** the system presents them in separate, independently expandable groups with their own counts
 
 ### Requirement: Stable explicit mismatches are reusable
-The system SHALL persist automatic-delivery match evidence with its confidence and decision context. It SHALL reuse only a high-confidence explicit mismatch when platform, platform job ID, JD content, job-intent version, and decision context are unchanged. Reused outcomes SHALL bypass a new model decision.
+The system SHALL persist automatic-delivery match evidence with its confidence and decision context. It SHALL reuse only a high-confidence explicit mismatch when platform, platform job ID, JD content, job-intent version, user guidance, and matching-policy version are unchanged. Reused outcomes SHALL bypass a new model decision.
 
 #### Scenario: Unchanged job was previously rejected confidently
 - **WHEN** the same platform job, JD content, intent version, and decision context has a high-confidence explicit mismatch record
 - **THEN** the system skips model evaluation and returns the stored mismatch outcome
 
 #### Scenario: Relevant decision input changed
-- **WHEN** the JD content, intent version, or user decision guidance differs from the stored evidence
+- **WHEN** the JD content, intent version, user decision guidance, or matching-policy version differs from the stored evidence
 - **THEN** the system performs a fresh decision and stores fresh evidence
 
 #### Scenario: Previous result was uncertain
@@ -88,3 +88,48 @@ The system SHALL allow the user to save and submit up to 2000 characters of deci
 #### Scenario: User revisits the workspace
 - **WHEN** the user previously entered decision guidance in the same browser
 - **THEN** the system restores that guidance for subsequent automatic-delivery runs
+
+### Requirement: Missing details do not veto a relevant job
+The system SHALL require verified target-position relevance for an apply recommendation. It SHALL reject a job when a non-preference requirement has a verified explicit conflict, including an explicit exclusion. Unknown non-role checks SHALL remain visible but SHALL NOT alone block an apply recommendation. An apply result with unknown checks SHALL have medium confidence. Missing, invalid, or unmatched preference checks MUST NOT act as mandatory requirements. Missing or invalid role evidence SHALL prevent apply and, in the absence of a verified hard conflict, SHALL yield review; complete model failure MUST NOT produce apply.
+
+#### Scenario: Relevant role with missing qualification details
+- **WHEN** role relevance has valid evidence and qualification or exclusion information is unknown with no verified hard conflict
+- **THEN** the job is recommended for application with medium confidence and its unknown checks remain available for review
+
+#### Scenario: Preferred industry is not verified or differs
+- **WHEN** role relevance is verified and a prefer industry check is absent, invalid, unknown, or unmatched
+- **THEN** the preference does not veto the application
+
+#### Scenario: Explicit mandatory conflict or excluded role
+- **WHEN** verified job evidence proves a mandatory conflict or an excluded role
+- **THEN** the system recommends skip regardless of other passing or unknown checks
+
+#### Scenario: No valid role decision
+- **WHEN** no unique valid role check is available, including complete model response failure, and no verified hard conflict exists
+- **THEN** the system recommends review rather than application
+
+### Requirement: Matching uses structured facts and literal field evidence
+The matcher SHALL evaluate supplied title, city, salary and platform facts even when description is absent. Evidence SHALL be checked against actual job-field values or permitted user guidance rather than escaped JSON. It SHALL tolerate formatting whitespace and Unicode presentation differences without accepting rewritten or fabricated facts. Unknown checks SHALL retain useful model explanations.
+
+#### Scenario: Search result lacks detailed JD
+- **WHEN** a job has a title and structured salary or industry facts but no description
+- **THEN** the matcher evaluates those supplied facts instead of bypassing the model
+
+#### Scenario: Evidence includes line breaks and quotes
+- **WHEN** evidence quotes an actual field with only whitespace or Unicode presentation differences
+- **THEN** the evidence remains verifiable
+
+#### Scenario: Model invents role evidence
+- **WHEN** the role citation cannot be found in the job fields
+- **THEN** the role check becomes unknown and blocks application
+
+### Requirement: Comparable salary ranges use overlap
+The system SHALL treat comparable monthly salary ranges as compatible when they overlap, including a shared endpoint. It SHALL reject non-overlapping mandatory ranges using job salary evidence. It MUST NOT infer monthly equivalents from annual salaries or guess salary installments. A verified explicit user waiver SHALL retain precedence.
+
+#### Scenario: Advertised salary exceeds intent but overlaps
+- **WHEN** the monthly intent is 10–25K and the advertised salary is 20–40K or 25–50K
+- **THEN** the salary check is matched instead of rejecting the higher advertised maximum
+
+#### Scenario: Mandatory salary has no overlap
+- **WHEN** the monthly intent is 10–25K and the advertised salary is 30–50K
+- **THEN** the mandatory salary check is unmatched

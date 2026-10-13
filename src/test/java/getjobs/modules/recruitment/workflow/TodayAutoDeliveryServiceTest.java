@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.*;
 
 class TodayAutoDeliveryServiceTest {
     @Test
-    void preparesContactBeforeConfirmingAutomaticDelivery() {
+    void preparesContactAndSendsWhenRelevantJobHasUnknownDetails() {
         var jobs = mock(RecruitmentJobRegistryService.class);
         var goals = mock(RecruitmentGoalService.class);
         var plans = mock(RecruitmentSearchPlanService.class);
@@ -24,7 +24,8 @@ class TodayAutoDeliveryServiceTest {
         var goal = new RecruitmentGoalEntity(); goal.setId(1L);
         var job = new RecruitmentJob("j1", "Java", "公司", "广州", "25K", "JD",
                 "https://www.zhipin.com/job_detail/j1.html");
-        var match = new IntentMatchResult(1L, "hash", "apply", "符合意向", List.of());
+        var match = new IntentMatchResult(1L, "hash", "apply", "medium", "岗位方向符合，部分信息待核实", List.of(
+                new IntentMatchResult.Check("candidateContext", "unknown", "岗位未说明学历", "")));
         var matched = new RecruitmentJob(job.platformJobId(), job.title(), job.company(), job.city(), job.salary(),
                 job.description(), job.href(), job.facts(), match);
         var taskId = UUID.randomUUID();
@@ -53,6 +54,8 @@ class TodayAutoDeliveryServiceTest {
         order.verify(workflows).prepareContact(taskId, "j1");
         order.verify(workflows).confirmContact(eq(taskId), eq("j1"), eq("您好"), any(ContactDeliveryOptions.class));
         assertThat(service.status().sent()).isOne();
+        assertThat(service.status().outcomes()).singleElement().satisfies(outcome ->
+                assertThat(outcome.confidence()).isEqualTo("medium"));
     }
 
     @Test

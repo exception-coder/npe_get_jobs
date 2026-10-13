@@ -39,3 +39,12 @@
 - [x] 7.2 回归验证附加选项为旧默认值时仍执行真实发送，并继续校验送达回执
 - [x] 7.3 按真实 BOSS 编辑器交互改为 Enter 发送，按钮点击仅在编辑器未清空时后备执行
 - [x] 7.4 自动投递复用单岗位的 prepareContact → confirmContact 顺序，入口未就绪时不发送
+
+## 8. 修复过度严格匹配
+
+- [x] 8.1 区分职位方向、硬性冲突、优先偏好与缺失信息，未知放行时保留 medium 置信度和逐项提示
+- [x] 8.2 使用无正文岗位的结构化字段，按实际字段核验证据并容忍排版空白差异
+- [x] 8.3 用确定性月薪交集规则纠正区间误拒，并使历史严格策略拒绝缓存失效
+- [x] 8.4 补充相关 JUnit 回归、同步 README、严格校验 OpenSpec；验证不执行真实发送
+
+2026-10-13 验证：JDK 21 执行 `mvn package -Dskip.installnodenpm=true -Dskip.npm=true -Dtest=RecruitmentIntentCardTest,RecruitmentIntentAiTest,RecruitmentMatchEvidenceServiceTest,RecruitmentJobSelectionServiceTest,TodayAutoDeliveryServiceTest,RecruitmentWorkflowServiceTest`，34 项通过，0 失败、0 错误、0 跳过，最新 JAR 构建成功；原始结果见 `target/surefire-reports/`。本次仅修改 Java 匹配规则，不重复构建未变化的前端或执行 Node 发送测试。自动投递步骤为 mock，未调用平台发送接口。本机 8081/5174 当前不可用，未宣称已上线或真实投递成功。
