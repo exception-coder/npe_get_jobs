@@ -1,6 +1,7 @@
 import { createRecruitmentActions, idFromUrl, queryString, readCard } from '../shared/recruitment-actions.js';
 import { contactThroughMessagePage } from './contact-workflow.js';
 import { resolveBossSearch } from './regions.js';
+import { fillVerifiedBossDraft } from './conversation-draft.js';
 
 const RESULT_TIMEOUT = 15_000;
 const SCROLL_SETTLE_MS = 1_500;
@@ -284,13 +285,10 @@ const definition = {
 export async function fillBossDraft(editor, platformJobId, greeting) {
   if (!greeting?.trim()) return { platformJobId, status: 'BLOCKED', reason: 'GREETING_REQUIRED' };
   try {
-    await editor.waitFor({ state: 'visible', timeout: 15_000 });
-    await editor.fill(greeting);
-    const value = await editor.evaluate((element) => 'value' in element ? element.value : element.textContent);
-    if (value !== greeting) return { platformJobId, status: 'FAILED', reason: 'DRAFT_VERIFICATION_FAILED' };
+    await fillVerifiedBossDraft(editor, greeting);
     return { platformJobId, status: 'SKIPPED', reason: 'DRAFT_FILLED_NOT_SENT' };
-  } catch {
-    return { platformJobId, status: 'FAILED', reason: 'CHAT_EDITOR_UNAVAILABLE_OR_FILL_FAILED' };
+  } catch (error) {
+    return { platformJobId, status: 'FAILED', reason: error.message || 'CHAT_EDITOR_UNAVAILABLE_OR_FILL_FAILED' };
   }
 }
 

@@ -48,3 +48,12 @@
 - [x] 8.4 补充相关 JUnit 回归、同步 README、严格校验 OpenSpec；验证不执行真实发送
 
 2026-10-13 验证：JDK 21 执行 `mvn package -Dskip.installnodenpm=true -Dskip.npm=true -Dtest=RecruitmentIntentCardTest,RecruitmentIntentAiTest,RecruitmentMatchEvidenceServiceTest,RecruitmentJobSelectionServiceTest,TodayAutoDeliveryServiceTest,RecruitmentWorkflowServiceTest`，34 项通过，0 失败、0 错误、0 跳过，最新 JAR 构建成功；原始结果见 `target/surefire-reports/`。本次仅修改 Java 匹配规则，不重复构建未变化的前端或执行 Node 发送测试。自动投递步骤为 mock，未调用平台发送接口。本机 8081/5174 当前不可用，未宣称已上线或真实投递成功。
+
+## 9. BOSS 发送失败修复
+
+- [x] 9.1 统一草稿文本校验、等待与无发送键的补入，保护已有不同草稿
+- [x] 9.2 当前会话内解析唯一发送动作，提交前校验文字和收件人，提交后不切换动作重发
+- [x] 9.3 按阶段记录并原子更新 journal，保护并发；已证明仅草稿的记录恢复会话，未知提交继续阻断
+- [x] 9.4 在断网浏览器夹具复现草稿、发送与防重分支，执行相关 Node/Java 回归并同步 revision、README 和规格
+
+2026-10-13 发送修复验证：`node --test test/boss*.test.js test/platform-registry.test.js` 51 项全绿；追加按钮启用等待及多行发送后，`node --test test/boss-contact-workflow.test.js` 当前 18 项全绿，其他未受影响套件复用前次结果。JDK 21 执行 `mvn package -Dskip.installnodenpm=true -Dskip.npm=true -Dtest=PatchrightBrowserClientTest,TodayAutoDeliveryServiceTest,RecruitmentWorkflowServiceTest`，13 项全绿且 JAR 构建成功。独立临时端口启动真实 Node sidecar，仅 GET `/health`，确认返回 `2026-10-13-single-submit-contact-v9` 后退出。聊天浏览器请求全部本地 fulfill，journal 使用并清理临时目录；未真实发送，未改用户 profiles 或历史 journal。原四岗位的实际聊天页和旧记录在当前环境不可取得，未声明真实送达验收。

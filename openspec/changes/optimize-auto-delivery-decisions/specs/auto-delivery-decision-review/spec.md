@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Confirmed automatic delivery sends the greeting
-The system SHALL use the same prepare-then-confirm BOSS workflow for automatic delivery and single-job delivery. Automatic delivery SHALL require a `READY` contact preparation result before confirming contact. When `confirmContact` is true, it SHALL focus the verified editor and trigger BOSS's Enter-to-send action, with the visible send control as a compatibility fallback when Enter does not clear the editor. It SHALL report success only after the editor clears and a new delivered or read receipt appears. Attachment options MUST NOT downgrade a confirmed greeting to a draft.
+The system SHALL use the same prepare-then-confirm BOSS workflow for automatic delivery and single-job delivery. Automatic delivery SHALL require a `READY` contact preparation result before confirming contact. When `confirmContact` is true, it SHALL verify the recipient and exact draft, select one enabled send control in the conversation or use Enter when no control exists, and execute at most one submission action. It MUST NOT switch to a second action because the editor has not cleared promptly. It SHALL report success only after the editor clears and a new delivered or read receipt for the greeting appears. Attachment options MUST NOT downgrade a confirmed greeting to a draft.
 
 #### Scenario: Automatic delivery confirms contact with default attachment options
 - **WHEN** automatic delivery submits a greeting with `confirmContact` true and no text-specific attachment option
@@ -14,6 +14,48 @@ The system SHALL use the same prepare-then-confirm BOSS workflow for automatic d
 #### Scenario: Platform does not confirm delivery
 - **WHEN** the editor remains populated or no new delivered/read receipt appears after the send action
 - **THEN** the attempt is reported as failed or uncertain and is not recorded as successfully contacted
+
+#### Scenario: Send control uses semantic button markup
+- **WHEN** the current conversation contains one enabled visible button named 发送 without the old `.btn-send` class
+- **THEN** the system uses that control exactly once
+
+#### Scenario: Delayed editor clearing after submission
+- **WHEN** a submission has been attempted and the editor stays populated while delivery is pending
+- **THEN** the system waits for the receipt without invoking any second send action
+
+#### Scenario: Draft or recipient changes before submission
+- **WHEN** the actual draft or selected recipient differs from the confirmed input immediately before submission
+- **THEN** the system fails before executing a send action
+
+### Requirement: Draft filling preserves user content
+The system SHALL compare actual editable text after normalizing line endings, non-breaking spaces and editor placeholder characters, without collapsing meaningful internal spaces or paragraphs. It SHALL preserve an existing different draft. It SHALL reuse an identical draft and SHALL NOT press a send key during draft preparation.
+
+#### Scenario: Contenteditable renders formatted lines
+- **WHEN** the editor wraps the greeting in blocks or adds an empty trailing line
+- **THEN** draft verification succeeds if its meaningful text matches the greeting
+
+#### Scenario: Framework ignores initial fill
+- **WHEN** fill leaves the editor empty after a bounded wait
+- **THEN** the system may use plain text insertion and verifies the resulting text without submitting it
+
+### Requirement: Attempt journal distinguishes preparation from submission
+The system SHALL persist contact-entry, draft, text-submission and image-submission stages before consequential actions and SHALL protect concurrent attempts. It SHALL allow a later user-triggered attempt to resume a verified conversation when the previous attempt is provably draft-only. It MUST NOT repeat the contact-entry click during such recovery. Submitted, successful, ambiguous legacy, or locked attempts SHALL remain blocked until platform verification; elapsed time MUST NOT automatically authorize resending.
+
+#### Scenario: Previous attempt failed draft verification
+- **WHEN** the previous journal proves a verified conversation with no text or image submission
+- **THEN** a new attempt may resume that conversation without clicking 立即沟通 again
+
+#### Scenario: Legacy journal proves only a draft
+- **WHEN** a legacy record explicitly reports draft failure or draft-only success, an established conversation and no delivered text or image
+- **THEN** it may be upgraded for conversation-only recovery
+
+#### Scenario: Prior text submission has no receipt
+- **WHEN** text submission was recorded but no receipt was confirmed
+- **THEN** another attempt is blocked before navigation and no text is resubmitted
+
+#### Scenario: Concurrent attempt is active
+- **WHEN** another operation owns the page or the same journal lock
+- **THEN** the new attempt is rejected without opening contact or changing the draft
 
 ### Requirement: BOSS search remains city-wide
 The system SHALL restrict BOSS searches at city level only. When a user names a district or county, the system SHALL resolve its parent city but MUST NOT send an `areaBusiness` district or business-area filter.

@@ -11,6 +11,18 @@ export async function openMessagePage(page) {
   }
 }
 
+/** 发送前后只核验当前会话，不从侧栏或全页借用收件人证据。 */
+export async function verifyConversation(page, expected) {
+  const url = new URL(page.url());
+  if (url.hostname !== 'www.zhipin.com' || url.pathname !== '/web/geek/chat') {
+    throw new Error('MESSAGE_PAGE_UNAVAILABLE');
+  }
+  const lines = (await page.locator('.chat-conversation').innerText()).split('\n').map(value => value.trim());
+  if (![expected.company, expected.title, expected.recruiterName].every(value => value && lines.includes(value))) {
+    throw new Error('CONVERSATION_RECIPIENT_MISMATCH');
+  }
+}
+
 /** Requires identity evidence from the active conversation, not the complete page/sidebar. */
 export function requireMatchingConversation(expected, actual) {
   const normalize = value => String(value ?? '').trim();
