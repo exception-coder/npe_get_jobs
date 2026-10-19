@@ -1,30 +1,16 @@
 import { setTimeout as pause } from 'node:timers/promises';
 import { BOSS_EDITOR_SELECTOR, normalizeBossDraft, requireBossDraft } from './conversation-draft.js';
 import { verifyConversation } from './message-page.js';
+import { inspectBossSendControl, waitForBossSendControl } from './conversation-controls.js';
 
-const CONTROL_SETTLE_MS = 800;
-
-async function resolveSendAction(page, editor) {
-  const conversation = page.locator('.chat-conversation');
-  const candidates = conversation.locator('.btn-send')
-    .or(conversation.getByRole('button', { name: '发送', exact: true }));
-  const visible = [];
-  for (const candidate of await candidates.all()) {
-    if (await candidate.isVisible()) visible.push(candidate);
-  }
-  if (visible.length > 1) throw new Error('CHAT_SEND_ACTION_AMBIGUOUS');
-  if (!visible.length) return () => editor.press('Enter');
-  const button = visible[0];
-  const deadline = Date.now() + CONTROL_SETTLE_MS;
-  do {
-    const disabled = await button.getAttribute('aria-disabled');
-    const classes = await button.getAttribute('class') || '';
-    if (await button.isEnabled() && disabled !== 'true' && !/(?:^|\s)(?:disabled|is-disabled)(?:\s|$)/.test(classes)) {
-      return () => button.click();
-    }
-    await pause(80);
-  } while (Date.now() < deadline);
-  throw new Error('CHAT_SEND_ACTION_UNAVAILABLE');
+async function resolveSendAction(page) {
+  const control = await waitForBossSendControl(page);
+  if (control.status !== 'ready') throw new Error('CHAT_SEND_ACTION_UNAVAILABLE');
+  return async () => {
+    const current = await inspectBossSendControl(page);
+    if (current.status !== 'ready') throw new Error('CHAT_SEND_ACTION_UNAVAILABLE');
+    await current.button.click({ timeout: 2000 });
+  };
 }
 
 function readReceiptSnapshot() {
@@ -64,7 +50,7 @@ export async function sendConversationGreeting(page, expected, greeting, options
   const editor = page.locator(BOSS_EDITOR_SELECTOR + ':visible');
   if (await editor.count() !== 1) throw new Error('CHAT_EDITOR_UNAVAILABLE');
   await requireBossDraft(editor, greeting);
-  const submit = await resolveSendAction(page, editor);
+  const submit = await resolveSendAction(page);
   const before = (await observeDelivery(page, greeting)).count;
   await editor.focus();
   await verifyConversation(page, expected);

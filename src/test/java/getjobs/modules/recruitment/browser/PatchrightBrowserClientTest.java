@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PatchrightBrowserClientTest {
     @ParameterizedTest
-    @ValueSource(strings = {"", "2026-09-23-prepared-contact-v8"})
+    @ValueSource(strings = {"", "2026-09-23-prepared-contact-v8", "2026-10-13-single-submit-contact-v9"})
     void rejectsAReachableButStaleSidecarBeforeOpeningBrowserSession(String revision) throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/health", exchange -> {
@@ -44,11 +44,11 @@ class PatchrightBrowserClientTest {
     }
 
     @Test
-    void acceptsTheSingleSubmissionSidecarRevision() throws Exception {
+    void acceptsTheReactiveContactSidecarRevision() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/health", exchange -> {
             byte[] body = ("{\"available\":true,\"engine\":\"patchright\",\"version\":\"1.60.2\","
-                    + "\"apiRevision\":\"2026-10-13-single-submit-contact-v9\"}")
+                    + "\"apiRevision\":\"2026-10-19-reactive-contact-v10\"}")
                     .getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, body.length);
             exchange.getResponseBody().write(body);

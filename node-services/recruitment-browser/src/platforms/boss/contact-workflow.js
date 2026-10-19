@@ -1,7 +1,9 @@
 import { readFile, stat } from 'node:fs/promises';
 import { isAbsolute, extname } from 'node:path';
-import { openMessagePage, requireConfirmedImage, verifyConversation } from './message-page.js';
-import { BOSS_EDITOR_SELECTOR, fillVerifiedBossDraft } from './conversation-draft.js';
+import { requireConfirmedImage, verifyConversation } from './message-page.js';
+import { BOSS_EDITOR_SELECTOR, fillVerifiedBossDraft, refreshBossDraft } from './conversation-draft.js';
+import { waitForBossSendControl } from './conversation-controls.js';
+import { selectBossConversation } from './conversation-locator.js';
 import { sendConversationGreeting } from './conversation-send.js';
 import { reserveContactAttempt } from './contact-journal.js';
 export { verifyConversation } from './message-page.js';
@@ -25,28 +27,22 @@ export async function readResumeImage(options = {}) {
 }
 
 export async function selectConversation(page, job) {
-  if (!job.company?.trim() || !job.title?.trim()) throw new Error('RECIPIENT_IDENTITY_REQUIRED');
-  await openMessagePage(page);
-  let contacts = page.locator('.name-box').filter({ hasText: job.company });
-  if (job.facts?.recruiterName) {
-    contacts = contacts.filter({ has: page.getByText(job.facts.recruiterName, { exact: true }) });
-  }
-  await contacts.first().waitFor({ state: 'visible', timeout: TIMEOUT });
-  if (await contacts.count() !== 1) throw new Error('AMBIGUOUS_CONVERSATION');
-  const recruiter = (await contacts.locator('.name-text').innerText()).trim();
-  await contacts.click();
-  await page.locator(EDITOR).waitFor({ state: 'visible', timeout: TIMEOUT });
-  await page.waitForFunction(({ company, title, recruiterName }) => {
-    const lines = document.querySelector('.chat-conversation')?.innerText.split('\n').map(s => s.trim()) || [];
-    return [company, title, recruiterName].every(value => lines.includes(value));
-  }, { company: job.company, title: job.title, recruiterName: recruiter }, { timeout: TIMEOUT });
-  return { ...job, recruiterName: recruiter };
+  return selectBossConversation(page, job);
 }
 
-export async function fillConversationDraft(page, greeting) {
+export async function fillConversationDraft(page, greeting, expected) {
+  if (expected) await verifyConversation(page, expected);
   const editor = page.locator(EDITOR + ':visible');
   if (await editor.count() !== 1) throw new Error('CHAT_EDITOR_UNAVAILABLE');
   await fillVerifiedBossDraft(editor, greeting, page.keyboard);
+  let control = await waitForBossSendControl(page);
+  if (control.status === 'disabled') {
+    if (expected) await verifyConversation(page, expected);
+    await refreshBossDraft(editor, greeting, page.keyboard);
+    control = await waitForBossSendControl(page);
+  }
+  if (expected) await verifyConversation(page, expected);
+  return { draftFilled: true, sendReady: control.status === 'ready' };
 }
 
 async function uploadImageOnce(page, expected, file, beforeSubmit) {
@@ -97,7 +93,7 @@ export async function contactThroughMessagePage(page, job, input, state) {
     result.conversationEstablished = true;
     await verifyConversation(page, expected);
     await attempt.update({ stage: 'CONVERSATION_READY', conversationEstablished: true });
-    await fillConversationDraft(page, input.greeting);
+    await fillConversationDraft(page, input.greeting, expected);
     result.draftFilled = true;
     await attempt.update({ stage: 'DRAFT_READY', draftFilled: true });
     if (input.confirmContact === true) {

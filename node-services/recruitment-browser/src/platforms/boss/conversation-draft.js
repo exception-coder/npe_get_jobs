@@ -46,3 +46,19 @@ export async function fillVerifiedBossDraft(editor, greeting, keyboard) {
   }
   throw new Error('DRAFT_VERIFICATION_FAILED');
 }
+
+/** 只刷新当前目标草稿的原生输入事件；不覆盖不同正文、不使用发送键。 */
+export async function refreshBossDraft(editor, greeting, keyboard) {
+  if (!greeting?.trim() || greeting.length > 500) throw new Error('INVALID_GREETING');
+  if (!keyboard) throw new Error('CHAT_KEYBOARD_UNAVAILABLE');
+  await editor.focus();
+  const actual = normalizeBossDraft(await readBossDraft(editor));
+  if (actual.trim() && actual !== normalizeBossDraft(greeting)) {
+    throw new Error('EXISTING_DRAFT_NOT_OVERWRITTEN');
+  }
+  await editor.press('ControlOrMeta+A');
+  // insertText 保持多行纯文本；方向键完成键盘事件周期但不会提交消息。
+  await keyboard.insertText(greeting);
+  await editor.press('ArrowRight');
+  if (!(await waitForDraft(editor, greeting))) throw new Error('DRAFT_VERIFICATION_FAILED');
+}

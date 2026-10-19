@@ -17,7 +17,9 @@ export async function verifyConversation(page, expected) {
   if (url.hostname !== 'www.zhipin.com' || url.pathname !== '/web/geek/chat') {
     throw new Error('MESSAGE_PAGE_UNAVAILABLE');
   }
-  const lines = (await page.locator('.chat-conversation').innerText()).split('\n').map(value => value.trim());
+  const conversation = page.locator('.chat-conversation:visible');
+  if (await conversation.count() !== 1) throw new Error('CHAT_CONVERSATION_UNAVAILABLE');
+  const lines = (await conversation.innerText()).split('\n').map(value => value.trim());
   if (![expected.company, expected.title, expected.recruiterName].every(value => value && lines.includes(value))) {
     throw new Error('CONVERSATION_RECIPIENT_MISMATCH');
   }

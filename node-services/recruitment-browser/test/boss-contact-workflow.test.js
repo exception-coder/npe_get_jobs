@@ -4,7 +4,7 @@ import { chromium } from 'patchright';
 import { mkdtemp, writeFile, rm, readFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { contactThroughMessagePage, readResumeImage, verifyConversation, fillConversationDraft, sendConversationGreeting } from '../src/platforms/boss/contact-workflow.js';
+import { contactThroughMessagePage, readResumeImage, verifyConversation, fillConversationDraft, sendConversationGreeting, selectConversation } from '../src/platforms/boss/contact-workflow.js';
 
 const job = { platformJobId: 'fixture-job', company: '测试公司', title: 'Java开发',
   href: 'https://www.zhipin.com/job_detail/fixture-job.html', facts: { recruiterName: '测试联系人' } };
@@ -19,7 +19,7 @@ async function fixture(run, options = {}) {
     visits.push(url);
     const html = url.includes('/job_detail/')
       ? '<a class="btn btn-startchat" onclick="document.querySelector(\'textarea\').hidden=false">立即沟通</a><a class="btn btn-startchat" onclick="document.querySelector(\'textarea\').hidden=false">立即沟通</a><textarea hidden placeholder="请简短描述您的问题"></textarea>'
-      : `<span class="name-box" onclick="document.querySelector('.chat-conversation').hidden=false"><span class="name-text">测试联系人</span>测试公司</span>
+      : `<div role="listitem"><span class="name-box" onclick="document.querySelector('.chat-conversation').hidden=false"><span class="name-text">测试联系人</span>${options.companyOutside ? '' : '测试公司'}</span>${options.companyOutside ? '<span>测试公司</span>' : ''}</div>
         <div class="chat-conversation" hidden><div>测试联系人</div><div>测试公司</div><div>Java开发</div>
         <div id="chat-input" contenteditable="true"></div>
         <input type="file" accept="image/gif,image/jpeg,image/jpg,image/png" onchange="const box=document.createElement('div');box.innerHTML='<img class=message-image src=data:image/png;base64,${png}>送达';this.parentElement.append(box)">
@@ -27,6 +27,12 @@ async function fixture(run, options = {}) {
         <script>
           const options = ${JSON.stringify(options)};
           const editor = document.querySelector('#chat-input');
+          if (options.lateButton) {
+            setTimeout(() => {
+              const button = document.createElement('button'); button.className = 'btn-send'; button.textContent = '发送';
+              button.onclick = () => submitFixtureMessage(); editor.parentElement.append(button);
+            }, 1800);
+          }
           window.submitFixtureMessage = () => {
             document.body.dataset.submissions = String(Number(document.body.dataset.submissions || 0) + 1);
             const greeting = editor.innerText;
@@ -46,10 +52,14 @@ async function fixture(run, options = {}) {
               if (options.enterSends !== false) submitFixtureMessage();
             }
           });
+          editor.addEventListener('keyup', () => {
+            if (options.requireKeyUp && editor.innerText.trim()) document.querySelector('button').disabled = false;
+          });
           editor.addEventListener('input', () => {
             document.body.dataset.inputs = String(Number(document.body.dataset.inputs || 0) + 1);
             if (options.ignoreFirstFill && document.body.dataset.inputs === '1') editor.innerHTML = '';
             if (options.corruptDraft) editor.innerText = '被页面改写的不同正文';
+            if (options.userEditsDraft) setTimeout(() => { editor.innerText = '用户后来填写的正文'; }, 200);
             if (options.enableButtonAfterInput) {
               setTimeout(() => { document.querySelector('button').disabled = false; }, 300);
             }
@@ -166,13 +176,100 @@ test('multiline greeting is verified against its own new receipt', async () => {
   });
 });
 
-test('Enter-only send waits for delayed receipt without a second submission', async () => {
+test('missing send control never guesses Enter or marks a submission', async () => {
+  await fixture(async page => {
+    const result = await contactThroughMessagePage(page, job, { greeting: '您好', confirmContact: true });
+    assert.equal(result.reason, 'CHAT_SEND_ACTION_UNAVAILABLE');
+    assert.equal(result.textSent, false);
+    assert.equal(await page.locator('body').getAttribute('data-enter-presses'), null);
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+  }, { noButton: true });
+});
+
+test('reactive readiness refreshes identical multiline draft without sending during preparation', async () => {
+  await fixture(async page => {
+    await contactThroughMessagePage(page, job, { greeting: '您好\n期待沟通' });
+    assert.equal(await page.locator('.btn-send').isEnabled(), true);
+    assert.equal(await page.locator('#chat-input').innerText(), '您好\n期待沟通');
+    assert.equal(await page.locator('body').getAttribute('data-enter-presses'), null);
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+  }, { disabled: true, requireKeyUp: true });
+});
+
+test('native refresh never overwrites a draft changed while waiting for button readiness', async () => {
+  await fixture(async page => {
+    const result = await contactThroughMessagePage(page, job, { greeting: '您好' });
+    assert.equal(result.reason, 'EXISTING_DRAFT_NOT_OVERWRITTEN');
+    assert.equal(await page.locator('#chat-input').innerText(), '用户后来填写的正文');
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+    assert.equal(await page.locator('body').getAttribute('data-enter-presses'), null);
+  }, { disabled: true, userEditsDraft: true });
+});
+
+test('late-mounted button is resolved rather than submitting with an unverified Enter', async () => {
   await fixture(async page => {
     const result = await contactThroughMessagePage(page, job, { greeting: '您好', confirmContact: true });
     assert.equal(result.textSent, true, JSON.stringify(result));
-    assert.equal(await page.locator('body').getAttribute('data-enter-presses'), '1');
+    assert.equal(await page.locator('body').getAttribute('data-enter-presses'), null);
     assert.equal(await page.locator('body').getAttribute('data-submissions'), '1');
-  }, { noButton: true, receiptDelay: 2_500 });
+  }, { noButton: true, lateButton: true, receiptDelay: 1200 });
+});
+
+test('exact recruiter can be selected when company is outside name-box', async () => {
+  await fixture(async page => {
+    const result = await contactThroughMessagePage(page, job, { greeting: '您好' });
+    assert.equal(result.status, 'SUCCEEDED', JSON.stringify(result));
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+  }, { companyOutside: true });
+});
+
+test('verified active conversation is reusable without any rendered sidebar contacts', async () => {
+  await fixture(async page => {
+    await contactThroughMessagePage(page, job, { greeting: '您好' });
+    await page.locator('.name-box').evaluate(element => element.remove());
+    const expected = await selectConversation(page, job);
+    assert.equal(expected.recruiterName, job.facts.recruiterName);
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+  });
+});
+
+test('lazy contact lookup scrolls only the contact list and verifies identity before drafting', async () => {
+  await fixture(async page => {
+    await page.goto('https://www.zhipin.com/web/geek/chat');
+    await page.locator('.name-box').evaluate(element => {
+      const row = element.parentElement;
+      const list = document.createElement('div'); list.id = 'contacts';
+      list.style.cssText = 'height:100px;overflow-y:auto';
+      row.before(list);
+      list.innerHTML = '<div style="height:500px"><span class="name-box"><span class="name-text">其他联系人</span>其他公司</span></div>';
+      row.hidden = true; list.append(row);
+      list.addEventListener('scroll', () => { row.hidden = false; row.scrollIntoView({ block: 'nearest' }); }, { once: true });
+    });
+    const expected = await selectConversation(page, job);
+    assert.equal(expected.recruiterName, job.facts.recruiterName);
+    assert.ok(await page.locator('#contacts').evaluate(element => element.scrollTop) > 0);
+    assert.equal(await page.locator('#chat-input').innerText(), '');
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+  });
+});
+
+test('duplicate recruiter names without unique company evidence block before editing', async () => {
+  await fixture(async page => {
+    await page.goto('https://www.zhipin.com/web/geek/chat');
+    await page.locator('.name-box').evaluate(element => element.after(element.cloneNode(true)));
+    await assert.rejects(selectConversation(page, job), /AMBIGUOUS_CONVERSATION/);
+    assert.equal(await page.locator('#chat-input').textContent(), '');
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+  }, { companyOutside: true });
+});
+
+test('unique recruiter with mismatched conversation company never receives a draft', async () => {
+  await fixture(async page => {
+    await page.goto('https://www.zhipin.com/web/geek/chat');
+    await assert.rejects(selectConversation(page, { ...job, company: '另一家公司' }), /CONVERSATION_RECIPIENT_MISMATCH/);
+    assert.equal(await page.locator('#chat-input').innerText(), '');
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+  }, { companyOutside: true });
 });
 
 test('disabled send control fails before submission and can resume the verified draft', async () => {
@@ -210,6 +307,19 @@ test('recipient change while reserving submission prevents any send action', asy
       },
     }), /CONVERSATION_RECIPIENT_MISMATCH/);
     assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+  });
+});
+
+test('button disabled during submission reservation is rechecked before clicking', async () => {
+  await fixture(async page => {
+    await contactThroughMessagePage(page, job, { greeting: '您好' });
+    await assert.rejects(sendConversationGreeting(page, { ...job, recruiterName: '测试联系人' }, '您好', {
+      beforeSubmit: async () => {
+        await page.locator('.btn-send').evaluate(element => { element.classList.add('is-disabled'); });
+      },
+    }), /CHAT_SEND_ACTION_UNAVAILABLE/);
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+    assert.equal(await page.locator('body').getAttribute('data-enter-presses'), null);
   });
 });
 

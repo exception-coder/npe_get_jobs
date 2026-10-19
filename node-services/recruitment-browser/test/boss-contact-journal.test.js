@@ -77,3 +77,28 @@ test('only explicit legacy draft failures can migrate to conversation-only recov
     });
   }
 });
+
+test('legacy draft-only reason cannot override submission flags', async () => {
+  for (const flags of [{ textAttempted: true }, { imageAttempted: true },
+    { textAttempted: 'true' }, { stage: 'TEXT_SUBMITTING' }]) {
+    await fixture(async (state, path) => {
+      await writeFile(path, JSON.stringify({ platformJobId: job.platformJobId,
+        reason: 'DRAFT_VERIFICATION_FAILED', conversationEstablished: true,
+        textSent: false, imageDelivered: false, ...flags }));
+      await assert.rejects(reserveContactAttempt({}, job, state), /ALREADY_ATTEMPTED_VERIFY_PLATFORM/);
+    });
+  }
+});
+
+test('legacy unavailable send control requires explicit proof of no submission before recovery', async () => {
+  await fixture(async (state, path) => {
+    await writeFile(path, JSON.stringify({ platformJobId: job.platformJobId,
+      reason: 'CONTACT_ACTION_UNAVAILABLE', conversationEstablished: true,
+      textSent: false, imageDelivered: false }));
+    await assert.rejects(reserveContactAttempt({}, job, state), /ALREADY_ATTEMPTED_VERIFY_PLATFORM/);
+    const record = JSON.parse(await readFile(path, 'utf8'));
+    await writeFile(path, JSON.stringify({ ...record, textAttempted: false, imageAttempted: false }));
+    const lease = await reserveContactAttempt({}, job, state);
+    try { assert.equal(lease.resumeConversation, true); } finally { await lease.release(); }
+  });
+});

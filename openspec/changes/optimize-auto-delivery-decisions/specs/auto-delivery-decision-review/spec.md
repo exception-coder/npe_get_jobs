@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Confirmed automatic delivery sends the greeting
-The system SHALL use the same prepare-then-confirm BOSS workflow for automatic delivery and single-job delivery. Automatic delivery SHALL require a `READY` contact preparation result before confirming contact. When `confirmContact` is true, it SHALL verify the recipient and exact draft, select one enabled send control in the conversation or use Enter when no control exists, and execute at most one submission action. It MUST NOT switch to a second action because the editor has not cleared promptly. It SHALL report success only after the editor clears and a new delivered or read receipt for the greeting appears. Attachment options MUST NOT downgrade a confirmed greeting to a draft.
+The system SHALL use the same prepare-then-confirm BOSS workflow for automatic delivery and single-job delivery. Automatic delivery SHALL require a `READY` contact preparation result before confirming contact. When `confirmContact` is true, it SHALL verify the recipient and exact draft, select one enabled send control in the conversation, and execute at most one submission action. Missing controls SHALL fail before submission; Enter MUST NOT be used as a guessed fallback. It MUST NOT switch to a second action because the editor has not cleared promptly. It SHALL report success only after the editor clears and a new delivered or read receipt for the greeting appears. Attachment options MUST NOT downgrade a confirmed greeting to a draft.
 
 #### Scenario: Automatic delivery confirms contact with default attachment options
 - **WHEN** automatic delivery submits a greeting with `confirmContact` true and no text-specific attachment option
@@ -27,6 +27,14 @@ The system SHALL use the same prepare-then-confirm BOSS workflow for automatic d
 - **WHEN** the actual draft or selected recipient differs from the confirmed input immediately before submission
 - **THEN** the system fails before executing a send action
 
+#### Scenario: Send control appears after rendering
+- **WHEN** the send control is initially missing or disabled and becomes uniquely available within the bounded readiness wait
+- **THEN** the system resolves the current control without pressing a send key or retaining stale button state
+
+#### Scenario: No verified send control exists
+- **WHEN** no unique enabled send control can be resolved
+- **THEN** the system fails before submission and does not guess an Enter action
+
 ### Requirement: Draft filling preserves user content
 The system SHALL compare actual editable text after normalizing line endings, non-breaking spaces and editor placeholder characters, without collapsing meaningful internal spaces or paragraphs. It SHALL preserve an existing different draft. It SHALL reuse an identical draft and SHALL NOT press a send key during draft preparation.
 
@@ -37,6 +45,25 @@ The system SHALL compare actual editable text after normalizing line endings, no
 #### Scenario: Framework ignores initial fill
 - **WHEN** fill leaves the editor empty after a bounded wait
 - **THEN** the system may use plain text insertion and verifies the resulting text without submitting it
+
+#### Scenario: Draft text exists but reactive send state is disabled
+- **WHEN** the draft text matches but the send control remains disabled
+- **THEN** one native-input refresh of the same or empty draft may be attempted, followed by bounded readiness verification; different user content MUST NOT be replaced and no send key may be pressed
+
+### Requirement: Conversation selection verifies identity and bounds discovery
+The system SHALL first reuse an already verified active conversation. Otherwise it SHALL use exact recruiter identity and company evidence when available to locate an unambiguous visible contact, then verify company, role and recruiter in the active conversation before preparing a draft. Discovery MAY scroll the contact list a bounded number of times, but SHALL NOT scroll the conversation body or the whole page. Missing or ambiguous identity MUST fail before draft insertion or submission.
+
+#### Scenario: Correct recovery conversation is already active but not in the sidebar
+- **WHEN** a draft-only attempt is being recovered and the current conversation proves the target company, role and recruiter
+- **THEN** it is reused without clicking a contact or the job contact entry
+
+#### Scenario: Company is not nested within the recruiter name box
+- **WHEN** an exact recruiter name uniquely identifies a visible candidate while its company label is elsewhere in the row
+- **THEN** the candidate may be opened but company, role and recruiter must all be verified in the conversation before editing
+
+#### Scenario: Contact list is lazy loaded
+- **WHEN** the target is not initially rendered and a scrollable ancestor of the contact rows exists
+- **THEN** discovery scrolls only that list within a fixed bound and verifies the selected conversation
 
 ### Requirement: Attempt journal distinguishes preparation from submission
 The system SHALL persist contact-entry, draft, text-submission and image-submission stages before consequential actions and SHALL protect concurrent attempts. It SHALL allow a later user-triggered attempt to resume a verified conversation when the previous attempt is provably draft-only. It MUST NOT repeat the contact-entry click during such recovery. Submitted, successful, ambiguous legacy, or locked attempts SHALL remain blocked until platform verification; elapsed time MUST NOT automatically authorize resending.
@@ -56,6 +83,14 @@ The system SHALL persist contact-entry, draft, text-submission and image-submiss
 #### Scenario: Concurrent attempt is active
 - **WHEN** another operation owns the page or the same journal lock
 - **THEN** the new attempt is rejected without opening contact or changing the draft
+
+#### Scenario: Native-input refresh fails before submission
+- **WHEN** a verified conversation fails draft or button readiness with no text or image submission
+- **THEN** the next attempt can recover the conversation without reopening contact
+
+#### Scenario: Legacy record contradicts its draft-only reason
+- **WHEN** a legacy record has a draft-only reason but also records a text or image submission attempt
+- **THEN** recovery is blocked rather than trusting the reason alone
 
 ### Requirement: BOSS search remains city-wide
 The system SHALL restrict BOSS searches at city level only. When a user names a district or county, the system SHALL resolve its parent city but MUST NOT send an `areaBusiness` district or business-area filter.

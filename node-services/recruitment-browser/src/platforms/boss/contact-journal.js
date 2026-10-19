@@ -9,18 +9,24 @@ const LEGACY_DRAFT_REASONS = new Set([
   'DRAFT_VERIFICATION_FAILED', 'EXISTING_DRAFT_NOT_OVERWRITTEN',
   'CONVERSATION_ESTABLISHED_TEXT_DRAFT_ONLY',
 ]);
+const LEGACY_PRE_SUBMIT_REASONS = new Set(['CONTACT_ACTION_UNAVAILABLE', 'CHAT_SEND_ACTION_UNAVAILABLE']);
 
 function canResume(record) {
   if (!record) return true;
   if (record.textSent === true || record.imageDelivered === true) return false;
+  if ([record.textAttempted, record.imageAttempted].some(value => value !== undefined && value !== false)) return false;
   if (record.schemaVersion === 2) {
     return ['RESERVED', 'CONVERSATION_READY', 'DRAFT_READY'].includes(record.stage)
       && record.textAttempted === false && record.imageAttempted === false
       && (record.entryAttempted === false || record.conversationEstablished === true);
   }
   if (record.schemaVersion !== undefined) return false;
+  if (record.stage !== undefined) return false;
+  const knownDraftOnly = LEGACY_DRAFT_REASONS.has(record.reason)
+    || (LEGACY_PRE_SUBMIT_REASONS.has(record.reason)
+      && record.textAttempted === false && record.imageAttempted === false);
   return record.conversationEstablished === true && record.textSent === false
-    && record.imageDelivered === false && LEGACY_DRAFT_REASONS.has(record.reason);
+    && record.imageDelivered === false && knownDraftOnly;
 }
 
 async function readRecord(path) {

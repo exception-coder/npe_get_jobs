@@ -56,4 +56,15 @@
 - [x] 9.3 按阶段记录并原子更新 journal，保护并发；已证明仅草稿的记录恢复会话，未知提交继续阻断
 - [x] 9.4 在断网浏览器夹具复现草稿、发送与防重分支，执行相关 Node/Java 回归并同步 revision、README 和规格
 
+## 10. BOSS 编辑器与联系人回归补齐
+
+- [x] 10.1 复现文字已填但按钮未就绪、按钮延迟挂载和联系人不在初始侧栏等缺口
+- [x] 10.2 拆分按钮就绪探测与原生输入刷新，不按发送键，不覆盖不同草稿，缺按钮时明确失败
+- [x] 10.3 优先复用当前会话，精确联系人定位及有界侧栏滚动，选中后复核完整身份
+- [x] 10.4 覆盖预提交恢复、历史提交标记冲突与未知尝试阻断，同步服务修订号及说明
+- [x] 10.5 运行隔离浏览器及相关 Java 回归，严格校验规格和运行修订号
+- [ ] 10.6 真实 BOSS 编辑器与联系人验收：按用户最新要求由测试人员执行，本轮不代替该验收，也不真实发送
+
+2026-10-19 验证：补充用例先在旧实现中复现响应式草稿、延迟按钮、外置公司标签、缺失侧栏、懒加载列表及历史日志矛盾问题。修复后 `node --test test/boss*.test.js test/platform-registry.test.js` 63 项通过；最终发送前再次探测按钮的补充改动执行 `node --test --test-name-pattern='button disabled during submission|explicitly confirmed contact|late-mounted' test/boss-contact-workflow.test.js`，3 项通过（其中 1 项新增、2 项为相关成功路径复验）。JDK 21 执行 `mvn package '-Dskip.installnodenpm=true' '-Dskip.npm=true' '-Dtest=PatchrightBrowserClientTest,TodayAutoDeliveryServiceTest,RecruitmentWorkflowServiceTest'`，14 项通过且 JAR 构建成功。临时回环端口启动 sidecar，仅 GET `/health` 验证 `2026-10-19-reactive-contact-v10` 后退出；OpenSpec 严格验证及 `git diff --check` 通过。所有聊天提交与附件测试均为请求完全拦截的隔离页面、临时日志；未访问真实发送接口、未改用户历史 journal。真实 Chrome 打开消息页后转登录页，用户明确改由测试人员验收；change 保持活动，不归档。
+
 2026-10-13 发送修复验证：`node --test test/boss*.test.js test/platform-registry.test.js` 51 项全绿；追加按钮启用等待及多行发送后，`node --test test/boss-contact-workflow.test.js` 当前 18 项全绿，其他未受影响套件复用前次结果。JDK 21 执行 `mvn package -Dskip.installnodenpm=true -Dskip.npm=true -Dtest=PatchrightBrowserClientTest,TodayAutoDeliveryServiceTest,RecruitmentWorkflowServiceTest`，13 项全绿且 JAR 构建成功。独立临时端口启动真实 Node sidecar，仅 GET `/health`，确认返回 `2026-10-13-single-submit-contact-v9` 后退出。聊天浏览器请求全部本地 fulfill，journal 使用并清理临时目录；未真实发送，未改用户 profiles 或历史 journal。原四岗位的实际聊天页和旧记录在当前环境不可取得，未声明真实送达验收。
