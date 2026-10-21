@@ -3,14 +3,10 @@ import { BOSS_EDITOR_SELECTOR, normalizeBossDraft, requireBossDraft } from './co
 import { verifyConversation } from './message-page.js';
 import { inspectBossSendControl, waitForBossSendControl } from './conversation-controls.js';
 
-async function resolveSendAction(page) {
+async function requireReadySendControl(page) {
   const control = await waitForBossSendControl(page);
   if (control.status !== 'ready') throw new Error('CHAT_SEND_ACTION_UNAVAILABLE');
-  return async () => {
-    const current = await inspectBossSendControl(page);
-    if (current.status !== 'ready') throw new Error('CHAT_SEND_ACTION_UNAVAILABLE');
-    await current.button.click({ timeout: 2000 });
-  };
+  return control;
 }
 
 function readReceiptSnapshot() {
@@ -50,15 +46,25 @@ export async function sendConversationGreeting(page, expected, greeting, options
   const editor = page.locator(BOSS_EDITOR_SELECTOR + ':visible');
   if (await editor.count() !== 1) throw new Error('CHAT_EDITOR_UNAVAILABLE');
   await requireBossDraft(editor, greeting);
-  const submit = await resolveSendAction(page);
+  await requireReadySendControl(page);
   const before = (await observeDelivery(page, greeting)).count;
   await editor.focus();
   await verifyConversation(page, expected);
   await requireBossDraft(editor, greeting);
   await options.beforeSubmit?.();
-  await verifyConversation(page, expected);
-  await requireBossDraft(editor, greeting);
-  await submit();
+  let control;
+  try {
+    await verifyConversation(page, expected);
+    await requireBossDraft(editor, greeting);
+    control = await inspectBossSendControl(page);
+    if (control.status !== 'ready') throw new Error('CHAT_SEND_ACTION_UNAVAILABLE');
+  } catch (error) {
+    // 此边界尚未调用 click，才有充分依据撤销提交预占。
+    await options.onNotSubmitted?.();
+    throw error;
+  }
+  // click 一旦被调用，即使抛错也不能证明消息没有发出。
+  await control.button.click({ timeout: 2000 });
   const deadline = Date.now() + (options.receiptTimeoutMs ?? 15_000);
   do {
     await verifyConversation(page, expected);

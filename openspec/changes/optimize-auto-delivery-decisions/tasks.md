@@ -68,3 +68,12 @@
 2026-10-19 验证：补充用例先在旧实现中复现响应式草稿、延迟按钮、外置公司标签、缺失侧栏、懒加载列表及历史日志矛盾问题。修复后 `node --test test/boss*.test.js test/platform-registry.test.js` 63 项通过；最终发送前再次探测按钮的补充改动执行 `node --test --test-name-pattern='button disabled during submission|explicitly confirmed contact|late-mounted' test/boss-contact-workflow.test.js`，3 项通过（其中 1 项新增、2 项为相关成功路径复验）。JDK 21 执行 `mvn package '-Dskip.installnodenpm=true' '-Dskip.npm=true' '-Dtest=PatchrightBrowserClientTest,TodayAutoDeliveryServiceTest,RecruitmentWorkflowServiceTest'`，14 项通过且 JAR 构建成功。临时回环端口启动 sidecar，仅 GET `/health` 验证 `2026-10-19-reactive-contact-v10` 后退出；OpenSpec 严格验证及 `git diff --check` 通过。所有聊天提交与附件测试均为请求完全拦截的隔离页面、临时日志；未访问真实发送接口、未改用户历史 journal。真实 Chrome 打开消息页后转登录页，用户明确改由测试人员验收；change 保持活动，不归档。
 
 2026-10-13 发送修复验证：`node --test test/boss*.test.js test/platform-registry.test.js` 51 项全绿；追加按钮启用等待及多行发送后，`node --test test/boss-contact-workflow.test.js` 当前 18 项全绿，其他未受影响套件复用前次结果。JDK 21 执行 `mvn package -Dskip.installnodenpm=true -Dskip.npm=true -Dtest=PatchrightBrowserClientTest,TodayAutoDeliveryServiceTest,RecruitmentWorkflowServiceTest`，13 项全绿且 JAR 构建成功。独立临时端口启动真实 Node sidecar，仅 GET `/health`，确认返回 `2026-10-13-single-submit-contact-v9` 后退出。聊天浏览器请求全部本地 fulfill，journal 使用并清理临时目录；未真实发送，未改用户 profiles 或历史 journal。原四岗位的实际聊天页和旧记录在当前环境不可取得，未声明真实送达验收。
+
+## 11. 原生键盘输入与预占误锁修复
+
+- [x] 11.1 复现仅 input/方向键不足以启用控件，以及落盘后预检失败留下错误提交标记
+- [x] 11.2 初次与刷新统一原生键盘输入，验证中文、多行、长度限制、不同草稿保护和零发送
+- [x] 11.3 只恢复明确未调用 click 的预检失败，覆盖持久化恢复、撤销日志写入失败与未知送达继续阻断
+- [x] 11.4 同步修订号、说明与验证证据，执行定向浏览器/Java 回归及严格规格检查
+
+2026-10-21 验证：新增浏览器场景先在旧实现复现正文编辑按键状态未更新与提交预占误锁；另用目录占位注入日志 rename 失败，复现未持久化恢复错误泄漏到最终结果。修复后 `node --test test/boss-contact-workflow.test.js test/boss-contact-journal.test.js test/boss-draft.test.js test/boss-message-page.test.js test/platform-registry.test.js` 66 项通过，耗时约 149 秒；后续只调整日志内存发布顺序，重跑 `node --test test/boss-contact-journal.test.js` 8 项，以及工作流的 `final preflight cancellation|draft-only journal can resume|failed draft verification persists` 三项，均通过。实际验证覆盖中文、多行零 Enter、500 字限制拒绝临时空格时不删真实正文、不同草稿保护、准备失败跨会话重复恢复、预占撤销失败保留不确定阶段、提交无回执不撤销防重。JDK 21 的相关三组 JUnit 共 15 项通过，JAR 构建成功；临时端口仅 GET `/health` 返回 `2026-10-21-keyboard-contact-v11`，随后退出。OpenSpec 严格验证及差异检查通过；所有聊天测试网络完全拦截、日志目录临时创建清理，没有真实发送或修改历史尝试。真实 BOSS 验收仍由测试人员完成，10.6 保持未完成。

@@ -94,9 +94,10 @@ export async function reserveContactAttempt(page, job, state) {
       entryAttempted: resumeConversation, conversationEstablished: resumeConversation,
       textAttempted: false, imageAttempted: false, textSent: false, imageDelivered: false };
     const update = async patch => {
-      record = { ...record, ...patch, recordedAt: new Date().toISOString() };
-      records.set(job.platformJobId, record);
-      if (path) await writeRecord(path, record);
+      const next = { ...record, ...patch, recordedAt: new Date().toISOString() };
+      if (path) await writeRecord(path, next);
+      record = next;
+      records.set(job.platformJobId, next);
     };
     await update({});
     return { resumeConversation, update, release };

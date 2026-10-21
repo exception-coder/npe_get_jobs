@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, writeFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, readdir, rm, mkdir, rename } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -100,5 +100,41 @@ test('legacy unavailable send control requires explicit proof of no submission b
     await writeFile(path, JSON.stringify({ ...record, textAttempted: false, imageAttempted: false }));
     const lease = await reserveContactAttempt({}, job, state);
     try { assert.equal(lease.resumeConversation, true); } finally { await lease.release(); }
+  });
+});
+
+test('pre-submit editor failures stay retryable across repeated sessions without clearing journal', async () => {
+  await fixture(async state => {
+    for (const reason of ['DRAFT_VERIFICATION_FAILED', 'CHAT_SEND_ACTION_UNAVAILABLE', 'CHAT_SEND_ACTION_UNAVAILABLE']) {
+      const lease = await reserveContactAttempt({}, job, state);
+      try {
+        await lease.update({ stage: 'DRAFT_READY', conversationEstablished: true,
+          status: 'FAILED', reason, textAttempted: false, imageAttempted: false });
+      } finally { await lease.release(); }
+    }
+    const recovered = await reserveContactAttempt({}, job, state);
+    try { assert.equal(recovered.resumeConversation, true); } finally { await recovered.release(); }
+  });
+});
+
+test('failed durable cancellation cannot leak draft-ready state into a later result write', async () => {
+  await fixture(async (state, path) => {
+    const lease = await reserveContactAttempt({}, job, state);
+    try {
+      await lease.update({ stage: 'TEXT_SUBMITTING', conversationEstablished: true, textAttempted: true });
+      await rename(path, path + '.previous');
+      await mkdir(path);
+      try {
+        await assert.rejects(lease.update({ stage: 'DRAFT_READY', textAttempted: false }));
+      } finally {
+        await rm(path, { recursive: true });
+        await rename(path + '.previous', path);
+      }
+      await lease.update({ status: 'FAILED', reason: 'CONTACT_JOURNAL_WRITE_FAILED_VERIFY_PLATFORM' });
+      const record = JSON.parse(await readFile(path, 'utf8'));
+      assert.equal(record.stage, 'TEXT_SUBMITTING');
+      assert.equal(record.textAttempted, true);
+    } finally { await lease.release(); }
+    await assert.rejects(reserveContactAttempt({}, job, state), /ALREADY_ATTEMPTED_VERIFY_PLATFORM/);
   });
 });

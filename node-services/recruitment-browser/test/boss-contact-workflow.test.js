@@ -4,6 +4,7 @@ import { chromium } from 'patchright';
 import { mkdtemp, writeFile, rm, readFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { reserveContactAttempt } from '../src/platforms/boss/contact-journal.js';
 import { contactThroughMessagePage, readResumeImage, verifyConversation, fillConversationDraft, sendConversationGreeting, selectConversation } from '../src/platforms/boss/contact-workflow.js';
 
 const job = { platformJobId: 'fixture-job', company: '测试公司', title: 'Java开发',
@@ -52,8 +53,16 @@ async function fixture(run, options = {}) {
               if (options.enterSends !== false) submitFixtureMessage();
             }
           });
-          editor.addEventListener('keyup', () => {
+          editor.addEventListener('keyup', event => {
             if (options.requireKeyUp && editor.innerText.trim()) document.querySelector('button').disabled = false;
+            if (options.requireTextEditingKey && !event.ctrlKey && !event.metaKey
+                && (event.key.length === 1 || event.key === 'Backspace')) {
+              document.body.dataset.editorValue = editor.innerText;
+              document.querySelector('button').disabled = !editor.innerText.trim();
+            }
+          });
+          editor.addEventListener('beforeinput', event => {
+            if (options.rejectOverflowSpace && event.data === ' ' && editor.innerText.length >= 500) event.preventDefault();
           });
           editor.addEventListener('input', () => {
             document.body.dataset.inputs = String(Number(document.body.dataset.inputs || 0) + 1);
@@ -141,11 +150,11 @@ test('contenteditable formatting and blank trailing lines verify without a send 
   });
 });
 
-test('ignored initial fill uses text insertion without pressing Enter or submitting', async () => {
+test('ignored native input fails safely without rewriting different text or submitting', async () => {
   await fixture(async page => {
     const result = await contactThroughMessagePage(page, job, { greeting: '您好\n期待沟通' });
-    assert.equal(result.status, 'SUCCEEDED', JSON.stringify(result));
-    assert.equal(await page.locator('#chat-input').innerText(), '您好\n期待沟通');
+    assert.equal(result.reason, 'DRAFT_VERIFICATION_FAILED', JSON.stringify(result));
+    assert.notEqual(await page.locator('#chat-input').innerText(), '您好\n期待沟通');
     assert.equal(await page.locator('body').getAttribute('data-enter-presses'), null);
     assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
   }, { ignoreFirstFill: true });
@@ -194,6 +203,33 @@ test('reactive readiness refreshes identical multiline draft without sending dur
     assert.equal(await page.locator('body').getAttribute('data-enter-presses'), null);
     assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
   }, { disabled: true, requireKeyUp: true });
+});
+
+test('native typing updates text-editing state for Chinese and multiline drafts without sending', async () => {
+  await fixture(async page => {
+    const greeting = 'Java 开发，您好\n期待沟通';
+    const result = await contactThroughMessagePage(page, job, { greeting });
+    assert.equal(result.status, 'SUCCEEDED', JSON.stringify({ result,
+      draft: await page.locator('#chat-input').innerText(),
+      enters: await page.locator('body').getAttribute('data-enter-presses') }));
+    assert.equal(await page.locator('.btn-send').isEnabled(), true);
+    assert.equal(await page.locator('body').getAttribute('data-editor-value'), greeting);
+    assert.equal(await page.locator('#chat-input').innerText(), greeting);
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+    assert.equal(await page.locator('body').getAttribute('data-enter-presses'), null);
+  }, { disabled: true, requireTextEditingKey: true });
+});
+
+test('keyboard event completion never deletes a real character when the editor rejects an extra space', async () => {
+  await fixture(async page => {
+    const greeting = '中'.repeat(500);
+    const result = await contactThroughMessagePage(page, job, { greeting });
+    assert.equal(result.status, 'SUCCEEDED', JSON.stringify(result));
+    assert.equal(await page.locator('#chat-input').innerText(), greeting);
+    assert.equal(await page.locator('.btn-send').isEnabled(), true);
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+    assert.equal(await page.locator('body').getAttribute('data-enter-presses'), null);
+  }, { disabled: true, requireTextEditingKey: true, rejectOverflowSpace: true });
 });
 
 test('native refresh never overwrites a draft changed while waiting for button readiness', async () => {
@@ -321,6 +357,43 @@ test('button disabled during submission reservation is rechecked before clicking
     assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
     assert.equal(await page.locator('body').getAttribute('data-enter-presses'), null);
   });
+});
+
+test('final preflight cancellation restores the durable draft stage only before clicking', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'boss-no-submit-'));
+  const state = { contactJournalDirectory: directory };
+  try {
+    await fixture(async page => {
+      await contactThroughMessagePage(page, job, { greeting: '您好' });
+      const lease = await reserveContactAttempt(page, job, state);
+      try {
+        await lease.update({ stage: 'DRAFT_READY', conversationEstablished: true });
+        await assert.rejects(sendConversationGreeting(page, { ...job, recruiterName: '测试联系人' }, '您好', {
+          beforeSubmit: async () => {
+            await lease.update({ stage: 'TEXT_SUBMITTING', textAttempted: true });
+            await page.locator('.btn-send').evaluate(element => element.classList.add('is-disabled'));
+          },
+          onNotSubmitted: async () => lease.update({ stage: 'DRAFT_READY', textAttempted: false }),
+        }), /CHAT_SEND_ACTION_UNAVAILABLE/);
+        assert.equal(await page.locator('body').getAttribute('data-submissions'), null);
+      } finally { await lease.release(); }
+      const recovered = await reserveContactAttempt({}, job, state);
+      try { assert.equal(recovered.resumeConversation, true); } finally { await recovered.release(); }
+    });
+  } finally { await rm(directory, { recursive: true }); }
+});
+
+test('uncertain submitted message never invokes pre-click cancellation', async () => {
+  await fixture(async page => {
+    await contactThroughMessagePage(page, job, { greeting: '您好' });
+    let cancellations = 0;
+    await assert.rejects(sendConversationGreeting(page, { ...job, recruiterName: '测试联系人' }, '您好', {
+      receiptTimeoutMs: 300,
+      onNotSubmitted: async () => { cancellations++; },
+    }), /TEXT_SEND_UNCERTAIN_VERIFY_PLATFORM/);
+    assert.equal(cancellations, 0);
+    assert.equal(await page.locator('body').getAttribute('data-submissions'), '1');
+  }, { noReceipt: true });
 });
 
 test('multiple enabled send controls do not pick an arbitrary recipient action', async () => {

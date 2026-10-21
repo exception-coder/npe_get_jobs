@@ -97,10 +97,16 @@ export async function contactThroughMessagePage(page, job, input, state) {
     result.draftFilled = true;
     await attempt.update({ stage: 'DRAFT_READY', draftFilled: true });
     if (input.confirmContact === true) {
-      await sendConversationGreeting(page, expected, input.greeting, { beforeSubmit: async () => {
-        await attempt.update({ stage: 'TEXT_SUBMITTING', textAttempted: true });
-        result.reason = 'TEXT_SEND_UNCERTAIN_VERIFY_PLATFORM';
-      } });
+      await sendConversationGreeting(page, expected, input.greeting, {
+        beforeSubmit: async () => {
+          await attempt.update({ stage: 'TEXT_SUBMITTING', textAttempted: true });
+          result.reason = 'TEXT_SEND_UNCERTAIN_VERIFY_PLATFORM';
+        },
+        onNotSubmitted: async () => {
+          await attempt.update({ stage: 'DRAFT_READY', textAttempted: false });
+          result.reason = undefined;
+        },
+      });
       result.textSent = true;
       result.reason = undefined;
       await attempt.update({ stage: 'TEXT_DELIVERED', textSent: true });

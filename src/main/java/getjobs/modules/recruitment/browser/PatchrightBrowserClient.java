@@ -20,7 +20,7 @@ import getjobs.modules.recruitment.domain.RecruitmentPlatformId;
 @Component
 @EnableConfigurationProperties(PatchrightProperties.class)
 public class PatchrightBrowserClient implements BrowserAutomationPort {
-    private static final String REQUIRED_API_REVISION = "2026-10-19-reactive-contact-v10";
+    private static final String REQUIRED_API_REVISION = "2026-10-21-keyboard-contact-v11";
     private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(45);
     private static final Duration ACTION_REQUEST_TIMEOUT = Duration.ofMinutes(10);
 

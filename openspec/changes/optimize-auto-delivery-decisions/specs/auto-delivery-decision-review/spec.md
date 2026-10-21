@@ -36,15 +36,19 @@ The system SHALL use the same prepare-then-confirm BOSS workflow for automatic d
 - **THEN** the system fails before submission and does not guess an Enter action
 
 ### Requirement: Draft filling preserves user content
-The system SHALL compare actual editable text after normalizing line endings, non-breaking spaces and editor placeholder characters, without collapsing meaningful internal spaces or paragraphs. It SHALL preserve an existing different draft. It SHALL reuse an identical draft and SHALL NOT press a send key during draft preparation.
+The system SHALL compare actual editable text after normalizing line endings, non-breaking spaces and editor placeholder characters, without collapsing meaningful internal spaces or paragraphs. It SHALL preserve an existing different draft. It SHALL reuse an identical draft and SHALL NOT press a send key during draft preparation. New or refreshed contenteditable drafts SHALL be entered through a focused editor and native keyboard typing rather than fill, direct DOM assignment or bulk insertText. Chinese and multiline input SHALL also complete a text-editing keyboard event cycle without submitting.
 
 #### Scenario: Contenteditable renders formatted lines
 - **WHEN** the editor wraps the greeting in blocks or adds an empty trailing line
 - **THEN** draft verification succeeds if its meaningful text matches the greeting
 
-#### Scenario: Framework ignores initial fill
-- **WHEN** fill leaves the editor empty after a bounded wait
-- **THEN** the system may use plain text insertion and verifies the resulting text without submitting it
+#### Scenario: Native typing is not accepted verbatim
+- **WHEN** the editor does not retain the intended text after native keyboard typing
+- **THEN** preparation fails without submission and without rewriting a different resulting draft
+
+#### Scenario: Chinese text requires editing-key events
+- **WHEN** typing Chinese characters supplies input events but the editor updates its send state only on a text-editing key event
+- **THEN** preparation completes that event cycle without changing the final greeting, pressing Enter or sending
 
 #### Scenario: Draft text exists but reactive send state is disabled
 - **WHEN** the draft text matches but the send control remains disabled
@@ -91,6 +95,18 @@ The system SHALL persist contact-entry, draft, text-submission and image-submiss
 #### Scenario: Legacy record contradicts its draft-only reason
 - **WHEN** a legacy record has a draft-only reason but also records a text or image submission attempt
 - **THEN** recovery is blocked rather than trusting the reason alone
+
+#### Scenario: Final preflight fails after the durable submission marker
+- **WHEN** the final draft, recipient or button validation fails after reserving submission but before any click is invoked
+- **THEN** the system may durably restore the draft-ready stage and report the actual preflight error, allowing a later conversation-only retry
+
+#### Scenario: Click invocation fails without a proven receipt
+- **WHEN** a click has been invoked or a delivery receipt is missing
+- **THEN** the system keeps the uncertain submission marker and MUST NOT release it based only on an exception or timeout
+
+#### Scenario: Cancellation journal cannot be persisted
+- **WHEN** restoration of the draft-ready stage fails to persist
+- **THEN** subsequent journal updates retain the previous uncertain stage rather than publishing an unpersisted recovery in memory
 
 ### Requirement: BOSS search remains city-wide
 The system SHALL restrict BOSS searches at city level only. When a user names a district or county, the system SHALL resolve its parent city but MUST NOT send an `areaBusiness` district or business-area filter.
